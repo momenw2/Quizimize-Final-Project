@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/resultPageStyle.css" />
+    <title>Quizmize - Result</title>
+  </head>
+  <body>
+    <%- include('partials/header.ejs') -%>
+    <div class="mainContainer">
+      <div class="scoreContainer">
+        <div class="rating">30%</div>
+        <div class="dataBox">
+          <p class="subject">
+            <span class="dataTxt">Subject : </span>Programming
+          </p>
+          <p class="quizList">
+            <span class="dataTxt">Quiz : </span>Var & Const
+          </p>
+          <p>
+            <span class="dataTxt">Correct Answers : </span
+            ><span class="score num">12 / 20</span>
+          </p>
+          <p>
+            <span class="dataTxt">Level : </span><span class="num lvl">22</span>
+          </p>
+          <p>
+            <span class="dataTxt">XP : </span><span class="num xp">390 </span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const ratings = document.querySelectorAll(".rating");
+      const subject = document.querySelector(".subject");
+      const quizList = document.querySelector(".quizList");
+      const score = document.querySelector(".score");
+      const xp = document.querySelector(".xp");
+      const lvl = document.querySelector(".lvl");
+
+      const url = "http://localhost:3000/user/userdata";
+
+      fetch(url)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Failed to fetch: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          const perc =
+            (data.quizHistory[data.quizHistory.length - 1].score /
+              data.quizHistory[data.quizHistory.length - 1].totalQuestions) *
+            100;
+
+          // Iterate over all rating items
+          ratings.forEach((rating) => {
+            // Get content and get score as an int
+            const ratingContent = perc;
+            const ratingScore = parseInt(ratingContent, 10);
+
+            // Define if the score is good, meh or bad according to its value
+            const scoreClass =
+              ratingScore < 40 ? "bad" : ratingScore < 60 ? "meh" : "good";
+
+            // Add score class to the rating
+            rating.classList.add(scoreClass);
+
+            // After adding the class, get its color
+            const ratingColor = window.getComputedStyle(rating).backgroundColor;
+
+            // Define the background gradient according to the score and color
+            const gradient = `background: conic-gradient(${ratingColor} ${ratingScore}%, transparent 0 100%)`;
+
+            // Set the gradient as the rating background
+            rating.setAttribute("style", gradient);
+            // Display percentage as a number
+            rating.innerHTML = `<span>${ratingContent}%</span>`;
+          });
+
+          // console.log(data.quizHistory[data.quizHistory.length - 1]);
+          subject.innerHTML = `<span class="dataTxt">Subject : </span>${
+            data.quizHistory[data.quizHistory.length - 1].subject
+          } - ${data.quizHistory[data.quizHistory.length - 1].quizTopic}
+        `;
+          quizList.innerHTML = `<span class="dataTxt">Quiz : </span>${
+            data.quizHistory[data.quizHistory.length - 1].quizList
+          }`;
+          score.innerHTML = `${
+            data.quizHistory[data.quizHistory.length - 1].score
+          } / ${data.quizHistory[data.quizHistory.length - 1].totalQuestions}`;
+          xp.innerHTML = `+${data.quizHistory[data.quizHistory.length - 1].xp}`;
+          lvl.innerHTML = `${data.level}`;
+        })
+        .catch((err) => {
+          console.warn(err.message);
+        });
+    </script>
+  </body>
+</html>

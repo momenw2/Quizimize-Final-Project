@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/header.css" />
+    <title>Quizimize</title>
+  </head>
+  <body>
+    <header>
+      <span class="logo"><a href="/">Quizimize</a></span>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="aboutUs">About Us</a></li>
+          <li><a href="/topics">Topics</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </nav>
+      <div class="nav-buttons">
+        <!-- Login and signup buttons -->
+        <% if(user) { %>
+        <div class="userContainer">
+          <div class="userData">
+            <p class="userLevel"><%= user.level %></p>
+            <p>
+              <a href="/profilePage" class="fullNameLink"
+                ><%= user.fullName %></a
+              >
+            </p>
+          </div>
+          <div class="userXpBox">
+            <p class="xpNum"><%= user.xp %> /2000 XP</p>
+            <div class="xpBar">
+              <div
+                class="xpBarRemaining"
+                style="width: <%= (2000 - user.xp) / 2000 * 100 %>%"
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <a href="user/logout" class="logoutButton">Log out</a>
+        <% } else { %>
+        <a href="/login" id="loginBtn">Login</a>
+        <a href="/signup" id="signupBtn">Sign up</a>
+        <% } %>
+      </div>
+    </header>
+  </body>
+</html>

@@ -1,0 +1,94 @@
+<!-- editProfilePage.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/editProfilePageStyle.css" />
+    <title>Edit Profile</title>
+  </head>
+  <body>
+    <%- include('partials/header.ejs') -%>
+    <div class="box">
+      <div class="wave -one"></div>
+      <div class="wave -two"></div>
+      <div class="wave -three"></div>
+    </div>
+    <div class="userContainer">
+      <div class="userDataBox">
+        <div class="data-box">
+          <h2 class="userName"><%= user.fullName.toUpperCase() %></h2>
+        </div>
+        <form id="editProfileForm" method="POST">
+          <div>
+            <input
+              type="text"
+              name="fullName"
+              id="fullName"
+              value="<%= user.fullName %>"
+              required
+            />
+          </div>
+          <div>
+            <input
+              type="email"
+              name="email"
+              id="email"
+              value="<%= user.email %>"
+              required
+            />
+          </div>
+
+          <button type="submit" class="editButton">Save Changes</button>
+        </form>
+      </div>
+    </div>
+    <script>
+      // Fetch user data
+      window.addEventListener("DOMContentLoaded", () => {
+        const url = "/user/userdata";
+        fetch(url)
+          .then((res) => {
+            if (!res.ok) {
+              throw new Error(`Failed to fetch: ${res.status}`);
+            }
+            return res.json();
+          })
+          .then((data) => {
+            document.getElementById("fullName").value = data.fullName;
+            document.getElementById("email").value = data.email;
+          })
+          .catch((err) => {
+            console.warn(err.message);
+          });
+      });
+
+      // Handle form submission
+      const editProfileForm = document.getElementById("editProfileForm");
+      editProfileForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const formData = new FormData(editProfileForm);
+        const userData = {};
+        for (var pair of formData.entries()) {
+          userData[pair[0]] = pair[1];
+        }
+        fetch("/user/updateProfile", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(userData),
+        })
+          .then((res) => {
+            if (!res.ok) {
+              throw new Error(`Failed to update profile: ${res.status}`);
+            }
+            window.location.href = "/profilePage";
+          })
+          .catch((error) => {
+            console.error("Error updating profile:", error.message);
+          });
+      });
+    </script>
+  </body>
+</html>

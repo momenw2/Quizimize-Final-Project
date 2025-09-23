@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/secondTopicsPageStyle.css" />
+    <title>Quizimize - Programming</title>
+  </head>
+  <body>
+    <%- include('partials/header.ejs') -%>
+    <div class="topicHeader"></div>
+
+    <div class="topicsContainer"></div>
+    <script type="module">
+      // Retrieve the clicked card's name from local storage
+      const clickedCardName = localStorage.getItem("clickedCardName");
+      const topicsContainer = document.querySelector(".topicsContainer");
+      const subjectHeader = document.querySelector(".topicHeader");
+
+      const url = "http://localhost:3000/subject";
+
+      fetch(url)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Failed to fetch: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          data.forEach((subject) => {
+            if (subject.name === clickedCardName) {
+              subjectHeader.innerHTML += `<p>${subject.name}</p>`;
+              subject.subjects.forEach((sub) => {
+                const topicBox = document.createElement("div");
+                topicBox.classList.add("topicBox");
+                topicBox.innerHTML = `<a href="/quizTopics">${sub.name}</a>`;
+                topicBox.addEventListener("click", () => {
+                  localStorage.setItem("selectedSubjectName", sub.name);
+                });
+                topicsContainer.appendChild(topicBox);
+              });
+            }
+          });
+        })
+        .catch((err) => {
+          console.warn(err.message);
+        });
+    </script>
+  </body>
+</html>

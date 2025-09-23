@@ -1,0 +1,113 @@
+@import url("https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+  font-family: "Raleway", sans-serif;
+}
+body {
+  background-color: #f8f8f8;
+}
+
+.question {
+  background-color: rgb(234, 234, 234);
+  border: 1px solid #04b101;
+  margin-bottom: 20px;
+  border-radius: 20px;
+  padding-left: 40px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  width: 900px;
+  margin-left: 100px;
+  margin-top: 40px;
+}
+
+h2 {
+  margin-bottom: 30px;
+}
+.greentxt {
+  color: #04b101;
+}
+
+p {
+  margin-bottom: 10px;
+}
+
+li {
+  margin-bottom: 9px;
+  font-weight: 600;
+}
+ul {
+  margin-bottom: 10px;
+}
+
+.deleteQuestionBtn {
+  background-color: #f44336; /* Red */
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 12px;
+  margin-top: 20px;
+  cursor: pointer;
+}
+
+.deleteQuestionBtn:hover {
+  background-color: #d32f2f;
+}
+
+.editQuestionBtn,
+#updateQuestionBtn,
+#addQuestionBtn,
+#showNewQuestionFormBtn {
+  background-color: #04b101;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 12px;
+  margin-top: 20px;
+  cursor: pointer;
+}
+
+.editQuestionBtn:hover,
+#updateQuestionBtn:hover,
+#addQuestionBtn:hover,
+#showNewQuestionFormBtn:hover {
+  background-color: #049a01;
+}
+
+#newQuestionInput,
+#choice1,
+#choice2,
+#choice3,
+#choice4,
+#editQuestionInput,
+#editChoice1,
+#editChoice2,
+#editChoice3,
+#editChoice4 {
+  border-radius: 20px;
+  height: 25px;
+  border: 1px solid rgb(58, 58, 58);
+  background-color: #f8f8f8;
+  padding-left: 10px;
+}
+
+#showNewQuestionFormBtn {
+  margin-left: 100px;
+}
+
+#newQuestionForm {
+  margin-left: 100px;
+}
+.addTxt,
+.editTxt {
+  margin-bottom: 10px;
+}
+
+#correctAnswer,
+#editCorrectAnswer {
+  border-radius: 20px;
+  height: 27px;
+  border: 1px solid rgb(58, 58, 58);
+  background-color: #f8f8f8;
+}

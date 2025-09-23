@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/profilePageStyle.css" />
+    <title>Quizimize</title>
+  </head>
+  <body>
+    <header>
+      <span class="logo"><a href="/">Quizimize</a></span>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#">About Us</a></li>
+          <li><a href="/topics">Topics</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </nav>
+      <div class="nav-buttons">
+        <!-- Login and signup buttons -->
+        <% if(user) { %>
+        <a href="user/logout" class="logoutButton">Log out</a>
+        <% } else { %>
+        <a href="/login" id="loginBtn">Login</a>
+        <a href="/signup" id="signupBtn">Sign up</a>
+        <% } %>
+      </div>
+    </header>
+
+    <div class="userContainer">
+      <div class="userProfileImageBox">
+        <img src="/profileImg.png" class="profileImg" alt="" />
+      </div>
+      <div class="userDataBox">
+        <h2><%= user.fullName.toUpperCase() %></h2>
+        <p><span class="dataName">Email:</span> <%= user.email%></p>
+        <p><span class="dataName">Level:</span> <%= user.level%></p>
+        <p><span class="dataName">XP:</span> <%= user.xp%> / 2000</p>
+        <a href="/editProfile" class="editButton">Edit</a>
+        <% if(user.admin) { %>
+        <a href="/adminDashboard" class="adminEditButton">Edit content</a>
+        <% } %>
+      </div>
+    </div>
+    <div class="historyContainer">
+      <div class="historyTxtBox">
+        <p class="historyTxt">History</p>
+      </div>
+      <div class="koko">
+        <!-- History will be dynamically added here -->
+      </div>
+    </div>
+    <script>
+      const koko = document.querySelector(".koko");
+
+      const url = "http://localhost:3000/user/userdata";
+
+      fetch(url)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Failed to fetch: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          for (let i = data.quizHistory.length - 1; i >= 0; i--) {
+            let perc =
+              (data.quizHistory[i].score / data.quizHistory[i].totalQuestions) *
+              100;
+
+            const ratingBox = document.createElement("div");
+            ratingBox.classList.add("ratingBox");
+
+            const rating = document.createElement("div");
+            rating.classList.add("rating");
+
+            const ratingContent = perc;
+            const ratingScore = parseInt(ratingContent, 10);
+
+            const scoreClass =
+              ratingScore < 40 ? "bad" : ratingScore < 60 ? "meh" : "good";
+            rating.classList.add(scoreClass);
+
+            const ratingColor =
+              ratingScore < 40
+                ? "#e74c3c"
+                : ratingScore < 60
+                ? "#f1c40f"
+                : "#27ae60";
+            const gradient = `background: conic-gradient(${ratingColor} ${ratingScore}%, transparent 0 100%)`;
+
+            rating.setAttribute("style", gradient);
+            rating.innerHTML = `<span>${ratingContent}%</span>`;
+
+            ratingBox.appendChild(rating);
+
+            const historyBox = document.createElement("div");
+            historyBox.classList.add("historyBox");
+
+            const historyTitleBox = document.createElement("div");
+            historyTitleBox.classList.add("historyTitleBox");
+            const title = document.createElement("p");
+            title.classList.add("title");
+            title.innerText = `${data.quizHistory[i].subject} - ${data.quizHistory[i].quizList}`;
+            historyTitleBox.appendChild(title);
+
+            const quizdataBox = document.createElement("div");
+            quizdataBox.classList.add("quizdataBox");
+            const correctAnwers = document.createElement("p");
+            correctAnwers.classList.add("correctAnwers");
+            correctAnwers.innerHTML = `<span class="bold">Correct Answers :</span> ${data.quizHistory[i].score} / ${data.quizHistory[i].totalQuestions}`;
+            const date = document.createElement("p");
+            date.classList.add("date");
+            date.innerHTML = `<span class="bold">Date :</span> ${data.quizHistory[i].date}`;
+            quizdataBox.appendChild(correctAnwers);
+            quizdataBox.appendChild(date);
+
+            historyBox.appendChild(ratingBox);
+            historyBox.appendChild(historyTitleBox);
+            historyBox.appendChild(quizdataBox);
+
+            koko.appendChild(historyBox);
+          }
+        })
+        .catch((err) => {
+          console.warn(err.message);
+        });
+
+      // Redirect to edit profile page when Edit button is clicked
+      const editButton = document.querySelector(".editButton");
+      editButton.addEventListener("click", () => {
+        window.location.href = "/editProfile";
+      });
+    </script>
+  </body>
+</html>

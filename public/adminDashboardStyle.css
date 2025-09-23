@@ -1,0 +1,88 @@
+@import url("https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+  font-family: "Raleway", sans-serif;
+}
+body {
+  background-color: #f8f8f8;
+}
+
+.container {
+  margin-left: 100px;
+  margin-top: 30px;
+}
+#topicList {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 40px;
+}
+
+#topicList a {
+  display: block;
+  padding: 10px;
+  width: 90%;
+  border-bottom: 1px solid #ccc;
+  text-decoration: none;
+  color: #333;
+}
+
+#topicList a:hover {
+  background-color: #d6d6d6;
+  color: #04c000;
+}
+
+/* Form styles */
+input[type="text"] {
+  width: 200px;
+  padding: 5px;
+  margin-right: 10px;
+}
+
+button {
+  padding: 8px 15px;
+  background-color: #04c000;
+  border-radius: 20px;
+  height: 40px;
+  width: 75px;
+  border: none;
+  cursor: pointer;
+  color: #333;
+}
+
+button:hover {
+  background-color: rgb(158, 158, 158);
+  color: #f4f4f4;
+}
+
+#newTopicNameInput {
+  border-radius: 20px;
+  height: 25px;
+  border: 1px solid black;
+  background-color: #f8f8f8;
+}
+
+#topicNameInput {
+  border-radius: 20px;
+  height: 25px;
+  border: 1px solid black;
+  background-color: #f8f8f8;
+  margin-bottom: 10px;
+}
+#topicSelect {
+  border-radius: 20px;
+  height: 34px;
+  border: 1px solid black;
+  background-color: #f8f8f8;
+}
+#deleteTopicSelect {
+  border-radius: 20px;
+  height: 34px;
+  border: 1px solid rgb(58, 58, 58);
+  background-color: #f8f8f8;
+}
+
+h2 {
+  margin-bottom: 10px;
+}

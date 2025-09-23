@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- <link rel="stylesheet" href="../../../css/thirdTopicsPageStyle.css" /> -->
+    <link rel="stylesheet" href="/quizTopicPageStyle.css" />
+    <title>Quizimize - Python</title>
+  </head>
+  <body>
+    <%- include('partials/header.ejs') -%>
+
+    <div class="topicHeader"></div>
+
+    <div class="topicsContainer"></div>
+
+    <script>
+      const topicsContainer = document.querySelector(".topicsContainer");
+      const topicHeader = document.querySelector(".topicHeader");
+      const url = "http://localhost:3000/quizTopic";
+      const selectedSubjectName = localStorage.getItem("selectedSubjectName");
+
+      // Function to handle when a topic box is clicked
+      function handleTopicBoxClick(topicName) {
+        // Save the clicked topic name in local storage
+        localStorage.setItem("selectedTopicName", topicName);
+      }
+
+      fetch(url)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Failed to fetch: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          if (!data || !Array.isArray(data)) {
+            throw new Error("Invalid data format");
+          }
+          data.forEach((data) => {
+            if (selectedSubjectName === data.name) {
+              topicHeader.innerHTML = `<p>${data.subject} - ${data.name}</p>`;
+              data.quizTopics.forEach((topic) => {
+                const topicBox = document.createElement("div");
+                topicBox.classList.add("topicBox");
+                // Store the topic name in a variable
+                const topicName = topic.name;
+                // Create the inner HTML content for the topic box
+                topicBox.innerHTML = `
+            <div class="boxContent">
+              <div class="quizname">
+                <a href="/quizLists" class="topicLink">${topicName}</a>
+              </div>
+              <div class="quizesNum">
+                <p>${topic.done} / ${topic.total}</p>
+              </div>
+            </div>
+          `;
+                // Append the topic box to the topics container
+                topicsContainer.appendChild(topicBox);
+
+                // Add click event listener to the topic link inside the topic box
+                const topicLink = topicBox.querySelector(".topicLink");
+                topicLink.addEventListener("click", () => {
+                  handleTopicBoxClick(topicName); // Call function to handle click
+                });
+              });
+            }
+          });
+        })
+        .catch((err) => {
+          console.log(err.message);
+        });
+    </script>
+  </body>
+</html>

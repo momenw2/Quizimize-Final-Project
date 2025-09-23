@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/quizListPageStyle.css">
+  <title>Quizimize</title>
+</head>
+<body>
+  <%- include('partials/header.ejs') -%>
+
+  <div class="topicHeader">
+  </div>
+  
+  <div class="filterContainer">
+    <form action="#" class="filterForm">
+      
+    <div class="difficultyFilterContainer filterBoxContainer">
+      <label for="difficulty" class="labeltext">Difficulty:</label>
+          <select name="difficulty" id="difficulty" class="filterbox">
+            <option value="All">All</option>
+            <option value="Easy">Easy</option>
+            <option value="Medium">Medium</option>
+            <option value="Hard">Hard</option>
+          </select>
+        </form>
+    </div>
+      
+
+    <div class="statusFilterContainer filterBoxContainer">
+      <label for="status" class="labeltext">Status:</label>
+          <select name="status" id="status" class="filterbox">
+            <option value="All">All</option>
+            <option value="Todo">Todo</option>
+            <option value="Done">Done</option>
+          </select>
+        </form>
+    </div>
+
+    <div class="filterButtonContainer" class="submitButtonConatiner">
+      <input type="submit" value="Filter" class="submitButton">
+    </div>
+
+    </form>
+  </div>
+  
+  <div class="cardsContainer">
+    <div class="Cardsbox">
+
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+  const cardBox = document.querySelector(".Cardsbox");
+  const filterFormButton = document.querySelector(".submitButton");
+  const filterDifficulty = document.querySelector("#difficulty");
+  const selectedTopicName = localStorage.getItem("selectedTopicName");
+  const selectedSubjectName = localStorage.getItem("selectedSubjectName");
+
+  const cardDifficulty = {
+    Easy: "cardDifficultyEasy",
+    Medium: "cardDifficultyMedium",
+    Hard: "cardDifficultyHard",
+  };
+
+  const url = "http://localhost:3000/quizList";
+  fetch(url)
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`Failed to fetch: ${res.status}`);
+      }
+      return res.json();
+    })
+    .then((data) => {
+      if (!data || !Array.isArray(data)) {
+        throw new Error("Invalid data format");
+      }
+
+      // Function to render cards
+      const renderCards = (quizlist) => {
+        cardBox.innerHTML = "";
+        quizlist.forEach((card) => {
+          const cardItem = document.createElement("div");
+          cardItem.classList.add("cardItem");
+          const cardLink = document.createElement("a");
+          cardLink.href = '/quizPages';
+          cardLink.classList.add("cardLink");
+          cardLink.addEventListener("click", () => {
+            localStorage.setItem("selectedCardTitle", card.cardTitle);
+          });
+
+          const cardBackground = document.createElement("div");
+          cardBackground.classList.add(card.cardBackground);
+
+          const cardTitle = document.createElement("div");
+          cardTitle.classList.add("cardTitle");
+          cardTitle.textContent = card.cardTitle;
+
+          const cardDifficultyBox = document.createElement("div");
+          cardDifficultyBox.classList.add("cardDifficultyBox");
+          cardDifficultyBox.innerHTML = `
+                      Difficulty:
+                      <span class="${card.cardDifficulty}">
+                          ${card.Difficulty}
+                      </span>
+                  `;
+
+          cardLink.appendChild(cardBackground);
+          cardLink.appendChild(cardTitle);
+          cardLink.appendChild(cardDifficultyBox);
+
+          cardItem.appendChild(cardLink);
+          cardBox.appendChild(cardItem);
+        });
+      };
+
+      // Initial render
+      data.forEach((topic) => {
+        if (
+          topic.name === selectedTopicName &&
+          topic.quizTopic === selectedSubjectName
+        ) {
+          renderCards(topic.quizlist);
+        }
+      });
+
+      // Filter functionality
+      filterFormButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        const selectedDifficulty = filterDifficulty.value;
+        const filteredQuizList = data
+          .filter(
+            (topic) =>
+              topic.name === selectedTopicName &&
+              topic.quizTopic === selectedSubjectName
+          )
+          .flatMap((topic) =>
+            topic.quizlist.filter(
+              (card) =>
+                selectedDifficulty === "All" ||
+                card.Difficulty === selectedDifficulty
+            )
+          );
+        renderCards(filteredQuizList);
+      });
+    })
+    .catch((err) => {
+      console.log(err.message);
+    });
+});
+
+  </script>
+  
+</body>
+</html>

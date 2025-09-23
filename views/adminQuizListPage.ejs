@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/adminQuizListStyle.css" />
+    <title>Quizimize</title>
+  </head>
+  <body>
+    <%- include('partials/header.ejs') -%>
+
+    <div class="topicHeader"></div>
+
+    <div class="cardsContainer">
+      <div class="Cardsbox"></div>
+    </div>
+
+    <div class="addQuizForm">
+      <form id="addQuizForm">
+        <h2>Add New Quiz List</h2>
+        <label for="quizTitle">Quiz Title:</label>
+        <input
+          type="text"
+          id="quizTitle"
+          name="quizTitle"
+          required
+        /><br /><br />
+        <label for="difficulty">Difficulty:</label>
+        <select id="difficulty" name="difficulty" required>
+          <option value="Easy">Easy</option>
+          <option value="Medium">Medium</option>
+          <option value="Hard">Hard</option></select
+        ><br /><br />
+        <button type="submit" class="addQuizTopicBtn">Add</button>
+      </form>
+    </div>
+
+    <!-- <div class="editQuizForm">
+      <h2>Edit Quiz Title</h2>
+      <select id="quizSelect">
+        <option value="" disabled selected>Select a quiz to edit</option>
+      </select>
+      <input type="text" id="newQuizTitleInput" placeholder="New Quiz Title" />
+      <button id="editQuizTitleBtn">Edit</button>
+    </div> -->
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const cardBox = document.querySelector(".Cardsbox");
+        const addQuizForm = document.getElementById("addQuizForm");
+        const editQuizForm = document.querySelector(".editQuizForm");
+        const topicHeader = document.querySelector(".topicHeader");
+        // const quizSelect = document.getElementById("quizSelect");
+        const newQuizTitleInput = document.getElementById("newQuizTitleInput");
+        const editQuizTitleBtn = document.getElementById("editQuizTitleBtn");
+        const selectedTopicName = localStorage.getItem("selectedTopicName");
+        const selectedSubjectName = localStorage.getItem("selectedSubjectName");
+
+        const cardDifficulty = {
+          Easy: {
+            class: "cardDifficultyEasy",
+            background: "cardBackgroundEasy",
+          },
+          Medium: {
+            class: "cardDifficultyMedium",
+            background: "cardBackgroundMedium",
+          },
+          Hard: {
+            class: "cardDifficultyHard",
+            background: "cardBackgroundHard",
+          },
+        };
+
+        topicHeader.innerHTML = `<p>${selectedSubjectName} - ${selectedTopicName}<p>`;
+
+        const renderCards = (quizlist) => {
+          cardBox.innerHTML = "";
+          quizlist.forEach((card) => {
+            const cardItem = document.createElement("div");
+            cardItem.classList.add("cardItem");
+            const cardLink = document.createElement("a");
+            cardLink.href = "/adminQuiz";
+            cardLink.classList.add("cardLink");
+            cardLink.addEventListener("click", () => {
+              localStorage.setItem("selectedCardTitle", card.cardTitle);
+            });
+
+            const cardBackground = document.createElement("div");
+            cardBackground.classList.add(card.cardBackground);
+
+            const cardTitle = document.createElement("div");
+            cardTitle.classList.add("cardTitle");
+            cardTitle.textContent = card.cardTitle;
+
+            const cardDifficultyBox = document.createElement("div");
+            cardDifficultyBox.classList.add("cardDifficultyBox");
+            cardDifficultyBox.innerHTML = `
+                  Difficulty:
+                  <span class="${card.cardDifficulty.class}">
+                      ${card.Difficulty}
+                  </span>
+              `;
+
+            const deleteButton = document.createElement("button");
+            deleteButton.textContent = "Delete";
+            deleteButton.classList.add("deleteButton");
+            deleteButton.addEventListener("click", () => {
+              deleteQuiz(card._id);
+            });
+
+            cardLink.appendChild(cardBackground);
+            cardLink.appendChild(cardTitle);
+            cardLink.appendChild(cardDifficultyBox);
+            cardLink.appendChild(deleteButton);
+
+            cardItem.appendChild(cardLink);
+            cardBox.appendChild(cardItem);
+          });
+        };
+
+        const deleteQuiz = (quizId) => {
+          if (confirm("Are you sure you want to delete this quiz?")) {
+            fetch(
+              `http://localhost:3000/quizList/delete/${selectedSubjectName}/${selectedTopicName}/${quizId}`,
+              {
+                method: "DELETE",
+              }
+            )
+              .then((response) => response.json())
+              .then((data) => {
+                renderCards(data.quizlist);
+                window.location.reload(); // Reload the page
+              })
+              .catch((error) => {
+                console.error("Error:", error);
+              });
+          }
+        };
+
+        addQuizForm.addEventListener("submit", function (event) {
+          event.preventDefault();
+          const quizTitle = document.getElementById("quizTitle").value;
+          const difficulty = document.getElementById("difficulty").value;
+
+          const newQuiz = {
+            cardTitle: quizTitle,
+            cardBackground: cardDifficulty[difficulty].background,
+            cardDifficulty: cardDifficulty[difficulty].class,
+            Difficulty: difficulty,
+          };
+
+          let groupExists = false;
+
+          fetch("http://localhost:3000/quizList")
+            .then((res) => {
+              if (!res.ok) {
+                throw new Error(`Failed to fetch: ${res.status}`);
+              }
+              return res.json();
+            })
+            .then((data) => {
+              if (!data || !Array.isArray(data)) {
+                throw new Error("Invalid data format");
+              }
+
+              // Check if the group already exists
+              data.forEach((group) => {
+                if (
+                  group.name === selectedTopicName &&
+                  group.quizTopic === selectedSubjectName
+                ) {
+                  groupExists = true;
+                  const patchUrl = `http://localhost:3000/quizList/update/${selectedSubjectName}/${selectedTopicName}`;
+
+                  fetch(patchUrl, {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(newQuiz),
+                  })
+                    .then((response) => response.json())
+                    .then((data) => {
+                      renderCards(data.quizlist);
+                    })
+                    .catch((error) => {
+                      console.error("Error:", error);
+                    });
+                }
+              });
+
+              // If group doesn't exist, create a new one
+              if (!groupExists) {
+                const newGroup = {
+                  name: selectedTopicName,
+                  quizTopic: selectedSubjectName,
+                  quizlist: [newQuiz],
+                };
+                const postUrl = "http://localhost:3000/quizList";
+
+                fetch(postUrl, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify(newGroup),
+                })
+                  .then((response) => response.json())
+                  .then((data) => {
+                    renderCards(data.quizlist);
+                  })
+                  .catch((error) => {
+                    console.error("Error:", error);
+                  });
+              }
+            })
+            .catch((err) => {
+              console.log(err.message);
+            });
+        });
+
+        // editQuizTitleBtn.addEventListener("click", function () {
+        //   const selectedQuizIndex = quizSelect.selectedIndex;
+        //   const newTitle = newQuizTitleInput.value.trim();
+        //   if (selectedQuizIndex !== -1 && newTitle) {
+        //     const selectedQuiz = quizSelect.options[selectedQuizIndex].value;
+        //     const patchUrl = `http://localhost:3000/quizList/updateTitle/${selectedSubjectName}/${selectedTopicName}/${selectedQuiz}`;
+        //     fetch(patchUrl, {
+        //       method: "PATCH",
+        //       headers: {
+        //         "Content-Type": "application/json",
+        //       },
+        //       body: JSON.stringify({ newTitle }),
+        //     })
+        //       .then((response) => response.json())
+        //       .then((data) => {
+        //         renderCards(data.quizlist);
+        //       })
+        //       .catch((error) => {
+        //         console.error("Error:", error);
+        //       });
+        //   } else {
+        //     alert("Please select a quiz and enter a new title.");
+        //   }
+        // });
+
+        // Fetch and render quiz list
+        fetch("http://localhost:3000/quizList")
+          .then((res) => {
+            if (!res.ok) {
+              throw new Error(`Failed to fetch: ${res.status}`);
+            }
+            return res.json();
+          })
+          .then((data) => {
+            if (!data || !Array.isArray(data)) {
+              throw new Error("Invalid data format");
+            }
+
+            // Filter quizzes by selected subject and topic
+            const selectedQuizzes = data.find(
+              (group) =>
+                group.name === selectedTopicName &&
+                group.quizTopic === selectedSubjectName
+            );
+
+            if (selectedQuizzes) {
+              renderCards(selectedQuizzes.quizlist);
+              selectedQuizzes.quizlist.forEach((quiz) => {
+                const option = document.createElement("option");
+                option.value = quiz._id;
+                option.textContent = quiz.cardTitle;
+                quizSelect.appendChild(option);
+              });
+            }
+          })
+          .catch((err) => {
+            console.log(err.message);
+          });
+      });
+    </script>
+  </body>
+</html>

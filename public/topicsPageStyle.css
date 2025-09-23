@@ -1,0 +1,125 @@
+@import url("https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+  font-family: "Raleway", sans-serif;
+}
+body {
+  background-color: #f8f8f8;
+}
+.logo {
+  color: #04c000;
+}
+
+li,
+a,
+button {
+  text-decoration: none;
+  list-style: none;
+  color: #000000;
+}
+
+/* NavBar */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30px 10%;
+}
+.logo a {
+  color: #04c000;
+  font-size: 35px;
+}
+.nav-links {
+  display: flex;
+}
+.nav-links li {
+  margin: 0px 30px;
+  font-size: 18px;
+  font-weight: 500;
+}
+.nav-links li a {
+  color: #464646;
+}
+.nav-buttons {
+  display: flex;
+}
+.nav-buttons a {
+  margin: 0px 12px;
+  border: 1px solid #d9d9d9;
+  padding: 10px;
+  height: 20px;
+  width: 60px;
+  text-align: center;
+  border-radius: 22px;
+}
+.nav-links li a:hover {
+  color: #04c000;
+}
+.nav-buttons a:hover {
+  background-color: #04c000;
+  color: #f8f8f8;
+}
+
+.cardsContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+.card {
+  margin: 50px;
+  width: 300px;
+  height: 270px;
+  border-radius: 30px;
+  border: 1px solid #04c000;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.cardsContainer {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.card {
+  width: calc(
+    50% - 20px
+  ); /* Adjust the width of each card, considering margins */
+  margin: 10px; /* Adjust the margin between cards */
+}
+
+/* Target every second card */
+.card:nth-child(2n) {
+  margin-right: 0; /* Remove the right margin for every second card */
+}
+
+.cardName {
+  font-size: 26px;
+  font-weight: 500;
+  color: #04c000;
+  display: block;
+  padding: 98px;
+}
+.card:hover {
+  --s: 6px; /* control the size */
+  --g: #0000 66%, #03c0003e 68% 98%, #0000;
+  background: radial-gradient(30% 30% at 0% 30%, var(--g)) var(--s)
+      calc(9 * var(--s)),
+    radial-gradient(30% 30% at 100% 30%, var(--g)) var(--s) calc(-1 * var(--s)),
+    radial-gradient(30% 30% at 30% 100%, var(--g)) calc(10 * var(--s)) 0,
+    radial-gradient(30% 30% at 30% 0%, var(--g)) #f8f8f8;
+  background-size: calc(20 * var(--s)) calc(20 * var(--s));
+  border: 0;
+  /* box-shadow: rgba(17, 12, 46, 0.15) 0px 48px 100px 0px; */
+  box-shadow: rgba(0, 0, 0, 0.15) 0px 15px 25px,
+    rgba(0, 0, 0, 0.05) 0px 5px 10px;
+  transition-duration: 650ms;
+  /* box-shadow: 0 5px 20px 5px #00000044; */
+}
+.cardName:hover {
+  color: #464646;
+  font-size: 30px;
+}

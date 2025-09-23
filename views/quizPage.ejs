@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Quizimize - Quiz</title>
+    <link rel="stylesheet" href="/quizPageStyle.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div id="game" class="justify-center flex-column">
+        <div id="hud">
+          <div id="hud-item">
+            <p id="progressText" class="hud-prefix">Question</p>
+            <div id="progressBar">
+              <div id="progressBarFull"></div>
+            </div>
+          </div>
+          <div id="hud-item">
+            <p class="hud-prefix">Score</p>
+            <h1 class="hud-main-text" id="score">0</h1>
+          </div>
+        </div>
+        <h2 id="question">What is the answer to this questions?</h2>
+        <div class="choice-container">
+          <p class="choice-prefix">A</p>
+          <p class="choice-text" data-number="1">Choice 1</p>
+        </div>
+        <div class="choice-container">
+          <p class="choice-prefix">B</p>
+          <p class="choice-text" data-number="2">Choice 2</p>
+        </div>
+        <div class="choice-container">
+          <p class="choice-prefix">C</p>
+          <p class="choice-text" data-number="3">Choice 3</p>
+        </div>
+        <div class="choice-container">
+          <p class="choice-prefix">D</p>
+          <p class="choice-text" data-number="4">Choice 4</p>
+        </div>
+      </div>
+    </div>
+    <script>
+      const question = document.getElementById("question");
+      const choices = Array.from(document.querySelectorAll(".choice-text"));
+      const progressText = document.getElementById("progressText");
+      const scoreText = document.getElementById("score");
+      const progressBarFull = document.getElementById("progressBarFull");
+      const selectedTopicName = localStorage.getItem("selectedTopicName");
+      const selectedSubjectName = localStorage.getItem("selectedSubjectName");
+      const selectedCardTitle = localStorage.getItem("selectedCardTitle");
+      // console.log(selectedCardTitle);
+      const url = "http://localhost:3000/quizPage";
+
+      let MAX_QUESTIONS; // Declare MAX_QUESTIONS in the outer scope
+      let questionCounter = 0;
+
+      fetch(url)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Failed to fetch: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          if (!data || !Array.isArray(data)) {
+            throw new Error("Invalid data format");
+          }
+          let currentQuestion = {};
+          let score = 0;
+          questionCounter = 0;
+          let availableQuestions = [];
+
+          // Find the appropriate quiz list and set MAX_QUESTIONS
+          const quizList = data.find(
+            (entry) =>
+              entry.subject === selectedSubjectName &&
+              entry.quizTopic === selectedTopicName
+          );
+          if (!quizList) {
+            throw new Error(
+              "No quiz list found for selected subject and topic"
+            );
+          }
+          const selectedQuiz = quizList.quizPage.find(
+            (quizPage) => quizPage.quizList === selectedCardTitle
+          );
+          if (!selectedQuiz) {
+            throw new Error("No quiz found for selected quiz list");
+          }
+          MAX_QUESTIONS = selectedQuiz.quiz.length;
+          // Populate availableQuestions array
+          selectedQuiz.quiz.forEach((question) => {
+            availableQuestions.push(question);
+          });
+
+          // Initialize the game
+          startGame();
+
+          function startGame() {
+            questionCounter = 0;
+            score = 0;
+            getNewQuestion();
+          }
+
+          function getNewQuestion() {
+            if (questionCounter >= MAX_QUESTIONS) {
+              // Go to the result page or handle end of quiz
+              return window.location.assign("/resultPage");
+            }
+
+            questionCounter++;
+            progressText.innerText = `Question ${questionCounter} / ${MAX_QUESTIONS}`;
+            progressBarFull.style.width = `${
+              (questionCounter / MAX_QUESTIONS) * 100
+            }%`;
+
+            const questionIndex = Math.floor(
+              Math.random() * availableQuestions.length
+            );
+            currentQuestion = availableQuestions[questionIndex];
+            question.innerText = currentQuestion.question;
+
+            choices.forEach((choice, index) => {
+              choice.innerText = currentQuestion.choices[index];
+            });
+
+            availableQuestions.splice(questionIndex, 1);
+          }
+
+          choices.forEach((choice) => {
+            choice.addEventListener("click", (e) => {
+              const selectedChoice = e.target;
+              const selectedAnswer = parseInt(
+                selectedChoice.dataset.number - 1
+              ); // Convert to number
+              const correctAnswer = currentQuestion.answer;
+
+              const classToApply =
+                selectedAnswer === correctAnswer ? "correct" : "incorrect";
+
+              if (classToApply === "correct") {
+                incrementScore(1); // Increment score if the answer is correct
+              }
+
+              selectedChoice.parentElement.classList.add(classToApply);
+
+              setTimeout(() => {
+                selectedChoice.parentElement.classList.remove(classToApply);
+                getNewQuestion();
+                if (questionCounter >= MAX_QUESTIONS) {
+                  // Update quizData when quiz is finished
+                  const quizData = {
+                    quizTopic: selectedTopicName,
+                    subject: selectedSubjectName,
+                    quizList: selectedCardTitle,
+                    score: score,
+                    totalQuestions: MAX_QUESTIONS,
+                    xp: score * 98,
+                    level: 0,
+                  };
+
+                  console.log(quizData.xp, quizData.level);
+
+                  // Send quiz data to server when quiz is finished
+                  fetch("http://localhost:3000/user/saveQuizHistory", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(quizData),
+                  })
+                    .then((res) => {
+                      if (!res.ok) {
+                        throw new Error(
+                          `Failed to save quiz history: ${res.status}`
+                        );
+                      }
+                      return res.json();
+                    })
+                    .then((data) => {
+                      console.log(data.message);
+                      // Redirect or show a message to the user
+                    })
+                    .catch((err) => {
+                      console.error(err.message);
+                      // Handle error
+                    });
+                }
+              }, 600);
+            });
+          });
+
+          function incrementScore(num) {
+            score += num;
+            scoreText.innerText = score;
+          }
+        })
+
+        .catch((err) => {
+          console.warn(err.message);
+        });
+    </script>
+  </body>
+</html>

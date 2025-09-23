@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link rel="stylesheet" href="/adminQuizPageStyle.css" />
+    <title>Quizimize - Quiz</title>
+  </head>
+  <body>
+    <%- include('partials/header.ejs') -%>
+
+    <div class="container">
+      <div id="game" class="justify-center flex-column">
+        <div id="hud">
+          <div id="hud-item">
+            <p id="progressText" class="hud-prefix">Question</p>
+            <!-- <div id="progressBar"> -->
+            <div id="progressBarFull"></div>
+          </div>
+        </div>
+        <div id="questionsContainer"></div>
+        <div id="newQuestionForm" style="display: none">
+          <h2 class="addTxt">Add New Question</h2>
+          <input
+            type="text"
+            id="newQuestionInput"
+            placeholder="Enter your question"
+          />
+          <input type="text" id="choice1" placeholder="Choice 1" />
+          <input type="text" id="choice2" placeholder="Choice 2" />
+          <input type="text" id="choice3" placeholder="Choice 3" />
+          <input type="text" id="choice4" placeholder="Choice 4" />
+          <select id="correctAnswer">
+            <option value="0">Choice 1</option>
+            <option value="1">Choice 2</option>
+            <option value="2">Choice 3</option>
+            <option value="3">Choice 4</option>
+          </select>
+          <button id="addQuestionBtn">Add Question</button>
+        </div>
+        <button id="showNewQuestionFormBtn">Add New Question</button>
+      </div>
+    </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const questionsContainer =
+          document.getElementById("questionsContainer");
+        const progressText = document.getElementById("progressText");
+        const scoreText = document.getElementById("score");
+        const progressBarFull = document.getElementById("progressBarFull");
+        const selectedSubjectName = localStorage.getItem("selectedSubjectName");
+        const selectedTopicName = localStorage.getItem("selectedTopicName");
+        const selectedCardTitle = localStorage.getItem("selectedCardTitle");
+        const clickedCardName = localStorage.getItem("clickedCardName");
+        const url = "http://localhost:3000/quizPage";
+        let MAX_QUESTIONS;
+        let questionCounter = 0;
+        let availableQuestions = [];
+
+        fetch(url)
+          .then((res) => {
+            if (!res.ok) {
+              throw new Error(`Failed to fetch: ${res.status}`);
+            }
+            return res.json();
+          })
+          .then((data) => {
+            if (!data || !Array.isArray(data)) {
+              throw new Error("Invalid data format");
+            }
+            let score = 0;
+            questionCounter = 0;
+
+            const quizList = data.find(
+              (entry) =>
+                entry.subject === selectedSubjectName &&
+                entry.quizTopic === selectedTopicName
+            );
+            if (!quizList) {
+              document.getElementById("newQuestionForm").style.display =
+                "block";
+              return;
+            }
+            const selectedQuiz = quizList.quizPage.find(
+              (quizPage) => quizPage.quizList === selectedCardTitle
+            );
+            if (!selectedQuiz) {
+              throw new Error("No quiz found for selected quiz list");
+            }
+            MAX_QUESTIONS = selectedQuiz.quiz.length;
+            availableQuestions = selectedQuiz.quiz;
+
+            startGame();
+
+            function startGame() {
+              score = 0;
+              showAllQuestions();
+            }
+
+            function showAllQuestions() {
+              progressBarFull.style.width = `${
+                (questionCounter / MAX_QUESTIONS) * 100
+              }%`;
+              questionsContainer.innerHTML = ""; // Clear previous questions
+
+              availableQuestions.forEach((question, index) => {
+                const questionDiv = document.createElement("div");
+                questionDiv.classList.add("question");
+                questionDiv.innerHTML = `
+          <h2>${index + 1}. ${question.question}</h2>
+          <p><span class="greentxt">Correct Answer:</span> ${
+            question.answer + 1
+          }</p>
+          <p><span class="greentxt">Choices:</span></p>
+          <ul>
+            ${question.choices
+              .map((choice, i) => `<li>${i + 1}. ${choice}</li>`)
+              .join("")}
+          </ul>
+          <button class="editQuestionBtn" data-index="${index}">Edit</button>
+          <button class="deleteQuestionBtn" data-index="${index}">Delete</button>
+        `;
+                questionsContainer.appendChild(questionDiv);
+              });
+
+              const editButtons = document.querySelectorAll(".editQuestionBtn");
+              editButtons.forEach((button) => {
+                button.addEventListener("click", () => {
+                  const index = button.getAttribute("data-index");
+                  editQuiz(index);
+                });
+              });
+
+              const deleteButtons =
+                document.querySelectorAll(".deleteQuestionBtn");
+              deleteButtons.forEach((button) => {
+                button.addEventListener("click", () => {
+                  const index = button.getAttribute("data-index");
+                  deleteQuiz(index);
+                });
+              });
+            }
+          })
+          .catch((err) => {
+            console.warn(err.message);
+          });
+
+        document
+          .getElementById("showNewQuestionFormBtn")
+          .addEventListener("click", () => {
+            document.getElementById("newQuestionForm").style.display = "block";
+          });
+
+        document
+          .getElementById("addQuestionBtn")
+          .addEventListener("click", () => {
+            const newQuestion = {
+              question: document.getElementById("newQuestionInput").value,
+              choices: [
+                document.getElementById("choice1").value,
+                document.getElementById("choice2").value,
+                document.getElementById("choice3").value,
+                document.getElementById("choice4").value,
+              ],
+              answer: parseInt(document.getElementById("correctAnswer").value),
+            };
+
+            fetch(url, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                selectedSubjectName,
+                selectedTopicName,
+                selectedCardTitle,
+                clickedCardName,
+                newQuestion,
+              }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                // Add the newly added question to the UI
+                const questionDiv = document.createElement("div");
+                questionDiv.classList.add("question");
+                questionDiv.innerHTML = `
+          <h2>${availableQuestions.length + 1}. ${newQuestion.question}</h2>
+          <p>Correct Answer: ${newQuestion.answer + 1}</p>
+          <p>Choices:</p>
+          <ul>
+            ${newQuestion.choices
+              .map((choice, i) => `<li>${i + 1}. ${choice}</li>`)
+              .join("")}
+          </ul>
+          <button class="editQuestionBtn" data-index="${
+            availableQuestions.length
+          }">Edit Quiz</button>
+          <button class="deleteQuestionBtn" data-index="${
+            availableQuestions.length
+          }">Delete Quiz</button>
+        `;
+                questionsContainer.appendChild(questionDiv);
+
+                const editButtons =
+                  document.querySelectorAll(".editQuestionBtn");
+                editButtons.forEach((button) => {
+                  button.addEventListener("click", () => {
+                    const index = button.getAttribute("data-index");
+                    editQuiz(index);
+                  });
+                });
+
+                const deleteButtons =
+                  document.querySelectorAll(".deleteQuestionBtn");
+                deleteButtons.forEach((button) => {
+                  button.addEventListener("click", () => {
+                    const index = button.getAttribute("data-index");
+                    deleteQuiz(index);
+                  });
+                });
+
+                // Update availableQuestions array
+                availableQuestions.push(newQuestion);
+                // Update MAX_QUESTIONS
+                MAX_QUESTIONS++;
+                // Update progress bar width
+                progressBarFull.style.width = `${
+                  (questionCounter / MAX_QUESTIONS) * 100
+                }%`;
+                // Reset the form
+                document.getElementById("newQuestionInput").value = "";
+                document.getElementById("choice1").value = "";
+                document.getElementById("choice2").value = "";
+                document.getElementById("choice3").value = "";
+                document.getElementById("choice4").value = "";
+                document.getElementById("correctAnswer").value = "0";
+              })
+              .catch((error) => {
+                console.error("Error:", error);
+              });
+          });
+
+        function editQuiz(index) {
+          const question = availableQuestions[index];
+          const editQuestionForm = document.createElement("div");
+          editQuestionForm.innerHTML = `
+          <div id="newQuestionForm">
+      <h2 class="editTxt">Edit Question</h2>
+      <input type="text" id="editQuestionInput" value="${question.question}" />
+      <input type="text" id="editChoice1" value="${question.choices[0]}" />
+      <input type="text" id="editChoice2" value="${question.choices[1]}" />
+      <input type="text" id="editChoice3" value="${question.choices[2]}" />
+      <input type="text" id="editChoice4" value="${question.choices[3]}" />
+      <select id="editCorrectAnswer">
+        <option value="0" ${
+          question.answer === 0 ? "selected" : ""
+        }>Choice 1</option>
+        <option value="1" ${
+          question.answer === 1 ? "selected" : ""
+        }>Choice 2</option>
+        <option value="2" ${
+          question.answer === 2 ? "selected" : ""
+        }>Choice 3</option>
+        <option value="3" ${
+          question.answer === 3 ? "selected" : ""
+        }>Choice 4</option>
+      </select>
+      <button id="updateQuestionBtn">Update Question</button>
+      </div>
+    `;
+          questionsContainer.replaceChild(
+            editQuestionForm,
+            questionsContainer.children[index]
+          );
+
+          document
+            .getElementById("updateQuestionBtn")
+            .addEventListener("click", () => {
+              const updatedQuestion = {
+                question: document.getElementById("editQuestionInput").value,
+                choices: [
+                  document.getElementById("editChoice1").value,
+                  document.getElementById("editChoice2").value,
+                  document.getElementById("editChoice3").value,
+                  document.getElementById("editChoice4").value,
+                ],
+                answer: parseInt(
+                  document.getElementById("editCorrectAnswer").value
+                ),
+              };
+
+              fetch(`${url}/update/${index}`, {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  selectedSubjectName,
+                  selectedTopicName,
+                  selectedCardTitle,
+                  clickedCardName,
+                  updatedQuestion,
+                }),
+              })
+                .then((response) => response.json())
+                .then((data) => {
+                  // Update the question in the UI
+                  const updatedQuestionDiv = document.createElement("div");
+                  updatedQuestionDiv.classList.add("question");
+                  updatedQuestionDiv.innerHTML = `
+            <h2>${index + 1}. ${updatedQuestion.question}</h2>
+            <p>Correct Answer: ${updatedQuestion.answer + 1}</p>
+            <p>Choices:</p>
+            <ul>
+              ${updatedQuestion.choices
+                .map((choice, i) => `<li>${i + 1}. ${choice}</li>`)
+                .join("")}
+            </ul>
+            <button class="editQuestionBtn" data-index="${index}">Edit Quiz</button>
+            <button class="deleteQuestionBtn" data-index="${index}">Delete Quiz</button>
+          `;
+                  questionsContainer.replaceChild(
+                    updatedQuestionDiv,
+                    editQuestionForm
+                  );
+
+                  const editButtons =
+                    document.querySelectorAll(".editQuestionBtn");
+                  editButtons.forEach((button) => {
+                    button.addEventListener("click", () => {
+                      const index = button.getAttribute("data-index");
+                      editQuiz(index);
+                    });
+                  });
+
+                  const deleteButtons =
+                    document.querySelectorAll(".deleteQuestionBtn");
+                  deleteButtons.forEach((button) => {
+                    button.addEventListener("click", () => {
+                      const index = button.getAttribute("data-index");
+                      deleteQuiz(index);
+                    });
+                  });
+
+                  // Update availableQuestions array
+                  availableQuestions[index] = updatedQuestion;
+                })
+                .catch((error) => {
+                  console.error("Error:", error);
+                });
+            });
+        }
+
+        function deleteQuiz(index) {
+          if (
+            confirm(
+              "Are you sure you want to delete this quiz? This action cannot be undone."
+            )
+          ) {
+            fetch(
+              `${url}/${selectedSubjectName}/${clickedCardName}/${selectedTopicName}/${selectedCardTitle}/${index}`,
+              {
+                method: "DELETE",
+              }
+            )
+              .then((response) => response.json())
+              .then((data) => {
+                alert("Quiz deleted successfully!");
+                location.reload(); // Refresh the page
+              })
+              .catch((error) => {
+                console.error("Error:", error);
+              });
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

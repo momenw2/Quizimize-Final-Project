@@ -1,0 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
+
+*{
+  margin: 0;
+  padding: 0;
+  font-family: "Raleway", sans-serif;
+}
+body{
+  background-color: #F8F8F8;
+}
+.logo{
+  color: #04C000;
+}
+
+li, a, button{
+  text-decoration: none;
+  list-style: none;
+  color: #000000;
+}
+
+/* NavBar */
+header{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30px 10%;
+}
+.logo a{
+  color: #04C000;
+  font-size: 35px;
+}
+.nav-links{
+  display: flex;
+}
+.nav-links li{
+  margin: 0px 30px;
+  font-size: 18px;
+  font-weight: 500;
+}
+.nav-links li a{
+  color: #464646;
+}
+.nav-buttons {
+  display: flex;
+}
+.nav-buttons a{
+  margin: 0px 12px;
+  border: 1px solid #D9D9D9;
+  padding: 10px;
+  height: 20px;
+  width: 60px;
+  text-align: center;
+  border-radius: 22px;
+}
+.nav-links li a:hover{
+  color:#04C000;
+}
+.nav-buttons a:hover{
+  background-color: #04C000;
+  color:#F8F8F8;
+}
+
+.topicHeader{
+  text-align: center;
+  margin-top: 50px;
+}
+.topicHeader p{
+  font-size: 60px;
+  color: #464646;
+}
+
+/* Topics Container */
+
+
+.topicsContainer{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: auto;
+  margin-top: 60px;
+}
+.topicBox{
+  padding: 9px;
+  margin: 9px;
+  width: 25%;
+  border: 1px solid #04C000;
+  border-radius: 30px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-left: auto;
+  margin-right: auto;
+}
+.topicBox a{
+  display: block;
+  padding: 20px; 
+  text-decoration: none;
+  color: black; 
+  font-size: 16px; 
+}
+
+.topicBox:hover{
+  background-color: #03c0005c;
+  font-size: 15px;
+  font-weight: 600;
+  border: 0;
+}
+.topicsC{
+  display: flex;
+  width: 100%;
+  padding-bottom: 20px;
+}
+.boxContent{
+  display: flex;
+  flex-direction: row;
+  justify-content:space-between;
+}
+.quizesNum{
+display: flex;
+}
+.quizesNum p{
+  padding-top: auto;
+  font-size: 15px;
+  text-align: center;
+  padding: auto;
+  margin: auto;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #464646;
+  font-weight: 100;
+  padding-right: 20px;
+} 

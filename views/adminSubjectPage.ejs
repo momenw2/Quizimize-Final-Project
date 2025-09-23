@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/adminSubjectStyle.css" />
+    <title>Quizimize - Admin Subject</title>
+  </head>
+  <body>
+    <%- include('partials/header.ejs') -%>
+    <div class="mainContainer">
+      <div class="topicHeader"></div>
+
+      <div class="topicsContainer"></div>
+
+      <div class="container">
+        <div class="addSubjectContainer">
+          <h2>Add Subject</h2>
+          <input type="text" id="subjectNameInput" placeholder="Subject Name" />
+          <button id="addSubjectBtn">Add</button>
+        </div>
+        <!-- Form for editing or adding subjects -->
+        <!-- <h2>Edit Subject</h2>
+        <select id="subjectSelect">
+          <option value="" disabled selected>Select a subject to edit</option>
+        </select>
+        <input
+          type="text"
+          id="newSubjectNameInput"
+          placeholder="New Subject Name"
+        />
+        <button id="editSubjectBtn">Edit</button> -->
+
+        <!-- Button to delete selected subject -->
+        <h2>Delete Subject</h2>
+        <select id="deleteSubjectSelect">
+          <option value="" disabled selected>Select a subject to delete</option>
+        </select>
+        <button id="deleteSubjectBtn">Delete</button>
+      </div>
+    </div>
+
+    <script type="module">
+      // Retrieve the clicked card's name from local storage
+      const clickedCardName = localStorage.getItem("clickedCardName");
+      const topicsContainer = document.querySelector(".topicsContainer");
+      const subjectHeader = document.querySelector(".topicHeader");
+
+      const url = "http://localhost:3000/subject";
+
+      fetch(url)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Failed to fetch: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((data) => {
+          data.forEach((subject) => {
+            if (subject.name === clickedCardName) {
+              subjectHeader.innerHTML += `<p>${subject.name}</p>`;
+              subject.subjects.forEach((sub) => {
+                const topicBox = document.createElement("div");
+                topicBox.classList.add("topicBox");
+                topicBox.innerHTML = `<a href="/adminQuizTopic">${sub.name}</a>`;
+                topicBox.addEventListener("click", () => {
+                  localStorage.setItem("selectedSubjectName", sub.name);
+                });
+                topicsContainer.appendChild(topicBox);
+              });
+            }
+          });
+        })
+        .catch((err) => {
+          console.warn(err.message);
+        });
+
+      // Function to add a new subject
+      async function addSubject() {
+        const subjectNameInput = document.getElementById("subjectNameInput");
+        const subjectName = subjectNameInput.value.trim();
+        const clickedCardName = localStorage.getItem("clickedCardName");
+
+        if (subjectName === "") {
+          alert("Please enter a subject name.");
+          return;
+        }
+
+        const url = `http://localhost:3000/subject/${clickedCardName}`;
+
+        try {
+          const response = await fetch(url, {
+            method: "PATCH", // Use PATCH method to update the existing group or create new if not exists
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: subjectName,
+              URL: "../QuizTopic/quizTopic.html",
+            }),
+          });
+
+          const responseData = await response.json();
+
+          if (response.ok) {
+            // Check if the group was not found (404 status)
+            if (responseData.message === "Group not found") {
+              // If the group was not found, it means it needs to be created
+              const createGroupResponse = await fetch(
+                "http://localhost:3000/subject",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    name: clickedCardName,
+                    subjects: [
+                      { name: subjectName, URL: "../QuizTopic/quizTopic.html" },
+                    ],
+                  }),
+                }
+              );
+
+              if (!createGroupResponse.ok) {
+                console.error(
+                  "Failed to create new group:",
+                  createGroupResponse.statusText
+                );
+                return;
+              }
+            }
+
+            // Clear input field
+            subjectNameInput.value = "";
+            // Reload the page after successfully adding the subject
+            window.location.reload();
+          } else {
+            console.error("Failed to add new subject:", response.statusText);
+          }
+        } catch (error) {
+          console.error("Error adding new subject:", error);
+        }
+      }
+
+      // Function to populate the select element with available subjects
+      // function populateSubjectSelect(subjects) {
+      //   const subjectSelect = document.getElementById("subjectSelect");
+      //   subjectSelect.innerHTML =
+      //     '<option value="" disabled selected>Select a subject to edit</option>';
+
+      //   subjects.forEach((subject) => {
+      //     if (subject.name === clickedCardName) {
+      //       subject.subjects.forEach((sub) => {
+      //         const option = document.createElement("option");
+      //         option.value = sub.name;
+      //         option.textContent = sub.name;
+      //         subjectSelect.appendChild(option);
+      //       });
+      //     }
+      //   });
+      // }
+
+      // Function to populate the delete subject select dropdown
+      function populateDeleteSubjectSelect(subjects) {
+        const deleteSubjectSelect = document.getElementById(
+          "deleteSubjectSelect"
+        );
+        deleteSubjectSelect.innerHTML =
+          '<option value="" disabled selected>Select a subject to delete</option>';
+
+        subjects.forEach((subject) => {
+          if (subject.name === clickedCardName) {
+            subject.subjects.forEach((sub) => {
+              const option = document.createElement("option");
+              option.value = sub.name;
+              option.textContent = sub.name;
+              deleteSubjectSelect.appendChild(option);
+            });
+          }
+        });
+      }
+
+      // Function to handle editing an existing subject
+      // async function editSubject() {
+      //   const newSubjectNameInput = document.getElementById(
+      //     "newSubjectNameInput"
+      //   );
+      //   const newSubjectName = newSubjectNameInput.value.trim();
+      //   const selectedSubjectName =
+      //     document.getElementById("subjectSelect").value;
+
+      //   if (!selectedSubjectName) {
+      //     alert("Please select a subject to edit.");
+      //     return;
+      //   }
+
+      //   const subjectData = {
+      //     newName: newSubjectName,
+      //   };
+
+      //   try {
+      //     const response = await fetch(
+      //       `http://localhost:3000/subject/${selectedSubjectName}`,
+      //       {
+      //         method: "PUT",
+      //         headers: {
+      //           "Content-Type": "application/json",
+      //         },
+      //         body: JSON.stringify(subjectData),
+      //       }
+      //     );
+
+      //     if (response.ok) {
+      //       newSubjectNameInput.value = ""; // Clear input field
+      //       // Reload the page after successfully editing the subject
+      //       window.location.reload();
+      //     } else {
+      //       console.error("Failed to edit subject:", response.statusText);
+      //     }
+      //   } catch (error) {
+      //     console.error("Error editing subject:", error);
+      //   }
+      // }
+
+      // Function to handle deleting an existing subject
+      async function deleteSubject() {
+        const deleteSubjectSelect = document.getElementById(
+          "deleteSubjectSelect"
+        );
+        const selectedSubjectName = deleteSubjectSelect.value;
+
+        if (!selectedSubjectName) {
+          alert("Please select a subject to delete.");
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            `http://localhost:3000/subject/${clickedCardName}/${selectedSubjectName}`,
+            {
+              method: "DELETE",
+            }
+          );
+
+          if (response.ok) {
+            // Reload the page after successfully deleting the subject
+            window.location.reload();
+          } else {
+            console.error("Failed to delete subject:", response.statusText);
+          }
+        } catch (error) {
+          console.error("Error deleting subject:", error);
+        }
+      }
+
+      // Fetch subjects and populate the select element when the page loads
+      window.addEventListener("load", async () => {
+        try {
+          const response = await fetch("http://localhost:3000/subject");
+          if (!response.ok) {
+            throw new Error(`Failed to fetch subjects: ${response.status}`);
+          }
+          const data = await response.json();
+          // populateSubjectSelect(data);
+          populateDeleteSubjectSelect(data); // Populate delete subject select dropdown
+        } catch (error) {
+          console.error("Error fetching subjects:", error.message);
+        }
+      });
+
+      // Attach editSubject function to button click event
+      // document
+      //   .getElementById("editSubjectBtn")
+      //   .addEventListener("click", editSubject);
+
+      // Attach addSubject function to button click event
+      document
+        .getElementById("addSubjectBtn")
+        .addEventListener("click", addSubject);
+
+      // Attach deleteSubject function to button click event
+      document
+        .getElementById("deleteSubjectBtn")
+        .addEventListener("click", deleteSubject);
+    </script>
+  </body>
+</html>

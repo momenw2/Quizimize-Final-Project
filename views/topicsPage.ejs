@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/topicsPageStyle.css" />
+    <title>Quizimize - Topics</title>
+  </head>
+  <body>
+    <%- include('partials/header.ejs') -%>
+
+    <div class="cardsContainer"></div>
+
+    <ul class="test"></ul>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const url = "http://localhost:3000/topic";
+        const cardsContainer = document.querySelector(".cardsContainer");
+
+        // Function to handle card click and store the clicked card name in local storage
+        function handleCardClick(cardName) {
+          localStorage.setItem("clickedCardName", cardName);
+        }
+
+        fetch(url)
+          .then((res) => {
+            if (!res.ok) {
+              throw new Error(`Failed to fetch: ${res.status}`);
+            }
+            return res.json();
+          })
+          .then((data) => {
+            if (!data || !Array.isArray(data)) {
+              throw new Error("Invalid data format");
+            }
+            data.forEach((card) => {
+              const cardElement = document.createElement("div");
+              const cardClassName = card.name.replace(/\s+/g, "-"); // Replace spaces with hyphens
+              cardElement.classList.add("card", cardClassName);
+              cardElement.innerHTML = `
+          <a href="/subjects" class="cardName">${card.name}</a>
+        `;
+
+              cardElement.addEventListener("click", () => {
+                handleCardClick(card.name);
+              });
+
+              cardsContainer.appendChild(cardElement);
+            });
+          })
+          .catch((err) => {
+            console.error("Error:", err.message);
+          });
+      });
+    </script>
+  </body>
+</html>

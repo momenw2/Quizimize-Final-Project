@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/adminDashboardStyle.css" />
+    <title>Admin Dashboard</title>
+  </head>
+  <body>
+    <%- include('partials/header.ejs') -%>
+    <!-- Display all topics -->
+    <div class="container">
+      <h2>All Topics</h2>
+      <div id="topicList"></div>
+
+      <!-- Form for editing or adding topics -->
+      <h2>Add Topic</h2>
+      <input type="text" id="topicNameInput" placeholder="Topic Name" />
+      <button onclick="addTopic()">Add</button>
+
+      <!-- Form for editing or adding topics -->
+      <!-- <h2>Edit Topic</h2>
+      <select id="topicSelect">
+        <option value="" disabled selected>Select a topic to edit</option>
+      </select>
+      <input type="text" id="newTopicNameInput" placeholder="New Topic Name" />
+      <button onclick="editTopic()">Edit</button> -->
+
+      <!-- Button to delete selected topic -->
+      <h2>Delete Topic</h2>
+      <select id="deleteTopicSelect">
+        <option value="" disabled selected>Select a topic to delete</option>
+      </select>
+      <button onclick="deleteTopic()">Delete</button>
+    </div>
+
+    <script>
+      // Function to fetch and display all topics
+      async function fetchAllTopics() {
+        try {
+          const response = await fetch("http://localhost:3000/topic");
+          if (response.ok) {
+            const topics = await response.json();
+            // populateTopicSelect(topics); // Populate select dropdown with topics
+            populateDeleteTopicSelect(topics); // Populate delete topic select dropdown
+            populateTopicList(topics); // Populate topic list
+          } else {
+            console.error("Failed to fetch topics:", response.statusText);
+          }
+        } catch (error) {
+          console.error("Error fetching topics:", error);
+        }
+      }
+
+      // Function to populate the topic list
+      function populateTopicList(topics) {
+        const topicList = document.getElementById("topicList");
+        topicList.innerHTML = "";
+        topics.forEach((topic) => {
+          const container = document.createElement("div");
+          container.classList.add("topic-container");
+
+          const link = document.createElement("a");
+          link.href = "/adminSubject";
+          link.textContent = topic.name;
+          link.addEventListener("click", () => {
+            localStorage.setItem("clickedCardName", topic.name);
+          });
+
+          container.appendChild(link);
+          topicList.appendChild(container);
+        });
+      }
+
+      // Function to add a new topic
+      async function addTopic() {
+        const topicNameInput = document.getElementById("topicNameInput");
+        const topicName = topicNameInput.value.trim();
+
+        if (topicName === "") {
+          alert("Please enter a topic name.");
+          return;
+        }
+
+        const topicData = {
+          name: topicName,
+          url: "../Subjects/subject.html", // Assuming this is a default URL
+        };
+
+        try {
+          const response = await fetch("http://localhost:3000/topic", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(topicData),
+          });
+
+          if (response.ok) {
+            // Refresh topic list after adding
+            fetchAllTopics();
+            // Clear input field
+            topicNameInput.value = "";
+          } else {
+            console.error("Failed to add new topic:", response.statusText);
+          }
+        } catch (error) {
+          console.error("Error adding new topic:", error);
+        }
+      }
+
+      // Function to delete a topic
+      async function deleteTopic() {
+        const deleteTopicSelect = document.getElementById("deleteTopicSelect");
+        const selectedTopicName = deleteTopicSelect.value;
+
+        if (!selectedTopicName) {
+          alert("Please select a topic to delete.");
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            `http://localhost:3000/topic/${selectedTopicName}`,
+            {
+              method: "DELETE",
+            }
+          );
+
+          if (response.ok) {
+            fetchAllTopics(); // Refresh topic list after deleting
+          } else {
+            console.error("Failed to delete topic:", response.statusText);
+          }
+        } catch (error) {
+          console.error("Error deleting topic:", error);
+        }
+      }
+
+      // Function to populate the select dropdown with topics
+      // function populateTopicSelect(topics) {
+      //   const topicSelect = document.getElementById("topicSelect");
+      //   topicSelect.innerHTML = ""; // Clear dropdown
+      //   topics.forEach((topic) => {
+      //     const option = document.createElement("option");
+      //     option.value = topic.name;
+      //     option.textContent = topic.name;
+      //     topicSelect.appendChild(option);
+      //   });
+      // }
+
+      // Function to populate the delete topic select dropdown
+      function populateDeleteTopicSelect(topics) {
+        const deleteTopicSelect = document.getElementById("deleteTopicSelect");
+        deleteTopicSelect.innerHTML = ""; // Clear dropdown
+        topics.forEach((topic) => {
+          const option = document.createElement("option");
+          option.value = topic.name;
+          option.textContent = topic.name;
+          deleteTopicSelect.appendChild(option);
+        });
+      }
+
+      // Function to edit an existing topic
+      // async function editTopic() {
+      //   const newTopicNameInput = document.getElementById("newTopicNameInput");
+      //   const newTopicName = newTopicNameInput.value.trim();
+      //   console.log("New Topic Name:", newTopicName);
+
+      //   const selectedTopicName = document.getElementById("topicSelect").value;
+      //   console.log("Selected Topic Name:", selectedTopicName);
+
+      //   if (!selectedTopicName) {
+      //     alert("Please select a topic to edit.");
+      //     return;
+      //   }
+
+      //   const topicData = {
+      //     newName: newTopicName, // Change to match the backend route expectation
+      //   };
+      //   console.log("Topic Data:", topicData);
+
+      //   try {
+      //     const response = await fetch(
+      //       `http://localhost:3000/topic/${selectedTopicName}`,
+      //       {
+      //         method: "PUT",
+      //         headers: {
+      //           "Content-Type": "application/json",
+      //         },
+      //         body: JSON.stringify(topicData),
+      //       }
+      //     );
+      //     console.log("Response:", response);
+
+      //     if (response.ok) {
+      //       fetchAllTopics(); // Refresh topic list after editing
+      //       newTopicNameInput.value = ""; // Clear input field
+      //     } else {
+      //       console.error("Failed to edit topic:", response.statusText);
+      //     }
+      //   } catch (error) {
+      //     console.error("Error editing topic:", error);
+      //   }
+      // }
+
+      // Fetch all topics when the page loads
+      fetchAllTopics();
+    </script>
+  </body>
+</html>

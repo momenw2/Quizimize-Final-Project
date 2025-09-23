@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quizimize - About Us</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+    />
+    <link rel="stylesheet" href="/aboutUsStyle.css" />
+  </head>
+  <body>
+    <%- include('partials/header.ejs') -%>
+
+    <div class="container">
+      <header>
+        <h1>About Us</h1>
+      </header>
+
+      <section class="about-section">
+        <h2>Who We Are</h2>
+        <p>
+          At <span class="company-name">Quizimize</span>, we are passionate
+          about helping you expand your knowledge and improve your skills
+          through engaging quizzes. Whether you're studying for an exam,
+          learning something new, or just want to challenge yourself, we've got
+          you covered.
+        </p>
+      </section>
+
+      <section class="about-section">
+        <h2>What We Do</h2>
+        <div class="services">
+          <div class="service">
+            <i class="fas fa-chalkboard"></i>
+            <h3>Interactive Learning</h3>
+            <p>
+              Our quizzes are designed to be fun and interactive, making
+              learning enjoyable.
+            </p>
+          </div>
+          <div class="service">
+            <i class="fas fa-book"></i>
+            <h3>Wide Range of Topics</h3>
+            <p>
+              With quizzes covering a variety of subjects, there's something for
+              everyone.
+            </p>
+          </div>
+          <div class="service">
+            <i class="fas fa-check-circle"></i>
+            <h3>Practice Makes Perfect</h3>
+            <p>Practice your knowledge and skills to boost your confidence.</p>
+          </div>
+          <div class="service">
+            <i class="fas fa-globe"></i>
+            <h3>Accessible Anytime, Anywhere</h3>
+            <p>
+              Our platform is accessible from any device, so you can learn on
+              the go.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="about-section">
+        <h2>Our Mission</h2>
+        <p>
+          Our mission is to make learning enjoyable and accessible to everyone.
+          We believe that interactive quizzes are a great way to reinforce
+          learning and help you retain information better.
+        </p>
+      </section>
+
+      <section class="about-section">
+        <h2>Roadmap</h2>
+        <div class="roadmap">
+          <div class="step">
+            <div class="step-icon">
+              <i class="fas fa-search"></i>
+            </div>
+            <div class="step-info">
+              <h3>Step 1</h3>
+              <p>Search for a quiz in your desired topic.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-icon">
+              <i class="fas fa-play"></i>
+            </div>
+            <div class="step-info">
+              <h3>Step 2</h3>
+              <p>Take the quiz and test your knowledge.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-icon">
+              <i class="fas fa-check"></i>
+            </div>
+            <div class="step-info">
+              <h3>Step 3</h3>
+              <p>Review your answers and learn from your mistakes.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-icon">
+              <i class="fas fa-trophy"></i>
+            </div>
+            <div class="step-info">
+              <h3>Step 4</h3>
+              <p>Track your progress and celebrate your achievements!</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="about-section">
+        <h2>Meet the Team</h2>
+        <p>
+          We are a team of dedicated professionals passionate about education
+          and technology. Meet the faces behind
+          <span class="company-name">Quizimize</span>:
+        </p>
+        <ul>
+          <li><strong>Founder's Name:</strong> Brief description</li>
+          <li><strong>Team Member 1 Name:</strong> Brief description</li>
+          <li><strong>Team Member 2 Name:</strong> Brief description</li>
+          <li><strong>Team Member 3 Name:</strong> Brief description</li>
+        </ul>
+      </section>
+
+      <section class="about-section">
+        <h2>Get in Touch</h2>
+        <p>
+          Have a question or suggestion? We'd love to hear from you!
+          <a href="#">Contact Us</a> today.
+        </p>
+      </section>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function (event) {
+        const sections = document.querySelectorAll(".about-section");
+
+        window.addEventListener("scroll", function () {
+          sections.forEach((section) => {
+            if (isInViewport(section)) {
+              section.classList.add("active");
+            }
+          });
+        });
+
+        function isInViewport(element) {
+          const rect = element.getBoundingClientRect();
+          return (
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <=
+              (window.innerHeight || document.documentElement.clientHeight) &&
+            rect.right <=
+              (window.innerWidth || document.documentElement.clientWidth)
+          );
+        }
+      });
+    </script>
+  </body>
+</html>
+
+
+
+

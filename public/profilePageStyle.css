@@ -1,0 +1,361 @@
+/* @import url("https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap"); */
+
+* {
+  margin: 0;
+  padding: 0;
+  font-family: "Raleway", sans-serif;
+}
+body {
+  background-color: #f8f8f8;
+}
+.logo {
+  color: #04c000;
+}
+
+li,
+a,
+button {
+  text-decoration: none;
+  list-style: none;
+  color: #000000;
+}
+
+/* NavBar */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30px 10%;
+}
+.logo a {
+  color: #04c000;
+  font-size: 35px;
+}
+.nav-links {
+  display: flex;
+}
+.nav-links li {
+  margin: 0px 30px;
+  font-size: 18px;
+  font-weight: 500;
+}
+.nav-links li a {
+  color: #464646;
+}
+.nav-buttons {
+  display: flex;
+}
+.nav-buttons a {
+  margin: 0px 12px;
+  border: 1px solid #d9d9d9;
+  padding: 10px;
+  height: 20px;
+  width: 60px;
+  text-align: center;
+  border-radius: 22px;
+}
+.nav-links li a:hover {
+  color: #04c000;
+}
+.nav-buttons a:hover {
+  background-color: #04c000;
+  color: #f8f8f8;
+}
+/* .userData {
+  border: none !important;
+  width: fit-content;
+} */
+.userContainer {
+  display: flex;
+  flex-direction: column;
+}
+.userData {
+  display: flex;
+  flex-direction: row;
+}
+.userLevel {
+  /* padding-right: 10px; */
+}
+
+.userLevel {
+  display: inline-block;
+  width: 30px; /* Adjust size as needed */
+  height: 30px; /* Adjust size as needed */
+  border-radius: 50%; /* Makes it round */
+  border: solid #04c000;
+  text-align: center;
+  line-height: 30px; /* Should match height for centering */
+  margin-right: 10px; /* Adjust spacing as needed */
+}
+.fullNameLink {
+  border: none !important;
+}
+/* Add this to your header.css file */
+
+.xpBar {
+  height: 10px; /* Adjust height as needed */
+  background-color: #04c000; /* Change color as desired */
+  border-radius: 30px;
+}
+
+.userContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  /* padding: 10px; */
+  /* border: 1px solid #ccc; */
+  border-radius: 5px;
+  /* margin-bottom: 10px; */
+}
+
+.userData {
+  display: flex;
+  align-items: center;
+}
+
+.userLevel {
+  /* font-weight: bold; */
+  margin-right: 10px;
+}
+
+.fullName {
+  margin: 0;
+}
+
+.fullNameLink {
+  text-decoration: none;
+  color: #333;
+}
+
+.userXp {
+  display: flex;
+  align-items: center;
+}
+
+.userXpBar {
+  flex: 1;
+  margin-right: 10px;
+}
+
+.xpBar {
+  height: 10px;
+  /* background-color: #007bff; */
+  border-radius: 5px;
+}
+
+.userXpText {
+  margin: 0;
+}
+.userXpBox {
+  width: 100%;
+}
+.xpBar {
+  height: 10px;
+  border-radius: 5px;
+  background-color: #04c000; /* Background color for the bar */
+  position: relative; /* Position the remaining XP bar relative to the main XP bar */
+}
+
+.xpBarRemaining {
+  position: absolute;
+  top: 0;
+  right: 0; /* Align the remaining XP bar to the right */
+  height: 100%;
+  background-color: #d2d2d2; /* Background color for the remaining XP */
+  border-radius: 2px;
+}
+
+.nav-buttons .fullNameLink:hover {
+  background-color: #f8f8f8;
+  color: #04c000;
+}
+.xpNum {
+  padding-bottom: 8px;
+}
+
+.userContainer {
+  display: flex;
+  flex-direction: row;
+  margin-top: 10px;
+  /* background-color: #d0d0d096; */
+  height: 200px;
+  border-bottom: 2px solid rgb(117, 117, 117);
+}
+.userProfileImageBox {
+  margin-left: 130px;
+  width: 20%;
+}
+
+.profileImg {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+}
+.userDataBox {
+  width: 80%;
+}
+.userDataBox p {
+  padding-bottom: 10px;
+}
+.userDataBox h2 {
+  padding-bottom: 10px;
+}
+.dataName {
+  color: #04c000;
+}
+.editButton {
+  cursor: pointer;
+  color: #04c000;
+  font-size: 20px;
+}
+.editButton:hover {
+  color: #028e00;
+}
+.historyContainer {
+  display: flex;
+  flex-direction: column;
+}
+.historyTxtBox {
+  margin-left: 130px;
+  padding-top: 10px;
+  background-color: #ebebeb;
+  width: 5%;
+  text-align: center;
+  padding-bottom: 10px;
+  border-bottom: 6px solid #039e00;
+}
+.historyBox {
+  margin-left: 130px;
+  width: 80%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  background-color: #e2e2e2;
+  height: 80px;
+  margin-top: 20px;
+  border-radius: 20px;
+}
+
+/* ### Rating ### */
+.rating {
+  background: var(--background-color);
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(var(--rating-size), var(--rating-size))
+  );
+  gap: var(--bar-size);
+  justify-content: start;
+  padding: var(--bar-size);
+}
+:root {
+  --rating-size: 3.3rem;
+  --bar-size: 0.8rem;
+  --background-color: #e7f2fa;
+  --rating-color-default: #2980b9;
+  --rating-color-background: #c7e1f3;
+  --rating-color-good: #27ae60;
+  --rating-color-meh: #f1c40f;
+  --rating-color-bad: #e74c3c;
+}
+
+/* Rating item */
+.rating {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 100%;
+  overflow: hidden;
+  background: var(--rating-color-default);
+  color: var(--rating-color-default);
+  width: var(--rating-size);
+  height: var(--rating-size);
+
+  /* Basic style for the text */
+  font-size: calc(var(--rating-size) / 3);
+  line-height: 1;
+  margin: auto;
+}
+
+/* Rating circle content */
+.rating span {
+  position: relative;
+  display: flex;
+  font-weight: bold;
+  z-index: 2;
+}
+
+.rating span small {
+  font-size: 0.5em;
+  font-weight: 900;
+  align-self: center;
+}
+
+/* Bar mask, creates an inner circle with the same color as thee background */
+.rating::after {
+  content: "";
+  position: absolute;
+  inset: var(--bar-size);
+  /* background: var(--background-color); */
+  background-color: #f8f8f8;
+  border-radius: inherit;
+  z-index: 1;
+}
+
+/* Bar background */
+.rating::before {
+  content: "";
+  position: absolute;
+  inset: var(--bar-size);
+  border-radius: inherit;
+  box-shadow: 0 0 0 1rem var(--rating-color-background);
+  z-index: -1;
+}
+
+/* Classes to give different colors to ratings, based on their score */
+.rating.good {
+  background: var(--rating-color-good);
+  color: var(--rating-color-good);
+}
+
+.rating.meh {
+  background: var(--rating-color-meh);
+  color: var(--rating-color-meh);
+}
+
+.rating.bad {
+  background: var(--rating-color-bad);
+  color: var(--rating-color-bad);
+}
+
+.ratingBox {
+  padding-left: 8px;
+}
+
+.historyTitleBox {
+  padding-top: 30px;
+}
+.quizdataBox {
+  padding-top: 15px;
+  padding-right: 30px;
+}
+.correctAnwers {
+  padding-bottom: 10px;
+}
+.bold {
+  font-weight: bold;
+}
+.adminEditButton {
+  cursor: pointer;
+  color: white;
+  margin-left: 12px;
+  font-size: 15px;
+  background-color: #000000;
+  padding: 7px;
+  border-radius: 20px;
+  background-color: rgb(235, 5, 5);
+}
+
+.adminEditButton:hover {
+  background-color: rgb(205, 0, 0);
+}
