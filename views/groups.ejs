@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Groups</title>
+    <style>
+      .container {
+        max-width: 1200px;
+        margin: auto;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+      }
+      .header {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+      }
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .group-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+      }
+      .card {
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .card h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+      .card p {
+        margin: 4px 0;
+        font-size: 14px;
+        color: #555;
+      }
+      .btn {
+        display: inline-block;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .btn-primary {
+        background: #2563eb;
+        color: white;
+      }
+      .btn-outline {
+        border: 1px solid #2563eb;
+        background: white;
+        color: #2563eb;
+      }
+      .btn-block {
+        display: block;
+        width: 100%;
+        margin-top: 10px;
+      }
+      input,
+      select {
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">Groups</div>
+
+      <!-- Search & Filter -->
+      <div class="controls">
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Search groups..."
+          style="flex: 1"
+        />
+        <select id="filterSelect">
+          <option value="all">All</option>
+          <option value="JavaScript">JavaScript</option>
+          <option value="React">React</option>
+          <option value="SQL">SQL</option>
+          <option value="Python">Python</option>
+        </select>
+        <button class="btn btn-primary" onclick="applyFilters()">Search</button>
+      </div>
+
+      <!-- Group Actions -->
+      <div class="controls">
+        <button class="btn btn-primary">Create Group</button>
+        <button class="btn btn-outline">Join Group</button>
+      </div>
+
+      <!-- Group List -->
+      <div class="group-grid" id="groupList">
+        <!-- Groups will render here -->
+      </div>
+    </div>
+
+    <script>
+      // Dummy data here
+      const groups = [
+        {
+          id: 1,
+          name: "JavaScript Ninjas",
+          level: 5,
+          specialization: "JavaScript",
+          members: 120,
+        },
+        {
+          id: 2,
+          name: "React Masters",
+          level: 3,
+          specialization: "React",
+          members: 80,
+        },
+        {
+          id: 3,
+          name: "SQL Wizards",
+          level: 4,
+          specialization: "SQL",
+          members: 60,
+        },
+        {
+          id: 4,
+          name: "Python Gurus",
+          level: 2,
+          specialization: "Python",
+          members: 200,
+        },
+      ];
+
+      function renderGroups(list) {
+        const container = document.getElementById("groupList");
+        container.innerHTML = "";
+
+        list.forEach((group) => {
+          const card = document.createElement("div");
+          card.className = "card group-card";
+          card.setAttribute("data-name", group.name.toLowerCase());
+          card.setAttribute("data-specialization", group.specialization);
+
+          card.innerHTML = `
+          <h2>${group.name}</h2>
+          <p>Specialization: ${group.specialization}</p>
+          <p>Level: ${group.level}</p>
+          <p>Members: ${group.members}</p>
+          <button class="btn btn-primary btn-block">View Group</button>
+        `;
+
+          container.appendChild(card);
+        });
+      }
+
+      function applyFilters() {
+        const searchValue = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+        const filterValue = document.getElementById("filterSelect").value;
+
+        const filtered = groups.filter((group) => {
+          const matchesSearch = group.name.toLowerCase().includes(searchValue);
+          const matchesFilter =
+            filterValue === "all" || group.specialization === filterValue;
+          return matchesSearch && matchesFilter;
+        });
+
+        renderGroups(filtered);
+      }
+
+      // Initial render
+      renderGroups(groups);
+    </script>
+  </body>
+</html>

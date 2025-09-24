@@ -36,8 +36,7 @@ app.get("/resultPage", (req, res) => res.render("resultPage"));
 app.get("/profilePage", (req, res) => res.render("profilePage"));
 app.get("/editProfile", (req, res) => res.render("editProfilePage"));
 app.get("/aboutUs", (req, res) => res.render("aboutUs"));
-
-
+app.get("/groups", (req, res) => res.render("groups"));
 
 // ##### Admin Pages #####
 app.get("/adminDashboard", (req, res) => res.render("adminDashboardPage"));
