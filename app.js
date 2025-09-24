@@ -36,6 +36,8 @@ app.get("/resultPage", (req, res) => res.render("resultPage"));
 app.get("/profilePage", (req, res) => res.render("profilePage"));
 app.get("/editProfile", (req, res) => res.render("editProfilePage"));
 app.get("/aboutUs", (req, res) => res.render("aboutUs"));
+
+// ####### Group Pages #######
 app.get("/groups", (req, res) => res.render("groups"));
 
 // ##### Admin Pages #####
@@ -71,6 +73,10 @@ app.use("/quizPage", quizPage);
 const authRoutes = require("./Routes/auth-route");
 app.use("/user", authRoutes);
 // app.use(authRoutes);
+
+// Group Router
+const groupRoute = require("./Routes/group.route");
+app.use("/groups", groupRoute);
 
 //Error Handler
 app.use((req, res, next) => {

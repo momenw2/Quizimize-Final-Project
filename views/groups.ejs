@@ -68,11 +68,99 @@
         border: 1px solid #ccc;
         border-radius: 6px;
       }
+      .loading {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+      }
+
+      /* Modal Styles */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+      .modal-content {
+        background-color: white;
+        margin: 10% auto;
+        padding: 20px;
+        border-radius: 10px;
+        width: 90%;
+        max-width: 500px;
+      }
+      .modal-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .modal-title {
+        font-size: 20px;
+        font-weight: bold;
+        margin: 0;
+      }
+      .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      .close:hover {
+        color: black;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      .form-group input,
+      .form-group select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 20px;
+      }
+      .success-message {
+        background-color: #d4edda;
+        color: #155724;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        display: none;
+      }
+      .error-message {
+        background-color: #f8d7da;
+        color: #721c24;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        display: none;
+      }
     </style>
   </head>
   <body>
     <div class="container">
       <div class="header">Groups</div>
+
+      <!-- Success/Error Messages -->
+      <div id="successMessage" class="success-message"></div>
+      <div id="errorMessage" class="error-message"></div>
 
       <!-- Search & Filter -->
       <div class="controls">
@@ -94,66 +182,96 @@
 
       <!-- Group Actions -->
       <div class="controls">
-        <button class="btn btn-primary">Create Group</button>
+        <button class="btn btn-primary" onclick="openCreateGroupModal()">
+          Create Group
+        </button>
         <button class="btn btn-outline">Join Group</button>
       </div>
 
       <!-- Group List -->
       <div class="group-grid" id="groupList">
-        <!-- Groups will render here -->
+        <div class="loading">Loading groups...</div>
+      </div>
+    </div>
+
+    <!-- Create Group Modal -->
+    <div id="createGroupModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Create New Group</h3>
+          <span class="close" onclick="closeCreateGroupModal()">&times;</span>
+        </div>
+        <form id="createGroupForm">
+          <div class="form-group">
+            <label for="groupName">Group Name:</label>
+            <input
+              type="text"
+              id="groupName"
+              name="name"
+              required
+              placeholder="Enter group name"
+            />
+          </div>
+          <div class="form-group">
+            <label for="groupSpecialization">Specialization:</label>
+            <select id="groupSpecialization" name="specialization" required>
+              <option value="">Select specialization</option>
+              <option value="JavaScript">JavaScript</option>
+              <option value="React">React</option>
+              <option value="SQL">SQL</option>
+              <option value="Python">Python</option>
+              <option value="Node.js">Node.js</option>
+              <option value="HTML/CSS">HTML/CSS</option>
+              <option value="MongoDB">MongoDB</option>
+              <option value="Express.js">Express.js</option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn btn-outline"
+              onclick="closeCreateGroupModal()"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">Create Group</button>
+          </div>
+        </form>
       </div>
     </div>
 
     <script>
-      // Dummy data here
-      const groups = [
-        {
-          id: 1,
-          name: "JavaScript Ninjas",
-          level: 5,
-          specialization: "JavaScript",
-          members: 120,
-        },
-        {
-          id: 2,
-          name: "React Masters",
-          level: 3,
-          specialization: "React",
-          members: 80,
-        },
-        {
-          id: 3,
-          name: "SQL Wizards",
-          level: 4,
-          specialization: "SQL",
-          members: 60,
-        },
-        {
-          id: 4,
-          name: "Python Gurus",
-          level: 2,
-          specialization: "Python",
-          members: 200,
-        },
-      ];
+      // Use the same pattern as your other pages - fetch data from API
+      const url = "http://localhost:3000/groups/api";
 
-      function renderGroups(list) {
+      let groups = [];
+
+      function renderGroups(groupsToRender) {
         const container = document.getElementById("groupList");
+
+        if (!groupsToRender || groupsToRender.length === 0) {
+          container.innerHTML =
+            "<p>No groups found. Create your first group!</p>";
+          return;
+        }
+
         container.innerHTML = "";
 
-        list.forEach((group) => {
+        groupsToRender.forEach((group) => {
           const card = document.createElement("div");
           card.className = "card group-card";
           card.setAttribute("data-name", group.name.toLowerCase());
           card.setAttribute("data-specialization", group.specialization);
 
           card.innerHTML = `
-          <h2>${group.name}</h2>
-          <p>Specialization: ${group.specialization}</p>
-          <p>Level: ${group.level}</p>
-          <p>Members: ${group.members}</p>
-          <button class="btn btn-primary btn-block">View Group</button>
-        `;
+            <h2>${group.name}</h2>
+            <p>Specialization: ${group.specialization}</p>
+            <p>Level: ${group.level || 1}</p>
+            <p>Members: ${group.members ? group.members.length : 0}</p>
+            <button class="btn btn-primary btn-block" onclick="viewGroup('${
+              group._id
+            }')">View Group</button>
+          `;
 
           container.appendChild(card);
         });
@@ -175,8 +293,125 @@
         renderGroups(filtered);
       }
 
-      // Initial render
-      renderGroups(groups);
+      // Modal Functions
+      function openCreateGroupModal() {
+        document.getElementById("createGroupModal").style.display = "block";
+        document.getElementById("groupName").focus();
+      }
+
+      function closeCreateGroupModal() {
+        document.getElementById("createGroupModal").style.display = "none";
+        document.getElementById("createGroupForm").reset();
+        hideMessages();
+      }
+
+      function showMessage(type, text) {
+        const messageEl = document.getElementById(type + "Message");
+        messageEl.textContent = text;
+        messageEl.style.display = "block";
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+          hideMessages();
+        }, 5000);
+      }
+
+      function hideMessages() {
+        document.getElementById("successMessage").style.display = "none";
+        document.getElementById("errorMessage").style.display = "none";
+      }
+
+      function viewGroup(groupId) {
+        alert("Viewing group: " + groupId);
+        // You can implement navigation to group details page here
+        // window.location.href = `/groups/${groupId}`;
+      }
+
+      function loadGroups() {
+        fetch(url)
+          .then((res) => {
+            if (!res.ok) {
+              throw new Error(`Failed to fetch: ${res.status}`);
+            }
+            return res.json();
+          })
+          .then((data) => {
+            groups = data;
+            renderGroups(groups);
+          })
+          .catch((err) => {
+            console.error("Error loading groups:", err);
+            document.getElementById("groupList").innerHTML =
+              "<p>Error loading groups. Please try again.</p>";
+          });
+      }
+
+      // Handle form submission
+      document
+        .getElementById("createGroupForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const formData = new FormData(this);
+          const groupData = {
+            name: formData.get("name"),
+            specialization: formData.get("specialization"),
+          };
+
+          // Show loading state
+          const submitBtn = this.querySelector('button[type="submit"]');
+          submitBtn.textContent = "Creating...";
+          submitBtn.disabled = true;
+
+          fetch("/groups", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(groupData),
+          })
+            .then((response) => {
+              if (response.ok) {
+                showMessage("success", "Group created successfully!");
+                closeCreateGroupModal();
+                // Reload groups after a short delay
+                setTimeout(loadGroups, 1000);
+              } else {
+                return response.text().then((text) => {
+                  throw new Error(text);
+                });
+              }
+            })
+            .catch((error) => {
+              console.error("Error creating group:", error);
+              showMessage("error", "Error creating group: " + error.message);
+            })
+            .finally(() => {
+              submitBtn.textContent = "Create Group";
+              submitBtn.disabled = false;
+            });
+        });
+
+      // Close modal when clicking outside
+      window.addEventListener("click", function (event) {
+        const modal = document.getElementById("createGroupModal");
+        if (event.target === modal) {
+          closeCreateGroupModal();
+        }
+      });
+
+      // Load groups when page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        loadGroups();
+
+        // Add event listeners for real-time filtering
+        document
+          .getElementById("searchInput")
+          .addEventListener("input", applyFilters);
+        document
+          .getElementById("filterSelect")
+          .addEventListener("change", applyFilters);
+      });
     </script>
   </body>
 </html>
