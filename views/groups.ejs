@@ -263,18 +263,25 @@
           card.setAttribute("data-name", group.name.toLowerCase());
           card.setAttribute("data-specialization", group.specialization);
 
+          // FIXED: Properly escape the group ID for the onclick attribute
           card.innerHTML = `
-            <h2>${group.name}</h2>
-            <p>Specialization: ${group.specialization}</p>
-            <p>Level: ${group.level || 1}</p>
-            <p>Members: ${group.members ? group.members.length : 0}</p>
-            <button class="btn btn-primary btn-block" onclick="viewGroup('${
-              group._id
-            }')">View Group</button>
-          `;
+        <h2>${group.name}</h2>
+        <p>Specialization: ${group.specialization}</p>
+        <p>Level: ${group.level || 1}</p>
+        <p>Members: ${group.members ? group.members.length : 0}</p>
+        <button class="btn btn-primary btn-block" onclick="viewGroup('${
+          group._id
+        }')">View Group</button>
+      `;
 
           container.appendChild(card);
         });
+      }
+
+      // FIXED: Proper viewGroup function that navigates to the group page
+      function viewGroup(groupId) {
+        console.log("Navigating to group:", groupId);
+        window.location.href = "/groups/" + groupId;
       }
 
       function applyFilters() {
@@ -321,11 +328,11 @@
         document.getElementById("errorMessage").style.display = "none";
       }
 
-      function viewGroup(groupId) {
-        alert("Viewing group: " + groupId);
-        // You can implement navigation to group details page here
-        // window.location.href = `/groups/${groupId}`;
-      }
+      // function viewGroup(groupId) {
+      //   alert("Viewing group: " + groupId);
+      //   // You can implement navigation to group details page here
+      //   // window.location.href = `/groups/${groupId}`;
+      // }
 
       function loadGroups() {
         fetch(url)

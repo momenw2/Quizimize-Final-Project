@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title><%= group.name %> - Group Details</title>
+    <style>
+      .container {
+        max-width: 1000px;
+        margin: auto;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+      }
+      .header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 20px;
+      }
+      .group-title {
+        font-size: 28px;
+        font-weight: bold;
+        color: oklch(44.8% 0.119 151.328);
+        margin: 0;
+      }
+      .back-btn {
+        background: #6b7280;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 14px;
+      }
+      .back-btn:hover {
+        background: #4b5563;
+      }
+      .group-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-bottom: 30px;
+      }
+      .info-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 20px;
+      }
+      .info-card h3 {
+        margin-top: 0;
+        color: #374151;
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 10px;
+      }
+      .info-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        padding: 5px 0;
+      }
+      .info-label {
+        font-weight: bold;
+        color: #6b7280;
+      }
+      .info-value {
+        color: #374151;
+      }
+      .members-section {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 20px;
+      }
+      .members-list {
+        display: grid;
+        gap: 10px;
+      }
+      .member-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: #f9fafb;
+      }
+      .member-info h4 {
+        margin: 0 0 5px 0;
+        color: #111827;
+      }
+      .member-info p {
+        margin: 0;
+        color: #6b7280;
+        font-size: 14px;
+      }
+      .member-role {
+        background: oklch(44.8% 0.119 151.328);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+      .action-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+      }
+      .btn-primary {
+        background: oklch(44.8% 0.119 151.328);
+        color: white;
+      }
+      .btn-outline {
+        background: white;
+        color: oklch(44.8% 0.119 151.328);
+        border: 1px solid oklch(44.8% 0.119 151.328);
+      }
+      .btn-danger {
+        background: #dc2626;
+        color: white;
+      }
+      .no-members {
+        text-align: center;
+        color: #6b7280;
+        padding: 40px;
+        font-style: italic;
+      }
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+      }
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+      .stat-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+      }
+      .stat-number {
+        font-size: 24px;
+        font-weight: bold;
+        color: oklch(44.8% 0.119 151.328);
+        margin: 0;
+      }
+      .stat-label {
+        font-size: 12px;
+        color: #6b7280;
+        margin: 5px 0 0 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <h1 class="group-title"><%= group.name %></h1>
+        <a href="/groups" class="back-btn">← Back to Groups</a>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <p class="stat-number"><%= group.members.length %></p>
+          <p class="stat-label">Total Members</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-number"><%= group.level || 1 %></p>
+          <p class="stat-label">Group Level</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-number">
+            <%= new Date(group.createdAt).toLocaleDateString() %>
+          </p>
+          <p class="stat-label">Created Date</p>
+        </div>
+      </div>
+
+      <!-- Group Information -->
+      <div class="group-info">
+        <div class="info-card">
+          <h3>Group Details</h3>
+          <div class="info-item">
+            <span class="info-label">Name:</span>
+            <span class="info-value"><%= group.name %></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Specialization:</span>
+            <span class="info-value"><%= group.specialization %></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Level:</span>
+            <span class="info-value"><%= group.level || 1 %></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Created:</span>
+            <span class="info-value"
+              ><%= new Date(group.createdAt).toLocaleString() %></span
+            >
+          </div>
+          <div class="info-item">
+            <span class="info-label">Group ID:</span>
+            <span
+              class="info-value"
+              style="font-size: 12px; font-family: monospace"
+              ><%= group._id %></span
+            >
+          </div>
+        </div>
+
+        <div class="info-card">
+          <h3>Quick Actions</h3>
+          <div class="action-buttons">
+            <button class="btn btn-primary" onclick="inviteMember()">
+              Invite Member
+            </button>
+            <button class="btn btn-outline" onclick="editGroup()">
+              Edit Group
+            </button>
+            <button class="btn btn-outline" onclick="startQuiz()">
+              Start Quiz
+            </button>
+          </div>
+          <div style="margin-top: 15px; font-size: 14px; color: #6b7280">
+            <p>
+              <strong>Group Code:</strong>
+              <code><%= group._id.toString().slice(-8).toUpperCase() %></code>
+            </p>
+            <p>Share this code to invite members</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Members Section -->
+      <div class="members-section">
+        <h3>Group Members (<%= group.members.length %>)</h3>
+
+        <% if (group.members && group.members.length > 0) { %>
+        <div class="members-list">
+          <% group.members.forEach(function(member, index) { %>
+          <div class="member-card">
+            <div class="member-info">
+              <h4>Member <%= index + 1 %></h4>
+              <p>
+                <% if (member.user && typeof member.user === 'object') { %> <%=
+                member.user.username || 'User ' +
+                member.user._id.toString().slice(-6) %> <% } else { %> User <%=
+                member.user ? member.user.toString().slice(-6) : 'Unknown' %> <%
+                } %>
+              </p>
+            </div>
+            <span class="member-role"><%= member.role %></span>
+          </div>
+          <% }); %>
+        </div>
+        <% } else { %>
+        <div class="no-members">
+          <p>No members yet. Invite some members to join your group!</p>
+          <button class="btn btn-primary" onclick="inviteMember()">
+            Invite First Member
+          </button>
+        </div>
+        <% } %>
+      </div>
+
+      <!-- Additional Actions -->
+      <div
+        class="action-buttons"
+        style="justify-content: center; margin-top: 30px"
+      >
+        <button class="btn btn-primary" onclick="viewGroupStats()">
+          View Group Statistics
+        </button>
+        <button class="btn btn-outline" onclick="manageGroupSettings()">
+          Group Settings
+        </button>
+        <button class="btn btn-danger" onclick="leaveGroup()">
+          Leave Group
+        </button>
+      </div>
+    </div>
+
+    <script>
+      function inviteMember() {
+        const groupCode = "<%= group._id.toString().slice(-8).toUpperCase() %>";
+        const inviteLink =
+          window.location.origin + "/groups/join?code=" + groupCode;
+
+        if (navigator.clipboard) {
+          navigator.clipboard
+            .writeText(inviteLink)
+            .then(() => {
+              alert(
+                "Invite link copied to clipboard!\n\nGroup Code: " +
+                  groupCode +
+                  "\nLink: " +
+                  inviteLink
+              );
+            })
+            .catch(() => {
+              alert(
+                "Group Code: " + groupCode + "\nInvite Link: " + inviteLink
+              );
+            });
+        } else {
+          alert("Group Code: " + groupCode + "\nInvite Link: " + inviteLink);
+        }
+      }
+
+      function editGroup() {
+        alert("Edit group functionality coming soon!");
+        // window.location.href = '/groups/<%= group._id %>/edit';
+      }
+
+      function startQuiz() {
+        alert("Starting quiz for <%= group.name %>!");
+        // window.location.href = '/quiz?group=<%= group._id %>';
+      }
+
+      function viewGroupStats() {
+        alert("Viewing group statistics for <%= group.name %>");
+        // window.location.href = '/groups/<%= group._id %>/stats';
+      }
+
+      function manageGroupSettings() {
+        alert("Managing group settings for <%= group.name %>");
+        // window.location.href = '/groups/<%= group._id %>/settings';
+      }
+
+      function leaveGroup() {
+        if (confirm('Are you sure you want to leave "<%= group.name %>"?')) {
+          alert("Leaving group...");
+          // Implement leave group functionality
+          // fetch('/groups/<%= group._id %>/leave', { method: 'POST' })
+          //   .then(() => window.location.href = '/groups');
+        }
+      }
+
+      // Display current URL in console for debugging
+      console.log("Group Details Page Loaded:", {
+        groupId: "<%= group._id %>",
+        groupName: "<%= group.name %>",
+        url: window.location.href,
+      });
+    </script>
+  </body>
+</html>

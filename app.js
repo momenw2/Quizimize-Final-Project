@@ -39,6 +39,7 @@ app.get("/aboutUs", (req, res) => res.render("aboutUs"));
 
 // ####### Group Pages #######
 app.get("/groups", (req, res) => res.render("groups"));
+app.get("/group-detailed", (req, res) => res.render("group-detailed"));
 
 // ##### Admin Pages #####
 app.get("/adminDashboard", (req, res) => res.render("adminDashboardPage"));

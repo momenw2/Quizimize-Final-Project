@@ -1,71 +1,3 @@
-// const express = require("express");
-// const mongoose = require("mongoose");
-// const router = express.Router();
-// const Group = require("../Models/Group.model");
-
-// // GET all groups (renders EJS)
-// router.get("/", async (req, res, next) => {
-//   try {
-//     console.log("🚀 === GROUPS ROUTE START ===");
-//     console.log("1. Route handler is executing");
-
-//     // Test if we can access the Group model
-//     console.log("2. Group model:", Group ? "✓ EXISTS" : "✗ UNDEFINED");
-
-//     // Fetch groups from database
-//     console.log("3. Fetching groups from database...");
-//     const groups = await Group.find();
-//     console.log("4. Database query successful");
-//     console.log("5. Number of groups found:", groups.length);
-
-//     // Test data as fallback
-//     const testGroups = [
-//       {
-//         name: "Test Group 1",
-//         specialization: "JavaScript",
-//         level: 1,
-//         members: [],
-//       },
-//       { name: "Test Group 2", specialization: "React", level: 2, members: [] },
-//     ];
-
-//     // Use actual data from database
-//     const groupsToRender = groups.length > 0 ? groups : testGroups;
-
-//     console.log("6. Groups to render:", groupsToRender.length);
-//     console.log("7. Rendering EJS template...");
-
-//     // Render the EJS template with explicit data
-//     res.render("groups", {
-//       groups: groupsToRender,
-//     });
-
-//     console.log("8. ✅ Render command sent successfully");
-//     console.log("🎉 === GROUPS ROUTE END ===");
-//   } catch (err) {
-//     console.error("❌ ERROR in groups route:", err);
-
-//     // Even on error, ensure groups variable is defined
-//     res.render("groups", {
-//       groups: [
-//         { name: "Error Group", specialization: "Error", level: 1, members: [] },
-//       ],
-//     });
-//   }
-// });
-
-// // Keep your API endpoint
-// router.get("/api", async (req, res, next) => {
-//   try {
-//     const groups = await Group.find();
-//     res.json(groups);
-//   } catch (err) {
-//     next(err);
-//   }
-// });
-
-// module.exports = router;
-
 const express = require("express");
 const mongoose = require("mongoose");
 const router = express.Router();
@@ -81,6 +13,67 @@ router.get("/api", async (req, res, next) => {
   try {
     const groups = await Group.find();
     res.json(groups);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET single group details - SIMPLIFIED VERSION
+router.get("/:id", async (req, res, next) => {
+  try {
+    const groupId = req.params.id;
+    console.log("Fetching group details for:", groupId);
+
+    // Validate if the ID is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+      return res.status(400).render("error", {
+        message: "Invalid group ID",
+        status: 400,
+      });
+    }
+
+    // Don't populate the user field to avoid the error
+    const group = await Group.findById(groupId);
+
+    if (!group) {
+      return res.status(404).render("error", {
+        message: "Group not found",
+        status: 404,
+      });
+    }
+
+    console.log("Group found:", group.name);
+    res.render("group-details", {
+      group: group,
+    });
+  } catch (err) {
+    console.error("Error fetching group details:", err);
+    res.status(500).render("error", {
+      message: "Internal server error",
+      status: 500,
+    });
+  }
+});
+
+// API endpoint for single group (optional, for AJAX requests)
+router.get("/:id/api", async (req, res, next) => {
+  try {
+    const groupId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+      return res.status(400).json({ error: "Invalid group ID" });
+    }
+
+    const group = await Group.findById(groupId).populate(
+      "members.user",
+      "username email"
+    );
+
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    res.json(group);
   } catch (err) {
     next(err);
   }
