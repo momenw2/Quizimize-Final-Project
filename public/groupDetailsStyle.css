@@ -142,3 +142,153 @@
   color: oklch(44.8% 0.119 151.328);
   border: 1px solid oklch(44.8% 0.119 151.328);
 }
+
+/* Add these styles to your existing CSS */
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.post-form {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #e9ecef;
+}
+
+.post-form textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.form-actions {
+  margin-top: 10px;
+  text-align: right;
+}
+
+.post-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.post-author strong {
+  display: block;
+  color: #333;
+}
+
+.post-author span {
+  font-size: 0.9em;
+  color: #666;
+}
+
+.post-header small {
+  color: #999;
+  font-size: 0.8em;
+}
+
+.post-content {
+  margin: 10px 0;
+  line-height: 1.5;
+}
+
+.post-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.vote-btn,
+.comment-btn {
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.vote-btn:hover,
+.comment-btn:hover {
+  background: #e9ecef;
+}
+
+.comments-section {
+  margin-top: 15px;
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+}
+
+.comments-list {
+  margin-bottom: 15px;
+}
+
+.comment {
+  background: #f8f9fa;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  border-left: 3px solid #007bff;
+}
+
+.comment strong {
+  color: #333;
+}
+
+.comment small {
+  color: #999;
+  display: block;
+  margin-top: 5px;
+}
+
+.comment-form {
+  display: flex;
+  gap: 10px;
+}
+
+.comment-form input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}

@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <title><%= group.name %> - Group Details</title>
     <link rel="stylesheet" href="/groupDetailsStyle.css" />
+    <script src="/socket.io/socket.io.js"></script>
   </head>
   <body>
     <div class="container">
@@ -33,10 +34,38 @@
             </button>
             <button class="tab-btn" onclick="showTab('stats')">Stats</button>
           </div>
+
           <div id="timeline" class="tab-content">
-            <h3>Timeline</h3>
-            <p>Here you will see a feed of group activities and updates.</p>
+            <div class="timeline-header">
+              <h3>Group Timeline</h3>
+              <button class="btn btn-primary" onclick="showPostForm()">
+                Create Post
+              </button>
+            </div>
+
+            <!-- Post Creation Form -->
+            <div id="postForm" class="post-form" style="display: none">
+              <textarea
+                id="postContent"
+                placeholder="What's happening in your group?"
+                rows="3"
+              ></textarea>
+              <div class="form-actions">
+                <button class="btn btn-secondary" onclick="hidePostForm()">
+                  Cancel
+                </button>
+                <button class="btn btn-primary" onclick="createPost()">
+                  Post
+                </button>
+              </div>
+            </div>
+
+            <!-- Posts Container -->
+            <div id="postsContainer" class="posts-container">
+              <!-- Posts will be loaded here dynamically -->
+            </div>
           </div>
+
           <div id="missions" class="tab-content" style="display: none">
             <h3>Missions</h3>
             <p>This is where group missions and quests will be displayed.</p>
@@ -84,6 +113,9 @@
     </div>
 
     <script>
+      let socket;
+      const groupId = "<%= group._id %>";
+
       function showTab(tabId) {
         const tabs = document.querySelectorAll(".tab-content");
         tabs.forEach((tab) => {
@@ -97,10 +129,13 @@
 
         document.getElementById(tabId).style.display = "block";
         event.currentTarget.classList.add("active");
+
+        if (tabId === "timeline") {
+          loadPosts();
+        }
       }
 
       function inviteMember() {
-        // Your existing inviteMember function logic
         const groupCode = "<%= group._id.toString().slice(-8).toUpperCase() %>";
         const inviteLink =
           window.location.origin + "/groups/join?code=" + groupCode;
@@ -110,18 +145,247 @@
             .writeText(inviteLink)
             .then(() => {
               alert(
-                "Invite link copied to clipboard!\n\nGroup Code: " + groupCode
+                "Invite link copied to clipboard!\\n\\nGroup Code: " + groupCode
               );
             })
             .catch(() => {
               alert(
-                "Group Code: " + groupCode + "\nInvite Link: " + inviteLink
+                "Group Code: " + groupCode + "\\nInvite Link: " + inviteLink
               );
             });
         } else {
-          alert("Group Code: " + groupCode + "\nInvite Link: " + inviteLink);
+          alert("Group Code: " + groupCode + "\\nInvite Link: " + inviteLink);
         }
       }
+
+      // Timeline functionality
+      function initializeSocket() {
+        socket = io();
+        socket.emit("join-group", groupId);
+
+        socket.on("new-post", (post) => {
+          addPostToTimeline(post);
+        });
+
+        socket.on("new-comment", (data) => {
+          addCommentToPost(data.postId, data.comment);
+        });
+
+        socket.on("vote-update", (data) => {
+          updatePostVotes(data.postId, data.votes);
+        });
+      }
+
+      async function loadPosts() {
+        try {
+          const response = await fetch(`/groups/${groupId}/posts`);
+          const posts = await response.json();
+          renderPosts(posts);
+        } catch (error) {
+          console.error("Error loading posts:", error);
+        }
+      }
+
+      function renderPosts(posts) {
+        const container = document.getElementById("postsContainer");
+        container.innerHTML = posts
+          .map(
+            (post) => `
+          <div class="post-card" data-post-id="${post._id}">
+            <div class="post-header">
+              <div class="post-author">
+                <strong>${post.author.fullName}</strong>
+                <span>Level ${post.author.level}</span>
+              </div>
+              <small>${new Date(post.createdAt).toLocaleString()}</small>
+            </div>
+            <div class="post-content">${post.content}</div>
+            <div class="post-actions">
+              <button class="vote-btn" onclick="votePost('${post._id}', 'up')">
+                ▲ ${post.votes}
+              </button>
+              <button class="vote-btn" onclick="votePost('${
+                post._id
+              }', 'down')">▼</button>
+              <button class="comment-btn" onclick="toggleComments('${
+                post._id
+              }')">
+                Comment (${post.comments ? post.comments.length : 0})
+              </button>
+            </div>
+            <div class="comments-section" id="comments-${
+              post._id
+            }" style="display: none;">
+              <div class="comments-list" id="comments-list-${post._id}">
+                ${
+                  post.comments
+                    ? post.comments
+                        .map(
+                          (comment) => `
+                  <div class="comment">
+                    <strong>${comment.author.fullName}</strong>: ${
+                            comment.content
+                          }
+                    <small>${new Date(
+                      comment.createdAt
+                    ).toLocaleString()}</small>
+                  </div>
+                `
+                        )
+                        .join("")
+                    : ""
+                }
+              </div>
+              <div class="comment-form">
+                <input type="text" id="comment-input-${
+                  post._id
+                }" placeholder="Write a comment...">
+                <button onclick="addComment('${post._id}')">Post</button>
+              </div>
+            </div>
+          </div>
+        `
+          )
+          .join("");
+      }
+
+      function showPostForm() {
+        document.getElementById("postForm").style.display = "block";
+      }
+
+      function hidePostForm() {
+        document.getElementById("postForm").style.display = "none";
+        document.getElementById("postContent").value = "";
+      }
+
+      async function createPost() {
+        const content = document.getElementById("postContent").value.trim();
+        if (!content) return;
+
+        try {
+          const response = await fetch(`/groups/${groupId}/posts`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content }),
+          });
+
+          if (response.ok) {
+            hidePostForm();
+          }
+        } catch (error) {
+          console.error("Error creating post:", error);
+        }
+      }
+
+      async function addComment(postId) {
+        const input = document.getElementById(`comment-input-${postId}`);
+        const content = input.value.trim();
+        if (!content) return;
+
+        try {
+          const response = await fetch(`/groups/posts/${postId}/comments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content }),
+          });
+
+          if (response.ok) {
+            input.value = "";
+          }
+        } catch (error) {
+          console.error("Error adding comment:", error);
+        }
+      }
+
+      async function votePost(postId, voteType) {
+        try {
+          const response = await fetch(`/groups/posts/${postId}/vote`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ voteType }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            // Socket will handle the update automatically
+          }
+        } catch (error) {
+          console.error("Error voting:", error);
+        }
+      }
+
+      function toggleComments(postId) {
+        const commentsSection = document.getElementById(`comments-${postId}`);
+        commentsSection.style.display =
+          commentsSection.style.display === "none" ? "block" : "none";
+      }
+
+      function addPostToTimeline(post) {
+        const container = document.getElementById("postsContainer");
+        const postHTML = `
+          <div class="post-card" data-post-id="${post._id}">
+            <div class="post-header">
+              <div class="post-author">
+                <strong>${post.author.fullName}</strong>
+                <span>Level ${post.author.level}</span>
+              </div>
+              <small>${new Date(post.createdAt).toLocaleString()}</small>
+            </div>
+            <div class="post-content">${post.content}</div>
+            <div class="post-actions">
+              <button class="vote-btn" onclick="votePost('${
+                post._id
+              }', 'up')">▲ 0</button>
+              <button class="vote-btn" onclick="votePost('${
+                post._id
+              }', 'down')">▼</button>
+              <button class="comment-btn" onclick="toggleComments('${
+                post._id
+              }')">Comment (0)</button>
+            </div>
+            <div class="comments-section" id="comments-${
+              post._id
+            }" style="display: none;">
+              <div class="comments-list" id="comments-list-${post._id}"></div>
+              <div class="comment-form">
+                <input type="text" id="comment-input-${
+                  post._id
+                }" placeholder="Write a comment...">
+                <button onclick="addComment('${post._id}')">Post</button>
+              </div>
+            </div>
+          </div>
+        `;
+        container.insertAdjacentHTML("afterbegin", postHTML);
+      }
+
+      function addCommentToPost(postId, comment) {
+        const commentsList = document.getElementById(`comments-list-${postId}`);
+        if (commentsList) {
+          const commentHTML = `
+            <div class="comment">
+              <strong>${comment.author.fullName}</strong>: ${comment.content}
+              <small>${new Date(comment.createdAt).toLocaleString()}</small>
+            </div>
+          `;
+          commentsList.insertAdjacentHTML("beforeend", commentHTML);
+        }
+      }
+
+      function updatePostVotes(postId, votes) {
+        const voteBtn = document.querySelector(
+          `[data-post-id="${postId}"] .vote-btn`
+        );
+        if (voteBtn) {
+          voteBtn.textContent = `▲ ${votes}`;
+        }
+      }
+
+      // Initialize when page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        initializeSocket();
+        loadPosts();
+      });
     </script>
   </body>
 </html>

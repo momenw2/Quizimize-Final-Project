@@ -3,6 +3,9 @@ const mongoose = require("mongoose");
 const router = express.Router();
 const Group = require("../Models/Group.model");
 const { requireAuth, checkUser } = require("../middleware/authMiddleware"); // Adjust path as needed
+const Post = require("../Models/Post.model");
+const Comment = require("../Models/Comment.model");
+const { io } = require("../app"); // Import io from app.js
 
 // GET groups page (just render the template - no data needed)
 router.get("/", (req, res) => {
@@ -148,6 +151,132 @@ router.post("/", requireAuth, async (req, res, next) => {
     }
 
     next(err);
+  }
+});
+
+// GET posts for a group
+router.get("/:id/posts", requireAuth, async (req, res) => {
+  try {
+    const posts = await Post.find({ groupId: req.params.id })
+      .populate("author", "fullName level")
+      .populate({
+        path: "comments",
+        populate: { path: "author", select: "fullName level" },
+      })
+      .sort({ createdAt: -1 });
+
+    res.json(posts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST create a new post
+router.post("/:id/posts", requireAuth, async (req, res) => {
+  try {
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ error: "Post content is required" });
+    }
+
+    const post = new Post({
+      content,
+      author: res.locals.user._id,
+      groupId: req.params.id,
+    });
+
+    await post.save();
+    await post.populate("author", "fullName level");
+
+    // Emit to all group members
+    io.to(req.params.id).emit("new-post", post);
+
+    res.status(201).json(post);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST add comment to a post
+router.post("/posts/:postId/comments", requireAuth, async (req, res) => {
+  try {
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ error: "Comment content is required" });
+    }
+
+    const comment = new Comment({
+      content,
+      author: res.locals.user._id,
+      postId: req.params.postId,
+    });
+
+    await comment.save();
+    await comment.populate("author", "fullName level");
+
+    // Add comment to post
+    await Post.findByIdAndUpdate(req.params.postId, {
+      $push: { comments: comment._id },
+    });
+
+    // Get the post to get groupId for socket emission
+    const post = await Post.findById(req.params.postId);
+    io.to(post.groupId.toString()).emit("new-comment", {
+      comment,
+      postId: req.params.postId,
+    });
+
+    res.status(201).json(comment);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST vote on a post
+router.post("/posts/:postId/vote", requireAuth, async (req, res) => {
+  try {
+    const { voteType } = req.body; // 'up' or 'down'
+    const userId = res.locals.user._id;
+    const postId = req.params.postId;
+
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // Check if user already voted
+    const existingVote = post.voters.find(
+      (v) => v.userId.toString() === userId.toString()
+    );
+
+    if (existingVote) {
+      // Remove existing vote
+      post.voters = post.voters.filter(
+        (v) => v.userId.toString() !== userId.toString()
+      );
+      post.votes -= existingVote.voteType === "up" ? 1 : -1;
+    }
+
+    // Add new vote
+    if (!existingVote || existingVote.voteType !== voteType) {
+      post.voters.push({ userId, voteType });
+      post.votes += voteType === "up" ? 1 : -1;
+    }
+
+    await post.save();
+
+    // Emit vote update
+    io.to(post.groupId.toString()).emit("vote-update", {
+      postId,
+      votes: post.votes,
+    });
+
+    res.json({ votes: post.votes });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

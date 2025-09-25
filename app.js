@@ -4,9 +4,15 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const { requireAuth, checkUser } = require("./middleware/authMiddleware");
 
+// Create app first
+const app = express();
+
+// Then create HTTP server
+const http = require("http").createServer(app);
+const io = require("socket.io")(http);
+
 // const path = require("path"); // Import the path module
 
-const app = express();
 app.use(express.static("public"));
 app.set("view engine", "ejs");
 app.use(express.json());
@@ -83,6 +89,32 @@ app.use("/groups", groupRoute);
 const postRoute = require("./Routes/post.route");
 app.use("/post", postRoute);
 
+// Socket.io connection handling
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
+  socket.on("join-group", (groupId) => {
+    socket.join(groupId);
+    console.log(`User joined group: ${groupId}`);
+  });
+
+  socket.on("new-post", (data) => {
+    socket.to(data.groupId).emit("new-post", data.post);
+  });
+
+  socket.on("new-comment", (data) => {
+    socket.to(data.groupId).emit("new-comment", data.comment);
+  });
+
+  socket.on("vote-post", (data) => {
+    socket.to(data.groupId).emit("vote-update", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
+
 //Error Handler
 app.use((req, res, next) => {
   const err = new Error("Not found");
@@ -100,6 +132,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(3000, () => {
-  console.log("server started on port 3000.....");
+// Remove the duplicate app.listen and use only http.listen
+const PORT = process.env.PORT || 3000;
+http.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
+
+// Export both app and io for use in other files
+module.exports = { app, io };

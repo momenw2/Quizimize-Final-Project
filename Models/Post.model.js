@@ -1,33 +1,30 @@
 const mongoose = require("mongoose");
 
-const commentSchema = new mongoose.Schema(
-  {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    text: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now },
-  },
-  { _id: true }
-);
-
 const postSchema = new mongoose.Schema(
   {
-    group: {
+    content: { type: String, required: true },
+    author: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+      required: true,
+    },
+    groupId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Group",
       required: true,
     },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    content: { type: String, required: true },
-    votes: [
+    votes: { type: Number, default: 0 },
+    voters: [
       {
-        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        value: { type: Number, enum: [1, -1] }, // 1 = upvote, -1 = downvote
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
+        voteType: { type: String, enum: ["up", "down"] },
       },
     ],
-    comments: [commentSchema],
-    createdAt: { type: Date, default: Date.now },
+    comments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Comment" }],
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
 module.exports = mongoose.model("Post", postSchema);
