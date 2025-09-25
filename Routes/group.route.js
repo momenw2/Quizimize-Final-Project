@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const router = express.Router();
 const Group = require("../Models/Group.model");
+const { requireAuth, checkUser } = require("../middleware/authMiddleware"); // Adjust path as needed
 
 // GET groups page (just render the template - no data needed)
 router.get("/", (req, res) => {
@@ -79,8 +80,29 @@ router.get("/:id/api", async (req, res, next) => {
   }
 });
 
-// POST create a group - handle both form submissions and AJAX
-router.post("/", async (req, res, next) => {
+// Apply checkUser to all routes
+router.use(checkUser);
+
+// GET groups page (just render the template - no data needed)
+router.get("/", requireAuth, (req, res) => {
+  // Add requireAuth here
+  res.render("groups");
+});
+
+// API endpoint - return groups as JSON
+router.get("/api", requireAuth, async (req, res, next) => {
+  // Add requireAuth here
+  try {
+    const groups = await Group.find();
+    res.json(groups);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST create a group - PROTECT THIS ROUTE
+router.post("/", requireAuth, async (req, res, next) => {
+  // Add requireAuth here
   try {
     const { name, specialization } = req.body;
 
@@ -91,10 +113,24 @@ router.post("/", async (req, res, next) => {
         .json({ error: "Name and specialization are required" });
     }
 
+    // Get the current user from res.locals
+    const currentUser = res.locals.user;
+
+    if (!currentUser) {
+      return res
+        .status(401)
+        .json({ error: "You must be logged in to create a group" });
+    }
+
     const newGroup = await Group.create({
       name,
       specialization,
-      members: [{ user: new mongoose.Types.ObjectId(), role: "Admin" }],
+      members: [
+        {
+          user: currentUser._id, // Use the actual logged-in user's ID
+          role: "Admin",
+        },
+      ],
     });
 
     // Check if it's an AJAX request
