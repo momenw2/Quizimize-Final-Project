@@ -19,40 +19,37 @@ router.get("/api", async (req, res, next) => {
   }
 });
 
-// GET single group details - SIMPLIFIED VERSION
 router.get("/:id", async (req, res, next) => {
   try {
     const groupId = req.params.id;
-    console.log("Fetching group details for:", groupId);
+    console.log("Received groupId:", groupId);
 
-    // Validate if the ID is a valid MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(groupId)) {
-      return res.status(400).render("error", {
-        message: "Invalid group ID",
-        status: 400,
-      });
+      console.log("Invalid group ID");
+      return res
+        .status(400)
+        .render("error", { message: "Invalid group ID", status: 400 });
     }
 
-    // Don't populate the user field to avoid the error
-    const group = await Group.findById(groupId);
+    const group = await Group.findById(groupId).populate(
+      "members.user",
+      "fullName level email"
+    );
+    console.log("Fetched group:", group);
 
     if (!group) {
-      return res.status(404).render("error", {
-        message: "Group not found",
-        status: 404,
-      });
+      console.log("Group not found");
+      return res
+        .status(404)
+        .render("error", { message: "Group not found", status: 404 });
     }
 
-    console.log("Group found:", group.name);
-    res.render("group-details", {
-      group: group,
-    });
+    res.render("group-details", { group });
   } catch (err) {
     console.error("Error fetching group details:", err);
-    res.status(500).render("error", {
-      message: "Internal server error",
-      status: 500,
-    });
+    res
+      .status(500)
+      .render("error", { message: "Internal server error", status: 500 });
   }
 });
 

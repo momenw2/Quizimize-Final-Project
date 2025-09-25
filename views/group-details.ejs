@@ -58,15 +58,11 @@
               <div class="member-card">
                 <div class="member-info">
                   <h4>
-                    <% if (member.user && member.user.username) { %> <%=
-                    member.user.username %> <% } else { %> User <%= index + 1 %>
+                    <% if (member.user && member.user.fullName) { %> <%=
+                    member.user.fullName %> <% } else { %> User <%= index + 1 %>
                     <% } %>
                   </h4>
-                  <p>
-                    <% if (member.user && member.user.email) { %> <%=
-                    member.user.email %> <% } else { %> ID: <%=
-                    member.user._id.toString().slice(-6) %> <% } %>
-                  </p>
+                  <p>Level: <%= member.user ? member.user.level : "N/A" %></p>
                 </div>
                 <span class="member-role"><%= member.role %></span>
               </div>

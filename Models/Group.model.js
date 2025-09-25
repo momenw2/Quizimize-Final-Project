@@ -6,7 +6,7 @@ const groupSchema = new mongoose.Schema({
   level: { type: Number, default: 1 },
   members: [
     {
-      user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      user: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
       role: {
         type: String,
         enum: ["Admin", "Strategist", "Contributor", "Challenger", "Member"],
