@@ -79,6 +79,10 @@ app.use("/user", authRoutes);
 const groupRoute = require("./Routes/group.route");
 app.use("/groups", groupRoute);
 
+// Post Router
+const postRoute = require("./Routes/post.route");
+app.use("/post", postRoute);
+
 //Error Handler
 app.use((req, res, next) => {
   const err = new Error("Not found");
