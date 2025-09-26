@@ -25,7 +25,7 @@
 .group-title {
   font-size: 28px;
   font-weight: bold;
-  color: oklch(44.8% 0.119 151.328);
+  color: #2d4939;
   margin: 0;
 }
 .group-meta {
@@ -67,8 +67,8 @@
 }
 .tab-btn:hover,
 .tab-btn.active {
-  color: oklch(44.8% 0.119 151.328);
-  border-bottom: 2px solid oklch(44.8% 0.119 151.328);
+  color: #2d4939;
+  border-bottom: 2px solid #2d4939;
 }
 .tab-content {
   padding: 20px;
@@ -97,9 +97,9 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px;
-  border: 1px solid #e5e7eb;
+  border: none;
   border-radius: 8px;
-  background: #f9fafb;
+  background: #fafafa;
 }
 .member-info h4 {
   margin: 0;
@@ -111,7 +111,7 @@
   color: #6b7280;
 }
 .member-role {
-  background: oklch(44.8% 0.119 151.328);
+  background: #2d4939;
   color: white;
   padding: 4px 12px;
   border-radius: 20px;
@@ -134,16 +134,14 @@
   text-align: center;
 }
 .btn-primary {
-  background: oklch(44.8% 0.119 151.328);
+  background: #2d4939;
   color: white;
 }
 .btn-outline {
   background: white;
-  color: oklch(44.8% 0.119 151.328);
-  border: 1px solid oklch(44.8% 0.119 151.328);
+  color: #2d4939;
+  border: 1px solid #2d4939;
 }
-
-/* Add these styles to your existing CSS */
 
 .timeline-header {
   display: flex;
@@ -218,10 +216,10 @@
 
 .vote-btn,
 .comment-btn {
-  background: #f8f9fa;
+  background: #ffffff;
   border: 1px solid #ddd;
   padding: 5px 12px;
-  border-radius: 4px;
+  border-radius: 20px;
   cursor: pointer;
   font-size: 0.9em;
 }
@@ -246,7 +244,7 @@
   padding: 10px;
   border-radius: 4px;
   margin-bottom: 10px;
-  border-left: 3px solid #007bff;
+  border-left: 3px solid #2d4939;
 }
 
 .comment strong {
@@ -280,7 +278,7 @@
 }
 
 .btn-primary {
-  background: #007bff;
+  background: #2d4939;
   color: white;
 }
 

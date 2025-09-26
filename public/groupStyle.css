@@ -43,13 +43,13 @@
   font-size: 14px;
 }
 .btn-primary {
-  background: #2563eb;
+  background: #2d4939;
   color: white;
 }
 .btn-outline {
-  border: 1px solid #2563eb;
+  border: 1px solid #2d4939;
   background: white;
-  color: #2563eb;
+  color: #2d4939;
 }
 .btn-block {
   display: block;
@@ -155,19 +155,19 @@ select {
 }
 
 .btn-success {
-  background-color: #28a745;
+  background-color: #2d4939;
   color: white;
-  border: 1px solid #28a745;
+  border: 1px solid #2d4939;
 }
 
 .btn-success:hover {
-  background-color: #218838;
-  border-color: #1e7e34;
+  background-color: #2d4939;
+  border-color: #2d4939;
 }
 
 .member-badge {
   background-color: #d4edda;
-  color: #155724;
+  color: #2d4939;
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 0.8em;
