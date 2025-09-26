@@ -398,4 +398,70 @@ router.post("/posts/:postId/vote", requireAuth, async (req, res) => {
   }
 });
 
+// POST join a group
+router.post("/:id/join", requireAuth, async (req, res) => {
+  try {
+    console.log("=== JOIN GROUP REQUEST ===");
+    console.log("Group ID:", req.params.id);
+    console.log("User ID:", res.locals.user._id);
+
+    const groupId = req.params.id;
+    const userId = res.locals.user._id;
+
+    // Validate group ID
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+      return res.status(400).json({ error: "Invalid group ID" });
+    }
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    // Check if user is already a member
+    const isAlreadyMember = group.members.some(
+      (member) => member.user && member.user.toString() === userId.toString()
+    );
+
+    if (isAlreadyMember) {
+      return res
+        .status(400)
+        .json({ error: "You are already a member of this group" });
+    }
+
+    // Add user as a member with default role
+    group.members.push({
+      user: userId,
+      role: "Member",
+    });
+
+    await group.save();
+
+    // Populate the updated members list
+    await group.populate("members.user", "fullName level email");
+
+    // Emit socket event for real-time update (if needed)
+    if (io) {
+      io.to(groupId).emit("member-joined", {
+        groupId: groupId,
+        newMember: {
+          user: res.locals.user,
+          role: "Member",
+        },
+        totalMembers: group.members.length,
+      });
+    }
+
+    console.log("User joined group successfully");
+    res.json({
+      success: true,
+      message: "Successfully joined the group",
+      group: group,
+    });
+  } catch (error) {
+    console.error("Join group error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

@@ -3,156 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>Groups</title>
-    <style>
-      .container {
-        max-width: 1200px;
-        margin: auto;
-        padding: 20px;
-        font-family: Arial, sans-serif;
-      }
-      .header {
-        font-size: 24px;
-        font-weight: bold;
-        margin-bottom: 20px;
-      }
-      .controls {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-      }
-      .group-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 20px;
-      }
-      .card {
-        border: 1px solid #ddd;
-        border-radius: 10px;
-        padding: 15px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-      .card h2 {
-        margin: 0;
-        font-size: 18px;
-      }
-      .card p {
-        margin: 4px 0;
-        font-size: 14px;
-        color: #555;
-      }
-      .btn {
-        display: inline-block;
-        padding: 8px 12px;
-        border-radius: 6px;
-        border: none;
-        cursor: pointer;
-        font-size: 14px;
-      }
-      .btn-primary {
-        background: #2563eb;
-        color: white;
-      }
-      .btn-outline {
-        border: 1px solid #2563eb;
-        background: white;
-        color: #2563eb;
-      }
-      .btn-block {
-        display: block;
-        width: 100%;
-        margin-top: 10px;
-      }
-      input,
-      select {
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-      }
-      .loading {
-        text-align: center;
-        padding: 20px;
-        color: #666;
-      }
-
-      /* Modal Styles */
-      .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-      }
-      .modal-content {
-        background-color: white;
-        margin: 10% auto;
-        padding: 20px;
-        border-radius: 10px;
-        width: 90%;
-        max-width: 500px;
-      }
-      .modal-header {
-        display: flex;
-        justify-content: between;
-        align-items: center;
-        margin-bottom: 20px;
-      }
-      .modal-title {
-        font-size: 20px;
-        font-weight: bold;
-        margin: 0;
-      }
-      .close {
-        color: #aaa;
-        float: right;
-        font-size: 28px;
-        font-weight: bold;
-        cursor: pointer;
-      }
-      .close:hover {
-        color: black;
-      }
-      .form-group {
-        margin-bottom: 15px;
-      }
-      .form-group label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
-      }
-      .form-group input,
-      .form-group select {
-        width: 100%;
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        box-sizing: border-box;
-      }
-      .modal-actions {
-        display: flex;
-        gap: 10px;
-        justify-content: flex-end;
-        margin-top: 20px;
-      }
-      .success-message {
-        background-color: #d4edda;
-        color: #155724;
-        padding: 10px;
-        border-radius: 4px;
-        margin-bottom: 15px;
-        display: none;
-      }
-      .error-message {
-        background-color: #f8d7da;
-        color: #721c24;
-        padding: 10px;
-        border-radius: 4px;
-        margin-bottom: 15px;
-        display: none;
-      }
-    </style>
+    <link rel="stylesheet" href="/groupStyle.css" />
   </head>
   <body>
     <div class="container">
@@ -185,7 +36,9 @@
         <button class="btn btn-primary" onclick="openCreateGroupModal()">
           Create Group
         </button>
-        <button class="btn btn-outline">Join Group</button>
+        <button class="btn btn-outline" onclick="openJoinGroupModal()">
+          Join Group with Code
+        </button>
       </div>
 
       <!-- Group List -->
@@ -240,11 +93,58 @@
       </div>
     </div>
 
+    <!-- Join Group Modal -->
+    <div id="joinGroupModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Join Group with Code</h3>
+          <span class="close" onclick="closeJoinGroupModal()">&times;</span>
+        </div>
+        <form id="joinGroupForm">
+          <div class="form-group">
+            <label for="groupCode">Group Code:</label>
+            <input
+              type="text"
+              id="groupCode"
+              name="code"
+              required
+              placeholder="Enter group code"
+              maxlength="8"
+              style="text-transform: uppercase"
+            />
+            <small
+              >Enter the 8-character group code provided by the group
+              admin</small
+            >
+          </div>
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn btn-outline"
+              onclick="closeJoinGroupModal()"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">Join Group</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <script>
       // Use the same pattern as your other pages - fetch data from API
       const url = "http://localhost:3000/groups/api";
 
       let groups = [];
+      let currentUser = null; // We'll get this from your auth system
+
+      // Function to check if current user is a member of a group
+      function isUserMember(group) {
+        if (!currentUser || !group.members) return false;
+        return group.members.some(
+          (member) => member.user && member.user._id === currentUser._id
+        );
+      }
 
       function renderGroups(groupsToRender) {
         const container = document.getElementById("groupList");
@@ -258,30 +158,136 @@
         container.innerHTML = "";
 
         groupsToRender.forEach((group) => {
+          const isMember = isUserMember(group);
           const card = document.createElement("div");
           card.className = "card group-card";
           card.setAttribute("data-name", group.name.toLowerCase());
           card.setAttribute("data-specialization", group.specialization);
 
-          // FIXED: Properly escape the group ID for the onclick attribute
           card.innerHTML = `
-        <h2>${group.name}</h2>
-        <p>Specialization: ${group.specialization}</p>
-        <p>Level: ${group.level || 1}</p>
-        <p>Members: ${group.members ? group.members.length : 0}</p>
-        <button class="btn btn-primary btn-block" onclick="viewGroup('${
-          group._id
-        }')">View Group</button>
-      `;
+            <h2>${group.name}</h2>
+            <p><strong>Specialization:</strong> ${group.specialization}</p>
+            <p><strong>Level:</strong> ${group.level || 1}</p>
+            <p><strong>Members:</strong> ${
+              group.members ? group.members.length : 0
+            }</p>
+            <p><strong>Created:</strong> ${new Date(
+              group.createdAt
+            ).toLocaleDateString()}</p>
+            
+            <div class="group-actions">
+              ${
+                isMember
+                  ? `<button class="btn btn-success btn-block" onclick="viewGroup('${group._id}')">
+                    ✓ Member - View Group
+                  </button>`
+                  : `<button class="btn btn-primary btn-block" onclick="joinGroup('${group._id}')">
+                    Join Group
+                  </button>
+                  <button class="btn btn-outline btn-block" onclick="viewGroup('${group._id}')">
+                    View Details
+                  </button>`
+              }
+            </div>
+            
+            ${
+              isMember ? '<div class="member-badge">You are a member</div>' : ""
+            }
+          `;
 
           container.appendChild(card);
         });
       }
 
-      // FIXED: Proper viewGroup function that navigates to the group page
+      // Join group function
+      async function joinGroup(groupId) {
+        console.log("Joining group:", groupId);
+
+        const joinBtn = document.querySelector(
+          `[onclick="joinGroup('${groupId}')"]`
+        );
+        const originalText = joinBtn.textContent;
+
+        try {
+          joinBtn.textContent = "Joining...";
+          joinBtn.disabled = true;
+
+          const response = await fetch(`/groups/${groupId}/join`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            showMessage(
+              "success",
+              result.message || "Successfully joined the group!"
+            );
+
+            // Update the UI immediately
+            const groupIndex = groups.findIndex((g) => g._id === groupId);
+            if (groupIndex !== -1) {
+              // Add current user to members list
+              if (!groups[groupIndex].members) {
+                groups[groupIndex].members = [];
+              }
+              groups[groupIndex].members.push({
+                user: currentUser,
+                role: "Member",
+              });
+
+              // Re-render the groups
+              renderGroups(groups);
+            }
+          } else {
+            showMessage("error", result.error || "Failed to join group");
+            joinBtn.textContent = originalText;
+            joinBtn.disabled = false;
+          }
+        } catch (error) {
+          console.error("Error joining group:", error);
+          showMessage("error", "Error joining group. Please try again.");
+          joinBtn.textContent = originalText;
+          joinBtn.disabled = false;
+        }
+      }
+
+      // View group function
       function viewGroup(groupId) {
         console.log("Navigating to group:", groupId);
         window.location.href = "/groups/" + groupId;
+      }
+
+      // Join with code function
+      async function joinGroupWithCode(groupCode) {
+        try {
+          // You'll need to implement this endpoint
+          const response = await fetch(`/groups/join/${groupCode}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            showMessage(
+              "success",
+              result.message || "Successfully joined the group!"
+            );
+            closeJoinGroupModal();
+            loadGroups(); // Reload groups list
+          } else {
+            showMessage("error", result.error || "Invalid group code");
+          }
+        } catch (error) {
+          console.error("Error joining group with code:", error);
+          showMessage("error", "Error joining group. Please try again.");
+        }
       }
 
       function applyFilters() {
@@ -312,6 +318,17 @@
         hideMessages();
       }
 
+      function openJoinGroupModal() {
+        document.getElementById("joinGroupModal").style.display = "block";
+        document.getElementById("groupCode").focus();
+      }
+
+      function closeJoinGroupModal() {
+        document.getElementById("joinGroupModal").style.display = "none";
+        document.getElementById("joinGroupForm").reset();
+        hideMessages();
+      }
+
       function showMessage(type, text) {
         const messageEl = document.getElementById(type + "Message");
         messageEl.textContent = text;
@@ -328,12 +345,6 @@
         document.getElementById("errorMessage").style.display = "none";
       }
 
-      // function viewGroup(groupId) {
-      //   alert("Viewing group: " + groupId);
-      //   // You can implement navigation to group details page here
-      //   // window.location.href = `/groups/${groupId}`;
-      // }
-
       function loadGroups() {
         fetch(url)
           .then((res) => {
@@ -344,6 +355,14 @@
           })
           .then((data) => {
             groups = data;
+
+            // Get current user info (you'll need to set this from your auth system)
+            // This is a placeholder - you'll need to get the actual user data
+            currentUser = {
+              _id: "current-user-id", // You'll need to set this properly
+              fullName: "Current User",
+            };
+
             renderGroups(groups);
           })
           .catch((err) => {
@@ -353,7 +372,7 @@
           });
       }
 
-      // Handle form submission
+      // Handle create group form submission
       document
         .getElementById("createGroupForm")
         .addEventListener("submit", function (e) {
@@ -365,7 +384,6 @@
             specialization: formData.get("specialization"),
           };
 
-          // Show loading state
           const submitBtn = this.querySelector('button[type="submit"]');
           submitBtn.textContent = "Creating...";
           submitBtn.disabled = true;
@@ -381,11 +399,10 @@
               if (response.ok) {
                 showMessage("success", "Group created successfully!");
                 closeCreateGroupModal();
-                // Reload groups after a short delay
                 setTimeout(loadGroups, 1000);
               } else {
-                return response.text().then((text) => {
-                  throw new Error(text);
+                return response.json().then((errorData) => {
+                  throw new Error(errorData.error || "Failed to create group");
                 });
               }
             })
@@ -399,11 +416,32 @@
             });
         });
 
-      // Close modal when clicking outside
+      // Handle join group form submission
+      document
+        .getElementById("joinGroupForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const formData = new FormData(this);
+          const groupCode = formData.get("code").toUpperCase().trim();
+
+          if (groupCode.length !== 8) {
+            showMessage("error", "Group code must be 8 characters long");
+            return;
+          }
+
+          joinGroupWithCode(groupCode);
+        });
+
+      // Close modals when clicking outside
       window.addEventListener("click", function (event) {
-        const modal = document.getElementById("createGroupModal");
-        if (event.target === modal) {
+        const createModal = document.getElementById("createGroupModal");
+        const joinModal = document.getElementById("joinGroupModal");
+
+        if (event.target === createModal) {
           closeCreateGroupModal();
+        }
+        if (event.target === joinModal) {
+          closeJoinGroupModal();
         }
       });
 
