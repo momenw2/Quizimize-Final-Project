@@ -9,7 +9,9 @@ const { io } = require("../app"); // Import io from app.js
 
 // GET groups page (just render the template - no data needed)
 router.get("/", (req, res) => {
-  res.render("groups");
+  res.render("groups", {
+    user: res.locals.user,
+  });
 });
 
 // API endpoint - return groups as JSON

@@ -6,6 +6,11 @@
     <link rel="stylesheet" href="/groupStyle.css" />
   </head>
   <body>
+    <!-- Add hidden element with user data -->
+    <div id="currentUserData" style="display: none">
+      <%- JSON.stringify(user) %>
+    </div>
+
     <div class="container">
       <div class="header">Groups</div>
 
@@ -41,8 +46,19 @@
         </button>
       </div>
 
-      <!-- Group List -->
-      <div class="group-grid" id="groupList">
+      <!-- User's Joined Groups -->
+      <div class="controls">
+        <h3>My Groups</h3>
+      </div>
+      <div class="group-grid" id="userGroupsList">
+        <div class="loading">Loading your groups...</div>
+      </div>
+
+      <!-- All Groups -->
+      <div class="controls">
+        <h3>All Groups</h3>
+      </div>
+      <div class="group-grid" id="allGroupsList">
         <div class="loading">Loading groups...</div>
       </div>
     </div>
@@ -134,67 +150,184 @@
     <script>
       // Use the same pattern as your other pages - fetch data from API
       const url = "http://localhost:3000/groups/api";
-
       let groups = [];
-      let currentUser = null; // We'll get this from your auth system
+      let currentUser = null;
 
-      // Function to check if current user is a member of a group
-      function isUserMember(group) {
-        if (!currentUser || !group.members) return false;
-        return group.members.some(
-          (member) => member.user && member.user._id === currentUser._id
-        );
+      // Initialize current user from the hidden element
+      function initializeCurrentUser() {
+        try {
+          const userElement = document.getElementById("currentUserData");
+          if (userElement && userElement.textContent) {
+            currentUser = JSON.parse(userElement.textContent);
+            console.log("Current user initialized:", currentUser);
+          } else {
+            console.error("Could not find user data element");
+            currentUser = { _id: null, fullName: "Guest" };
+          }
+        } catch (error) {
+          console.error("Error parsing user data:", error);
+          currentUser = { _id: null, fullName: "Guest" };
+        }
       }
 
-      function renderGroups(groupsToRender) {
-        const container = document.getElementById("groupList");
+      // Enhanced function to check if current user is a member of a group
+      function isUserMember(group) {
+        if (!currentUser || !currentUser._id) {
+          console.log("No current user or user ID");
+          return false;
+        }
 
-        if (!groupsToRender || groupsToRender.length === 0) {
+        if (!group.members || !Array.isArray(group.members)) {
+          console.log("Group has no members array:", group.name);
+          return false;
+        }
+
+        const isMember = group.members.some((member) => {
+          // Handle both populated user object and user ID string
+          const memberUserId = member.user?._id || member.user;
+          return (
+            memberUserId &&
+            memberUserId.toString() === currentUser._id.toString()
+          );
+        });
+
+        console.log(
+          `User ${currentUser._id} is member of ${group.name}:`,
+          isMember
+        );
+        return isMember;
+      }
+
+      // Helper function to get user's role in a group
+      function getUserRole(group) {
+        if (!currentUser || !group.members) return "Non-member";
+
+        const member = group.members.find((member) => {
+          const memberUserId = member.user?._id || member.user;
+          return (
+            memberUserId &&
+            memberUserId.toString() === currentUser._id.toString()
+          );
+        });
+
+        return member ? member.role : "Non-member";
+      }
+
+      // Function to separate user's groups from all groups
+      function separateUserGroups(allGroups) {
+        const userGroups = [];
+        const otherGroups = [];
+
+        console.log("Separating groups for user:", currentUser._id);
+
+        allGroups.forEach((group, index) => {
+          console.log(`Group ${index + 1}: ${group.name}`);
+          console.log("Group members:", group.members);
+
+          const isMember = isUserMember(group);
+          console.log(`Is member: ${isMember}`);
+
+          if (isMember) {
+            userGroups.push(group);
+          } else {
+            otherGroups.push(group);
+          }
+        });
+
+        console.log("User groups count:", userGroups.length);
+        console.log("Other groups count:", otherGroups.length);
+
+        return { userGroups, otherGroups };
+      }
+
+      // Function to render user's groups
+      function renderUserGroups(userGroups) {
+        const container = document.getElementById("userGroupsList");
+
+        if (!userGroups || userGroups.length === 0) {
           container.innerHTML =
-            "<p>No groups found. Create your first group!</p>";
+            "<p>You haven't joined any groups yet. Join a group to get started!</p>";
           return;
         }
 
         container.innerHTML = "";
-
-        groupsToRender.forEach((group) => {
-          const isMember = isUserMember(group);
+        userGroups.forEach((group) => {
           const card = document.createElement("div");
           card.className = "card group-card";
           card.setAttribute("data-name", group.name.toLowerCase());
           card.setAttribute("data-specialization", group.specialization);
-
           card.innerHTML = `
-            <h2>${group.name}</h2>
-            <p><strong>Specialization:</strong> ${group.specialization}</p>
-            <p><strong>Level:</strong> ${group.level || 1}</p>
-            <p><strong>Members:</strong> ${
-              group.members ? group.members.length : 0
-            }</p>
-            <p><strong>Created:</strong> ${new Date(
-              group.createdAt
-            ).toLocaleDateString()}</p>
-            
-            <div class="group-actions">
-              ${
-                isMember
-                  ? `<button class="btn btn-success btn-block" onclick="viewGroup('${group._id}')">
-                    ✓ Member - View Group
-                  </button>`
-                  : `<button class="btn btn-primary btn-block" onclick="joinGroup('${group._id}')">
-                    Join Group
-                  </button>
-                  <button class="btn btn-outline btn-block" onclick="viewGroup('${group._id}')">
-                    View Details
-                  </button>`
-              }
-            </div>
-            
-            ${
-              isMember ? '<div class="member-badge">You are a member</div>' : ""
-            }
-          `;
+                    <h2>${group.name}</h2>
+                    <p><strong>Specialization:</strong> ${
+                      group.specialization
+                    }</p>
+                    <p><strong>Level:</strong> ${group.level || 1}</p>
+                    <p><strong>Members:</strong> ${
+                      group.members ? group.members.length : 0
+                    }</p>
+                    <p><strong>Your Role:</strong> ${getUserRole(group)}</p>
+                    <p><strong>Created:</strong> ${new Date(
+                      group.createdAt
+                    ).toLocaleDateString()}</p>
+                    <div class="group-actions">
+                        <button class="btn btn-success btn-block" onclick="viewGroup('${
+                          group._id
+                        }')">
+                            ✓ Member - View Group
+                        </button>
+                        <button class="btn btn-outline btn-block" onclick="viewGroup('${
+                          group._id
+                        }')">
+                            View Details
+                        </button>
+                    </div>
+                    <div class="member-badge">You are a member</div>
+                `;
+          container.appendChild(card);
+        });
+      }
 
+      // Function to render all other groups (that user hasn't joined)
+      function renderOtherGroups(otherGroups) {
+        const container = document.getElementById("allGroupsList");
+
+        if (!otherGroups || otherGroups.length === 0) {
+          container.innerHTML =
+            "<p>No other groups available. Create your first group!</p>";
+          return;
+        }
+
+        container.innerHTML = "";
+        otherGroups.forEach((group) => {
+          const card = document.createElement("div");
+          card.className = "card group-card";
+          card.setAttribute("data-name", group.name.toLowerCase());
+          card.setAttribute("data-specialization", group.specialization);
+          card.innerHTML = `
+                    <h2>${group.name}</h2>
+                    <p><strong>Specialization:</strong> ${
+                      group.specialization
+                    }</p>
+                    <p><strong>Level:</strong> ${group.level || 1}</p>
+                    <p><strong>Members:</strong> ${
+                      group.members ? group.members.length : 0
+                    }</p>
+                    <p><strong>Created:</strong> ${new Date(
+                      group.createdAt
+                    ).toLocaleDateString()}</p>
+                    <div class="group-actions">
+                        <button class="btn btn-primary btn-block" onclick="joinGroup('${
+                          group._id
+                        }')">
+                            Join Group
+                        </button>
+                        <button class="btn btn-outline btn-block" onclick="viewGroup('${
+                          group._id
+                        }')">
+                            View Details
+                        </button>
+                    </div>
+                `;
           container.appendChild(card);
         });
       }
@@ -202,7 +335,6 @@
       // Join group function
       async function joinGroup(groupId) {
         console.log("Joining group:", groupId);
-
         const joinBtn = document.querySelector(
           `[onclick="joinGroup('${groupId}')"]`
         );
@@ -227,21 +359,8 @@
               result.message || "Successfully joined the group!"
             );
 
-            // Update the UI immediately
-            const groupIndex = groups.findIndex((g) => g._id === groupId);
-            if (groupIndex !== -1) {
-              // Add current user to members list
-              if (!groups[groupIndex].members) {
-                groups[groupIndex].members = [];
-              }
-              groups[groupIndex].members.push({
-                user: currentUser,
-                role: "Member",
-              });
-
-              // Re-render the groups
-              renderGroups(groups);
-            }
+            // Reload groups to update both sections
+            setTimeout(loadGroups, 500);
           } else {
             showMessage("error", result.error || "Failed to join group");
             joinBtn.textContent = originalText;
@@ -264,7 +383,6 @@
       // Join with code function
       async function joinGroupWithCode(groupCode) {
         try {
-          // You'll need to implement this endpoint
           const response = await fetch(`/groups/join/${groupCode}`, {
             method: "POST",
             headers: {
@@ -296,14 +414,25 @@
           .value.toLowerCase();
         const filterValue = document.getElementById("filterSelect").value;
 
-        const filtered = groups.filter((group) => {
+        // Filter both user groups and other groups
+        const filteredUserGroups = groups.filter((group) => {
           const matchesSearch = group.name.toLowerCase().includes(searchValue);
           const matchesFilter =
             filterValue === "all" || group.specialization === filterValue;
-          return matchesSearch && matchesFilter;
+          const isMember = isUserMember(group);
+          return matchesSearch && matchesFilter && isMember;
         });
 
-        renderGroups(filtered);
+        const filteredOtherGroups = groups.filter((group) => {
+          const matchesSearch = group.name.toLowerCase().includes(searchValue);
+          const matchesFilter =
+            filterValue === "all" || group.specialization === filterValue;
+          const isMember = isUserMember(group);
+          return matchesSearch && matchesFilter && !isMember;
+        });
+
+        renderUserGroups(filteredUserGroups);
+        renderOtherGroups(filteredOtherGroups);
       }
 
       // Modal Functions
@@ -333,7 +462,6 @@
         const messageEl = document.getElementById(type + "Message");
         messageEl.textContent = text;
         messageEl.style.display = "block";
-
         // Auto-hide after 5 seconds
         setTimeout(() => {
           hideMessages();
@@ -346,6 +474,13 @@
       }
 
       function loadGroups() {
+        // Make sure we have the current user
+        if (!currentUser || !currentUser._id) {
+          console.log("Waiting for user data...");
+          setTimeout(loadGroups, 100);
+          return;
+        }
+
         fetch(url)
           .then((res) => {
             if (!res.ok) {
@@ -355,19 +490,24 @@
           })
           .then((data) => {
             groups = data;
+            console.log("All groups loaded:", groups);
+            console.log("Current user ID:", currentUser._id);
 
-            // Get current user info (you'll need to set this from your auth system)
-            // This is a placeholder - you'll need to get the actual user data
-            currentUser = {
-              _id: "current-user-id", // You'll need to set this properly
-              fullName: "Current User",
-            };
+            // Separate groups into user's groups and other groups
+            const { userGroups, otherGroups } = separateUserGroups(groups);
 
-            renderGroups(groups);
+            console.log("User groups found:", userGroups.length);
+            console.log("Other groups:", otherGroups.length);
+
+            // Render both sections
+            renderUserGroups(userGroups);
+            renderOtherGroups(otherGroups);
           })
           .catch((err) => {
             console.error("Error loading groups:", err);
-            document.getElementById("groupList").innerHTML =
+            document.getElementById("userGroupsList").innerHTML =
+              "<p>Error loading your groups. Please try again.</p>";
+            document.getElementById("allGroupsList").innerHTML =
               "<p>Error loading groups. Please try again.</p>";
           });
       }
@@ -377,7 +517,6 @@
         .getElementById("createGroupForm")
         .addEventListener("submit", function (e) {
           e.preventDefault();
-
           const formData = new FormData(this);
           const groupData = {
             name: formData.get("name"),
@@ -447,6 +586,7 @@
 
       // Load groups when page loads
       document.addEventListener("DOMContentLoaded", function () {
+        initializeCurrentUser();
         loadGroups();
 
         // Add event listeners for real-time filtering
