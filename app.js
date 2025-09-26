@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const { requireAuth, checkUser } = require("./middleware/authMiddleware");
+const ChatMessage = require("./Models/ChatMessage.model"); // Add this import
 
 // Create app first
 const app = express();
@@ -89,29 +90,143 @@ app.use("/groups", groupRoute);
 const postRoute = require("./Routes/post.route");
 app.use("/post", postRoute);
 
-// Socket.io connection handling
+// Store online users for each group
+const onlineUsers = new Map();
+
+// Socket.io connection handling - REPLACE YOUR CURRENT SOCKET CODE WITH THIS
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  socket.on("join-group", (groupId) => {
-    socket.join(groupId);
-    console.log(`User joined group: ${groupId}`);
+  // Store user info when they authenticate
+  socket.on("authenticate", (userData) => {
+    socket.userData = userData;
+    console.log("User authenticated:", userData.userName);
   });
 
+  socket.on("join-group", (groupId) => {
+    socket.join(groupId);
+
+    // Add user to online users
+    if (!onlineUsers.has(groupId)) {
+      onlineUsers.set(groupId, new Map());
+    }
+
+    // Store socket ID with user info
+    const userName = socket.userData?.userName || "Unknown User";
+    const userId = socket.userData?.userId || "unknown";
+
+    onlineUsers.get(groupId).set(socket.id, {
+      socketId: socket.id,
+      userId: userId,
+      userName: userName,
+    });
+
+    console.log(`User ${userName} joined group: ${groupId}`);
+
+    // Notify others in the group
+    socket.to(groupId).emit("user-joined-chat", {
+      userName: userName,
+      userId: userId,
+      onlineCount: onlineUsers.get(groupId).size,
+    });
+
+    // Send current online count to all group members
+    io.to(groupId).emit("online-count", onlineUsers.get(groupId).size);
+  });
+
+  // Existing timeline events
   socket.on("new-post", (data) => {
     socket.to(data.groupId).emit("new-post", data.post);
   });
 
   socket.on("new-comment", (data) => {
-    socket.to(data.groupId).emit("new-comment", data.comment);
+    socket.to(data.groupId).emit("new-comment", data);
   });
 
-  socket.on("vote-post", (data) => {
+  socket.on("vote-update", (data) => {
     socket.to(data.groupId).emit("vote-update", data);
+  });
+
+  // NEW CHAT EVENTS
+  socket.on("get-chat-history", async (groupId) => {
+    try {
+      const messages = await ChatMessage.find({ groupId })
+        .sort({ createdAt: 1 })
+        .limit(100);
+
+      socket.emit("chat-history", messages);
+      console.log(
+        `Sent chat history for group ${groupId}: ${messages.length} messages`
+      );
+    } catch (error) {
+      console.error("Error fetching chat history:", error);
+    }
+  });
+
+  socket.on("chat-message", async (data) => {
+    try {
+      const message = new ChatMessage({
+        content: data.content,
+        userId: data.userId,
+        groupId: data.groupId,
+        userName: data.userName,
+      });
+
+      await message.save();
+
+      console.log(
+        `New chat message in group ${data.groupId} from ${data.userName}`
+      );
+
+      // Emit to all group members including the sender
+      io.to(data.groupId).emit("chat-message", {
+        _id: message._id,
+        content: message.content,
+        userName: data.userName,
+        userId: data.userId,
+        timestamp: message.createdAt,
+      });
+    } catch (error) {
+      console.error("Error saving chat message:", error);
+    }
+  });
+
+  socket.on("typing-start", (data) => {
+    socket.to(data.groupId).emit("typing-start", data);
+  });
+
+  socket.on("typing-stop", (data) => {
+    socket.to(data.groupId).emit("typing-stop", data);
   });
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
+
+    // Remove user from online users and notify others
+    onlineUsers.forEach((users, groupId) => {
+      if (users.has(socket.id)) {
+        const userInfo = users.get(socket.id);
+        users.delete(socket.id);
+
+        console.log(`User ${userInfo.userName} left group ${groupId}`);
+
+        // Notify others in the group
+        socket.to(groupId).emit("user-left-chat", {
+          userName: userInfo.userName,
+          userId: userInfo.userId,
+          onlineCount: users.size,
+        });
+
+        // Update online count for all group members
+        io.to(groupId).emit("online-count", users.size);
+
+        // Remove group from map if empty
+        if (users.size === 0) {
+          onlineUsers.delete(groupId);
+          console.log(`Group ${groupId} has no more online users`);
+        }
+      }
+    });
   });
 });
 

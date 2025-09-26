@@ -6,6 +6,11 @@ const { requireAuth, checkUser } = require("../middleware/authMiddleware"); // A
 const Post = require("../Models/Post.model");
 const Comment = require("../Models/Comment.model");
 const { io } = require("../app"); // Import io from app.js
+// Chat message model (you'll need to create this)
+const ChatMessage = require("../Models/ChatMessage.model");
+
+// Store online users for each group (in-memory, consider Redis for production)
+const onlineUsers = new Map();
 
 // GET groups page (just render the template - no data needed)
 router.get("/", (req, res) => {
@@ -462,6 +467,19 @@ router.post("/:id/join", requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error("Join group error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add this to your group.route.js (HTTP endpoint for chat history)
+router.get("/:id/chat/history", requireAuth, async (req, res) => {
+  try {
+    const messages = await ChatMessage.find({ groupId: req.params.id })
+      .sort({ createdAt: 1 })
+      .limit(100);
+
+    res.json(messages);
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });

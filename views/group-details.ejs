@@ -32,6 +32,7 @@
             <button class="tab-btn" onclick="showTab('missions')">
               Missions
             </button>
+            <button class="tab-btn" onclick="showTab('chat')">Chat</button>
             <button class="tab-btn" onclick="showTab('stats')">Stats</button>
           </div>
 
@@ -70,6 +71,46 @@
             <h3>Missions</h3>
             <p>This is where group missions and quests will be displayed.</p>
           </div>
+
+          <!-- New Chat Tab -->
+          <div id="chat" class="tab-content" style="display: none">
+            <div class="chat-header">
+              <h3>Group Chat</h3>
+              <div class="online-indicator">
+                <span id="onlineCount">0</span> members online
+              </div>
+            </div>
+
+            <div class="chat-container">
+              <div id="chatMessages" class="chat-messages">
+                <!-- Chat messages will appear here -->
+              </div>
+
+              <div class="chat-input-container">
+                <div
+                  class="typing-indicator"
+                  id="typingIndicator"
+                  style="display: none"
+                >
+                  <span id="typingUsers"></span> is typing...
+                </div>
+
+                <div class="chat-input-group">
+                  <input
+                    type="text"
+                    id="chatMessageInput"
+                    placeholder="Type a message..."
+                    maxlength="500"
+                    onkeypress="handleChatKeyPress(event)"
+                  />
+                  <button id="sendMessageBtn" onclick="sendChatMessage()">
+                    Send
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div id="stats" class="tab-content" style="display: none">
             <h3>Stats</h3>
             <p>
@@ -115,6 +156,8 @@
     <script>
       let socket;
       const groupId = "<%= group._id %>";
+      let isTyping = false;
+      let typingTimer;
 
       function showTab(tabId) {
         const tabs = document.querySelectorAll(".tab-content");
@@ -132,6 +175,12 @@
 
         if (tabId === "timeline") {
           loadPosts();
+        } else if (tabId === "chat") {
+          loadChatHistory();
+          // Focus on chat input when switching to chat tab
+          setTimeout(() => {
+            document.getElementById("chatMessageInput").focus();
+          }, 100);
         }
       }
 
@@ -158,11 +207,18 @@
         }
       }
 
-      // Timeline functionality
+      // Socket initialization with chat functionality
       function initializeSocket() {
         socket = io();
+        // Send authentication data when connecting
+        socket.emit("authenticate", {
+          userId: "<%= user._id %>",
+          userName: "<%= user.fullName %>",
+        });
+
         socket.emit("join-group", groupId);
 
+        // Timeline events
         socket.on("new-post", (post) => {
           addPostToTimeline(post);
         });
@@ -174,8 +230,171 @@
         socket.on("vote-update", (data) => {
           updatePostVotes(data.postId, data.votes);
         });
+
+        // Add chat event handlers
+        socket.on("chat-message", (data) => {
+          addChatMessage(data);
+        });
+
+        socket.on("chat-history", (messages) => {
+          renderChatHistory(messages);
+        });
+
+        socket.on("user-joined-chat", (data) => {
+          addSystemMessage(`${data.userName} joined the chat`);
+          updateOnlineCount(data.onlineCount);
+        });
+
+        socket.on("user-left-chat", (data) => {
+          addSystemMessage(`${data.userName} left the chat`);
+          updateOnlineCount(data.onlineCount);
+        });
+
+        socket.on("typing-start", (data) => {
+          showTypingIndicator(data.userName, data.userId);
+        });
+
+        socket.on("typing-stop", (data) => {
+          hideTypingIndicator(data.userId);
+        });
+
+        socket.on("online-count", (count) => {
+          updateOnlineCount(count);
+        });
       }
 
+      // Chat functionality
+      function loadChatHistory() {
+        socket.emit("get-chat-history", groupId);
+      }
+
+      function renderChatHistory(messages) {
+        const container = document.getElementById("chatMessages");
+        container.innerHTML = messages
+          .map((message) => createChatMessageHTML(message))
+          .join("");
+        scrollChatToBottom();
+      }
+
+      function addChatMessage(data) {
+        const container = document.getElementById("chatMessages");
+        const messageHTML = createChatMessageHTML(data);
+        container.insertAdjacentHTML("beforeend", messageHTML);
+        scrollChatToBottom();
+
+        // Hide typing indicator if this message is from the typing user
+        hideTypingIndicator(data.userId);
+      }
+
+      function createChatMessageHTML(message) {
+        const isCurrentUser = message.userId === "<%= user._id %>";
+        const messageClass = isCurrentUser
+          ? "message own-message"
+          : "message other-message";
+
+        return `
+          <div class="${messageClass}" data-message-id="${message._id}">
+            <div class="message-header">
+              <span class="message-sender">${message.userName}</span>
+              <span class="message-time">${new Date(
+                message.timestamp
+              ).toLocaleTimeString()}</span>
+            </div>
+            <div class="message-content">${message.content}</div>
+          </div>
+        `;
+      }
+
+      function addSystemMessage(content) {
+        const container = document.getElementById("chatMessages");
+        const messageHTML = `
+          <div class="message system-message">
+            <div class="message-content">${content}</div>
+          </div>
+        `;
+        container.insertAdjacentHTML("beforeend", messageHTML);
+        scrollChatToBottom();
+      }
+
+      function sendChatMessage() {
+        const input = document.getElementById("chatMessageInput");
+        const content = input.value.trim();
+
+        if (!content) return;
+
+        const messageData = {
+          groupId: groupId,
+          content: content,
+          userName: "<%= user.fullName %>",
+          userId: "<%= user._id %>",
+        };
+
+        socket.emit("chat-message", messageData);
+        input.value = "";
+
+        // Stop typing indicator
+        stopTyping();
+      }
+
+      function handleChatKeyPress(event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          sendChatMessage();
+        } else {
+          // Start typing indicator
+          if (!isTyping) {
+            isTyping = true;
+            socket.emit("typing-start", {
+              groupId: groupId,
+              userName: "<%= user.fullName %>",
+              userId: "<%= user._id %>",
+            });
+          }
+
+          // Reset typing timer
+          clearTimeout(typingTimer);
+          typingTimer = setTimeout(stopTyping, 1000);
+        }
+      }
+
+      function stopTyping() {
+        if (isTyping) {
+          isTyping = false;
+          socket.emit("typing-stop", {
+            groupId: groupId,
+            userId: "<%= user._id %>",
+          });
+        }
+      }
+
+      function showTypingIndicator(userName, userId) {
+        if (userId === "<%= user._id %>") return; // Don't show own typing indicator
+
+        const indicator = document.getElementById("typingIndicator");
+        const typingUsers = document.getElementById("typingUsers");
+
+        typingUsers.textContent = userName;
+        indicator.style.display = "block";
+        scrollChatToBottom();
+      }
+
+      function hideTypingIndicator(userId) {
+        if (userId === "<%= user._id %>") return;
+
+        const indicator = document.getElementById("typingIndicator");
+        indicator.style.display = "none";
+      }
+
+      function updateOnlineCount(count) {
+        document.getElementById("onlineCount").textContent = count;
+      }
+
+      function scrollChatToBottom() {
+        const container = document.getElementById("chatMessages");
+        container.scrollTop = container.scrollHeight;
+      }
+
+      // Existing timeline functions (unchanged)
       async function loadPosts() {
         try {
           const response = await fetch(`/groups/${groupId}/posts`);
@@ -270,8 +489,8 @@
           });
 
           if (response.ok) {
-            const newPost = await response.json(); // Get the created post from response
-            addPostToTimeline(newPost); // Add it immediately to the timeline
+            const newPost = await response.json();
+            addPostToTimeline(newPost);
             hidePostForm();
           } else {
             console.error("Failed to create post");
@@ -302,18 +521,15 @@
           const responseData = await response.json();
 
           if (response.ok) {
-            console.log("Comment created successfully:", responseData);
             addCommentToPost(postId, responseData);
             input.value = "";
           } else {
-            console.error("Server error response for comment:", responseData);
             alert(
               "Failed to create comment: " +
                 (responseData.error || "Unknown error")
             );
           }
         } catch (error) {
-          console.error("Network error creating comment:", error);
           alert(
             "Network error creating comment. Please check your connection."
           );
@@ -324,15 +540,12 @@
       }
 
       async function votePost(postId, voteType) {
-        console.log("Voting on post:", postId, "Type:", voteType);
-
         const voteButton = document.querySelector(
           `[data-post-id="${postId}"] .vote-btn`
         );
         const originalText = voteButton.textContent;
 
         try {
-          // Show loading state
           voteButton.textContent = voteType === "up" ? "▲ ..." : "▼ ...";
           voteButton.disabled = true;
 
@@ -344,18 +557,11 @@
 
           const responseData = await response.json();
 
-          if (response.ok) {
-            console.log("Vote successful:", responseData);
-            // The socket event will handle the UI update
-          } else {
-            console.error("Server error response for vote:", responseData);
+          if (!response.ok) {
             alert("Failed to vote: " + (responseData.error || "Unknown error"));
           }
         } catch (error) {
-          console.error("Network error voting:", error);
           alert("Network error voting. Please check your connection.");
-        } finally {
-          // The socket event will update the button text, so we don't reset it here
         }
       }
 
