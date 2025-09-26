@@ -270,7 +270,11 @@
           });
 
           if (response.ok) {
+            const newPost = await response.json(); // Get the created post from response
+            addPostToTimeline(newPost); // Add it immediately to the timeline
             hidePostForm();
+          } else {
+            console.error("Failed to create post");
           }
         } catch (error) {
           console.error("Error creating post:", error);
@@ -282,35 +286,76 @@
         const content = input.value.trim();
         if (!content) return;
 
+        const commentButton = input.nextElementSibling;
+        const originalText = commentButton.textContent;
+
         try {
+          commentButton.textContent = "Posting...";
+          commentButton.disabled = true;
+
           const response = await fetch(`/groups/posts/${postId}/comments`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ content }),
           });
 
+          const responseData = await response.json();
+
           if (response.ok) {
+            console.log("Comment created successfully:", responseData);
+            addCommentToPost(postId, responseData);
             input.value = "";
+          } else {
+            console.error("Server error response for comment:", responseData);
+            alert(
+              "Failed to create comment: " +
+                (responseData.error || "Unknown error")
+            );
           }
         } catch (error) {
-          console.error("Error adding comment:", error);
+          console.error("Network error creating comment:", error);
+          alert(
+            "Network error creating comment. Please check your connection."
+          );
+        } finally {
+          commentButton.textContent = originalText;
+          commentButton.disabled = false;
         }
       }
 
       async function votePost(postId, voteType) {
+        console.log("Voting on post:", postId, "Type:", voteType);
+
+        const voteButton = document.querySelector(
+          `[data-post-id="${postId}"] .vote-btn`
+        );
+        const originalText = voteButton.textContent;
+
         try {
+          // Show loading state
+          voteButton.textContent = voteType === "up" ? "▲ ..." : "▼ ...";
+          voteButton.disabled = true;
+
           const response = await fetch(`/groups/posts/${postId}/vote`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ voteType }),
           });
 
+          const responseData = await response.json();
+
           if (response.ok) {
-            const data = await response.json();
-            // Socket will handle the update automatically
+            console.log("Vote successful:", responseData);
+            // The socket event will handle the UI update
+          } else {
+            console.error("Server error response for vote:", responseData);
+            alert("Failed to vote: " + (responseData.error || "Unknown error"));
           }
         } catch (error) {
-          console.error("Error voting:", error);
+          console.error("Network error voting:", error);
+          alert("Network error voting. Please check your connection.");
+        } finally {
+          // The socket event will update the button text, so we don't reset it here
         }
       }
 

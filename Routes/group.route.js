@@ -174,26 +174,62 @@ router.get("/:id/posts", requireAuth, async (req, res) => {
 // POST create a new post
 router.post("/:id/posts", requireAuth, async (req, res) => {
   try {
+    console.log("=== POST CREATION STARTED ===");
+    console.log("Request body:", req.body);
+    console.log("Group ID:", req.params.id);
+    console.log("User ID:", res.locals.user._id);
+
     const { content } = req.body;
 
     if (!content) {
+      console.log("No content provided");
       return res.status(400).json({ error: "Post content is required" });
     }
 
+    // Validate group ID
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      console.log("Invalid group ID");
+      return res.status(400).json({ error: "Invalid group ID" });
+    }
+
+    // Check if group exists
+    const group = await Group.findById(req.params.id);
+    if (!group) {
+      console.log("Group not found");
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    console.log("Creating new post...");
     const post = new Post({
       content,
       author: res.locals.user._id,
       groupId: req.params.id,
     });
 
+    console.log("Post object before save:", post);
     await post.save();
+    console.log("Post saved successfully");
+
+    // Populate the author info
     await post.populate("author", "fullName level");
+    console.log("Post populated:", post);
 
     // Emit to all group members
-    io.to(req.params.id).emit("new-post", post);
+    if (io) {
+      io.to(req.params.id).emit("new-post", post);
+      console.log("Socket event emitted");
+    } else {
+      console.log("Socket.io not available");
+    }
 
+    console.log("=== POST CREATION COMPLETED ===");
     res.status(201).json(post);
   } catch (error) {
+    console.error("=== POST CREATION ERROR ===");
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+    console.error("=== END ERROR ===");
+
     res.status(500).json({ error: error.message });
   }
 });
@@ -201,35 +237,71 @@ router.post("/:id/posts", requireAuth, async (req, res) => {
 // POST add comment to a post
 router.post("/posts/:postId/comments", requireAuth, async (req, res) => {
   try {
+    console.log("=== COMMENT CREATION STARTED ===");
+    console.log("Request body:", req.body);
+    console.log("Post ID:", req.params.postId);
+    console.log("User ID:", res.locals.user._id);
+
     const { content } = req.body;
 
     if (!content) {
+      console.log("No comment content provided");
       return res.status(400).json({ error: "Comment content is required" });
     }
 
+    // Validate post ID
+    if (!mongoose.Types.ObjectId.isValid(req.params.postId)) {
+      console.log("Invalid post ID");
+      return res.status(400).json({ error: "Invalid post ID" });
+    }
+
+    // Check if post exists
+    const post = await Post.findById(req.params.postId);
+    if (!post) {
+      console.log("Post not found");
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    console.log("Creating new comment...");
     const comment = new Comment({
       content,
       author: res.locals.user._id,
       postId: req.params.postId,
     });
 
+    console.log("Comment object before save:", comment);
     await comment.save();
+    console.log("Comment saved successfully");
+
+    // Populate the author info
     await comment.populate("author", "fullName level");
+    console.log("Comment populated:", comment);
 
     // Add comment to post
     await Post.findByIdAndUpdate(req.params.postId, {
       $push: { comments: comment._id },
     });
+    console.log("Comment added to post");
 
-    // Get the post to get groupId for socket emission
-    const post = await Post.findById(req.params.postId);
-    io.to(post.groupId.toString()).emit("new-comment", {
-      comment,
-      postId: req.params.postId,
-    });
+    // Emit to all group members
+    if (io) {
+      io.to(post.groupId.toString()).emit("new-comment", {
+        comment,
+        postId: req.params.postId,
+      });
+      console.log("Socket event emitted for new comment");
+    } else {
+      console.log("Socket.io not available for comment");
+    }
 
+    console.log("=== COMMENT CREATION COMPLETED ===");
     res.status(201).json(comment);
   } catch (error) {
+    console.error("=== COMMENT CREATION ERROR ===");
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+    console.error("=== END ERROR ===");
+
     res.status(500).json({ error: error.message });
   }
 });
@@ -237,45 +309,91 @@ router.post("/posts/:postId/comments", requireAuth, async (req, res) => {
 // POST vote on a post
 router.post("/posts/:postId/vote", requireAuth, async (req, res) => {
   try {
+    console.log("=== VOTE PROCESSING STARTED ===");
+    console.log("Request body:", req.body);
+    console.log("Post ID:", req.params.postId);
+    console.log("User ID:", res.locals.user._id);
+
     const { voteType } = req.body; // 'up' or 'down'
     const userId = res.locals.user._id;
     const postId = req.params.postId;
 
+    if (!voteType || !["up", "down"].includes(voteType)) {
+      console.log("Invalid vote type:", voteType);
+      return res
+        .status(400)
+        .json({ error: "Vote type must be 'up' or 'down'" });
+    }
+
+    // Validate post ID
+    if (!mongoose.Types.ObjectId.isValid(postId)) {
+      console.log("Invalid post ID");
+      return res.status(400).json({ error: "Invalid post ID" });
+    }
+
     const post = await Post.findById(postId);
 
     if (!post) {
+      console.log("Post not found");
       return res.status(404).json({ error: "Post not found" });
     }
 
+    console.log("Current post votes:", post.votes);
+    console.log("Current voters:", post.voters);
+
     // Check if user already voted
-    const existingVote = post.voters.find(
-      (v) => v.userId.toString() === userId.toString()
+    const existingVoteIndex = post.voters.findIndex(
+      (v) => v.userId && v.userId.toString() === userId.toString()
     );
 
-    if (existingVote) {
+    let voteChange = 0;
+
+    if (existingVoteIndex !== -1) {
+      const existingVote = post.voters[existingVoteIndex];
+      console.log("Existing vote found:", existingVote);
+
       // Remove existing vote
-      post.voters = post.voters.filter(
-        (v) => v.userId.toString() !== userId.toString()
-      );
-      post.votes -= existingVote.voteType === "up" ? 1 : -1;
+      post.voters.splice(existingVoteIndex, 1);
+      voteChange -= existingVote.voteType === "up" ? 1 : -1;
+      console.log("Removed existing vote, vote change:", voteChange);
     }
 
-    // Add new vote
-    if (!existingVote || existingVote.voteType !== voteType) {
+    // Add new vote if different from existing or no existing vote
+    if (
+      existingVoteIndex === -1 ||
+      post.voters[existingVoteIndex]?.voteType !== voteType
+    ) {
       post.voters.push({ userId, voteType });
-      post.votes += voteType === "up" ? 1 : -1;
+      voteChange += voteType === "up" ? 1 : -1;
+      console.log("Added new vote, vote change:", voteChange);
     }
+
+    post.votes += voteChange;
+    console.log("Final vote count:", post.votes);
 
     await post.save();
+    console.log("Post saved with updated votes");
 
     // Emit vote update
-    io.to(post.groupId.toString()).emit("vote-update", {
-      postId,
-      votes: post.votes,
-    });
+    if (io) {
+      io.to(post.groupId.toString()).emit("vote-update", {
+        postId,
+        votes: post.votes,
+      });
+      console.log("Socket event emitted for vote update");
+    }
 
-    res.json({ votes: post.votes });
+    console.log("=== VOTE PROCESSING COMPLETED ===");
+    res.json({
+      votes: post.votes,
+      userVote: voteType,
+    });
   } catch (error) {
+    console.error("=== VOTE PROCESSING ERROR ===");
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+    console.error("=== END ERROR ===");
+
     res.status(500).json({ error: error.message });
   }
 });
