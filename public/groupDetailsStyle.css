@@ -416,3 +416,236 @@
 .chat-messages::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
+
+/* Dashboard Styles */
+.dashboard-tabs {
+  display: flex;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.dashboard-tab-btn {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.dashboard-tab-btn.active {
+  color: #007bff;
+  border-bottom-color: #007bff;
+  font-weight: bold;
+}
+
+.dashboard-tab-btn:hover {
+  color: #0056b3;
+}
+
+.dashboard-content {
+  min-height: 400px;
+}
+
+.dashboard-section {
+  display: none;
+}
+
+.dashboard-section.active {
+  display: block;
+}
+
+.admin-only {
+  display: none;
+}
+
+.is-admin .admin-only {
+  display: block;
+}
+
+/* Member Management */
+.member-management-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background: #f9f9f9;
+}
+
+.member-actions select {
+  padding: 5px;
+  margin-right: 10px;
+}
+
+/* Stat Cards */
+.stat-card {
+  display: inline-block;
+  padding: 15px;
+  margin: 0 10px 10px 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  text-align: center;
+  min-width: 120px;
+}
+
+.stat-card h5 {
+  margin: 0 0 10px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.stat-card span {
+  font-size: 24px;
+  font-weight: bold;
+  color: #007bff;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.form-control {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-actions {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #ddd;
+}
+
+/* DASHBOARD */
+
+.dashboard-tabs {
+  display: flex;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.dashboard-tab-btn {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.dashboard-tab-btn.active {
+  color: #007bff;
+  border-bottom-color: #007bff;
+  font-weight: bold;
+}
+
+.dashboard-tab-btn:hover {
+  color: #0056b3;
+}
+
+.dashboard-content {
+  min-height: 400px;
+}
+
+.dashboard-section {
+  display: none;
+}
+
+.dashboard-section.active {
+  display: block;
+}
+
+.admin-only {
+  display: none;
+}
+
+.is-admin .admin-only {
+  display: block;
+}
+
+/* Member Management Styles */
+.member-management-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background: #f9f9f9;
+}
+
+.member-actions select {
+  padding: 5px;
+  margin-right: 10px;
+}
+
+/* Stat Cards */
+.stat-card {
+  display: inline-block;
+  padding: 15px;
+  margin: 0 10px 10px 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  text-align: center;
+  min-width: 120px;
+}
+
+.stat-card h5 {
+  margin: 0 0 10px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.stat-card span {
+  font-size: 24px;
+  font-weight: bold;
+  color: #007bff;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.form-control {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-actions {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #ddd;
+}
+
+.admin-actions {
+  margin-top: 15px;
+}

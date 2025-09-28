@@ -54,7 +54,19 @@ router.get("/:id", async (req, res, next) => {
         .render("error", { message: "Group not found", status: 404 });
     }
 
-    res.render("group-details", { group });
+    // Check if current user is admin
+    const currentUser = res.locals.user;
+    const isAdmin = group.members.some(
+      (member) =>
+        member.user._id.toString() === currentUser._id.toString() &&
+        member.role === "Admin"
+    );
+
+    res.render("group-details", {
+      group,
+      isAdmin,
+      user: currentUser,
+    });
   } catch (err) {
     console.error("Error fetching group details:", err);
     res
@@ -483,5 +495,203 @@ router.get("/:id/chat/history", requireAuth, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+// Add these routes to your existing group.route.js file
 
+// Dashboard route
+router.get("/:id/dashboard", requireAuth, async (req, res) => {
+  try {
+    const groupId = req.params.id;
+    const userId = res.locals.user._id;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    // Check if user is admin
+    const isAdmin = group.members.some(
+      (member) =>
+        member.user.toString() === userId.toString() && member.role === "Admin"
+    );
+
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Access denied. Admin only." });
+    }
+
+    // Get dashboard data
+    const totalPosts = await Post.countDocuments({ groupId });
+    const weeklyPosts = await Post.countDocuments({
+      groupId,
+      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+    });
+
+    // Get all post IDs for this group to count comments
+    const postIds = await Post.find({ groupId }).select("_id");
+    const totalComments = await Comment.countDocuments({
+      postId: { $in: postIds },
+    });
+
+    res.json({
+      stats: {
+        totalPosts,
+        weeklyPosts,
+        totalComments,
+        totalMembers: group.members.length,
+      },
+      members: group.members,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get members for admin management
+router.get("/:id/members", requireAuth, async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id).populate(
+      "members.user",
+      "fullName level email"
+    );
+
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    // Check if user is admin
+    const isAdmin = group.members.some(
+      (member) =>
+        member.user._id.toString() === res.locals.user._id.toString() &&
+        member.role === "Admin"
+    );
+
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Access denied. Admin only." });
+    }
+
+    // Add joinedAt date to each member
+    const membersWithJoinDate = group.members.map((member) => ({
+      ...member.toObject(),
+      joinedAt: member._id.getTimestamp(), // Use the ObjectId timestamp as join date
+    }));
+
+    res.json(membersWithJoinDate);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update member role
+router.put("/:groupId/members/:userId/role", requireAuth, async (req, res) => {
+  try {
+    const { groupId, userId } = req.params;
+    const { role } = req.body;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    // Check if requester is admin
+    const isAdmin = group.members.some(
+      (member) =>
+        member.user.toString() === res.locals.user._id.toString() &&
+        member.role === "Admin"
+    );
+
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Access denied. Admin only." });
+    }
+
+    // Update member role
+    const memberIndex = group.members.findIndex(
+      (member) => member.user.toString() === userId
+    );
+
+    if (memberIndex === -1) {
+      return res.status(404).json({ error: "Member not found" });
+    }
+
+    group.members[memberIndex].role = role;
+    await group.save();
+
+    res.json({ success: true, message: "Member role updated" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Remove member from group
+router.delete("/:groupId/members/:userId", requireAuth, async (req, res) => {
+  try {
+    const { groupId, userId } = req.params;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    // Check if requester is admin
+    const isAdmin = group.members.some(
+      (member) =>
+        member.user.toString() === res.locals.user._id.toString() &&
+        member.role === "Admin"
+    );
+
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Access denied. Admin only." });
+    }
+
+    // Cannot remove yourself
+    if (userId === res.locals.user._id.toString()) {
+      return res
+        .status(400)
+        .json({ error: "Cannot remove yourself from the group" });
+    }
+
+    // Remove member
+    group.members = group.members.filter(
+      (member) => member.user.toString() !== userId
+    );
+
+    await group.save();
+
+    res.json({ success: true, message: "Member removed from group" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update group settings
+router.put("/:id/settings", requireAuth, async (req, res) => {
+  try {
+    const groupId = req.params.id;
+    const { name, specialization } = req.body;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    // Check if user is admin
+    const isAdmin = group.members.some(
+      (member) =>
+        member.user.toString() === res.locals.user._id.toString() &&
+        member.role === "Admin"
+    );
+
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Access denied. Admin only." });
+    }
+
+    // Update group settings
+    if (name) group.name = name;
+    if (specialization) group.specialization = specialization;
+
+    await group.save();
+
+    res.json({ success: true, message: "Group settings updated", group });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 module.exports = router;

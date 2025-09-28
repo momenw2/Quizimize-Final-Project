@@ -5,15 +5,15 @@
     <title><%= group.name %> - Group Details</title>
     <link rel="stylesheet" href="/groupDetailsStyle.css" />
     <script src="/socket.io/socket.io.js"></script>
+    
   </head>
-  <body>
+  <body class="<%= isAdmin ? 'is-admin' : '' %>">
     <div class="container">
       <div class="header-section">
         <div class="group-summary">
           <h1 class="group-title"><%= group.name %></h1>
           <p class="group-meta">
-            Level: <%= group.level || 1 %> | Members: <%= group.members.length
-            %>
+            Level: <%= group.level || 1 %> | Members: <%= group.members.length %>
           </p>
           <p class="group-meta">Specialization: <%= group.specialization %></p>
           <p class="group-meta">
@@ -34,8 +34,13 @@
             </button>
             <button class="tab-btn" onclick="showTab('chat')">Chat</button>
             <button class="tab-btn" onclick="showTab('stats')">Stats</button>
+            <!-- Dashboard Tab - Only visible to admin -->
+            <button class="tab-btn admin-only" onclick="showTab('dashboard')" id="dashboardTab">
+              Dashboard
+            </button>
           </div>
 
+          <!-- Timeline Tab -->
           <div id="timeline" class="tab-content">
             <div class="timeline-header">
               <h3>Group Timeline</h3>
@@ -67,12 +72,13 @@
             </div>
           </div>
 
+          <!-- Missions Tab -->
           <div id="missions" class="tab-content" style="display: none">
             <h3>Missions</h3>
             <p>This is where group missions and quests will be displayed.</p>
           </div>
 
-          <!-- New Chat Tab -->
+          <!-- Chat Tab -->
           <div id="chat" class="tab-content" style="display: none">
             <div class="chat-header">
               <h3>Group Chat</h3>
@@ -111,11 +117,181 @@
             </div>
           </div>
 
+          <!-- Stats Tab -->
           <div id="stats" class="tab-content" style="display: none">
             <h3>Stats</h3>
             <p>
               This section will show detailed group statistics and analytics.
             </p>
+          </div>
+
+          <!-- Dashboard Tab -->
+          <div id="dashboard" class="tab-content" style="display: none">
+            <div class="dashboard-header">
+              <h3>Group Dashboard</h3>
+              <p>Manage your group settings and members</p>
+            </div>
+
+            <div class="dashboard-tabs">
+              <button class="dashboard-tab-btn active" onclick="showDashboardSection('members')">
+                Members
+              </button>
+              <button class="dashboard-tab-btn" onclick="showDashboardSection('missions')">
+                Missions
+              </button>
+              <button class="dashboard-tab-btn" onclick="showDashboardSection('content')">
+                Content
+              </button>
+              <button class="dashboard-tab-btn" onclick="showDashboardSection('settings')">
+                Group Settings
+              </button>
+            </div>
+
+            <div class="dashboard-content">
+              <!-- Members Section -->
+              <div id="dashboard-members" class="dashboard-section active">
+                <h4>Member Management</h4>
+                <div class="members-management">
+                  <div class="search-section">
+                    <input type="text" id="memberSearch" placeholder="Search members..." onkeyup="searchMembers()">
+                  </div>
+                  <div id="adminMembersList" class="members-list">
+                    <!-- Members will be loaded here with admin controls -->
+                  </div>
+                  <div class="admin-actions">
+                    <button class="btn btn-primary" onclick="showInviteModal()">
+                      Invite New Member
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportMembers()">
+                      Export Members List
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Missions Section -->
+              <div id="dashboard-missions" class="dashboard-section">
+                <h4>Mission Management</h4>
+                <div class="missions-management">
+                  <div class="missions-stats">
+                    <div class="stat-card">
+                      <h5>Active Missions</h5>
+                      <span id="activeMissionsCount">0</span>
+                    </div>
+                    <div class="stat-card">
+                      <h5>Completed</h5>
+                      <span id="completedMissionsCount">0</span>
+                    </div>
+                    <div class="stat-card">
+                      <h5>Pending</h5>
+                      <span id="pendingMissionsCount">0</span>
+                    </div>
+                  </div>
+                  <div class="missions-actions">
+                    <button class="btn btn-primary" onclick="createNewMission()">
+                      Create New Mission
+                    </button>
+                    <button class="btn btn-secondary" onclick="viewAllMissions()">
+                      View All Missions
+                    </button>
+                  </div>
+                  <div id="missionsList" class="missions-list">
+                    <!-- Missions will be loaded here -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- Content Section -->
+              <div id="dashboard-content" class="dashboard-section">
+                <h4>Content Management</h4>
+                <div class="content-management">
+                  <div class="content-stats">
+                    <div class="stat-card">
+                      <h5>Total Posts</h5>
+                      <span id="totalPostsCount">0</span>
+                    </div>
+                    <div class="stat-card">
+                      <h5>This Week</h5>
+                      <span id="weeklyPostsCount">0</span>
+                    </div>
+                    <div class="stat-card">
+                      <h5>Comments</h5>
+                      <span id="totalCommentsCount">0</span>
+                    </div>
+                  </div>
+                  <div class="content-actions">
+                    <button class="btn btn-primary" onclick="manageFeaturedContent()">
+                      Manage Featured Content
+                    </button>
+                    <button class="btn btn-secondary" onclick="viewContentAnalytics()">
+                      View Analytics
+                    </button>
+                  </div>
+                  <div class="recent-content">
+                    <h5>Recent Activity</h5>
+                    <div id="recentActivityList">
+                      <!-- Recent activity will be loaded here -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Group Settings Section -->
+              <div id="dashboard-settings" class="dashboard-section">
+                <h4>Group Settings</h4>
+                <div class="settings-management">
+                  <form id="groupSettingsForm">
+                    <div class="form-group">
+                      <label for="groupName">Group Name</label>
+                      <input type="text" id="groupName" name="name" value="<%= group.name %>" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                      <label for="groupSpecialization">Specialization</label>
+                      <select id="groupSpecialization" name="specialization" class="form-control">
+                        <option value="JavaScript" <%= group.specialization === 'JavaScript' ? 'selected' : '' %>>JavaScript</option>
+                        <option value="React" <%= group.specialization === 'React' ? 'selected' : '' %>>React</option>
+                        <option value="Node.js" <%= group.specialization === 'Node.js' ? 'selected' : '' %>>Node.js</option>
+                        <option value="Python" <%= group.specialization === 'Python' ? 'selected' : '' %>>Python</option>
+                        <option value="SQL" <%= group.specialization === 'SQL' ? 'selected' : '' %>>SQL</option>
+                      </select>
+                    </div>
+                    
+                    <div class="form-group">
+                      <label for="groupVisibility">Group Visibility</label>
+                      <select id="groupVisibility" name="visibility" class="form-control">
+                        <option value="public">Public</option>
+                        <option value="private">Private</option>
+                        <option value="invite-only">Invite Only</option>
+                      </select>
+                    </div>
+                    
+                    <div class="form-group">
+                      <label>
+                        <input type="checkbox" name="allowMemberPosts" checked> 
+                        Allow members to create posts
+                      </label>
+                    </div>
+                    
+                    <div class="form-group">
+                      <label>
+                        <input type="checkbox" name="allowMemberInvites" checked> 
+                        Allow members to invite others
+                      </label>
+                    </div>
+                    
+                    <div class="form-actions">
+                      <button type="button" class="btn btn-primary" onclick="saveGroupSettings()">
+                        Save Settings
+                      </button>
+                      <button type="button" class="btn btn-danger" onclick="showDeleteGroupModal()">
+                        Delete Group
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -128,8 +304,10 @@
               <div class="member-card">
                 <div class="member-info">
                   <h4>
-                    <% if (member.user && member.user.fullName) { %> <%=
-                    member.user.fullName %> <% } else { %> User <%= index + 1 %>
+                    <% if (member.user && member.user.fullName) { %> 
+                      <%= member.user.fullName %> 
+                    <% } else { %> 
+                      User <%= index + 1 %> 
                     <% } %>
                   </h4>
                   <p>Level: <%= member.user ? member.user.level : "N/A" %></p>
@@ -158,58 +336,85 @@
       const groupId = "<%= group._id %>";
       let isTyping = false;
       let typingTimer;
+      let isAdmin = "<%= isAdmin %>";
+      let currentDashboardSection = 'members';
+
+      // Safe DOM element getter with null checking
+      function getElement(id) {
+        const element = document.getElementById(id);
+        if (!element) {
+          console.warn(`Element with id '${id}' not found`);
+        }
+        return element;
+      }
 
       function showTab(tabId) {
+        console.log('Showing tab:', tabId);
+        
+        // Hide all tab contents
         const tabs = document.querySelectorAll(".tab-content");
         tabs.forEach((tab) => {
           tab.style.display = "none";
         });
 
+        // Remove active class from all tab buttons
         const buttons = document.querySelectorAll(".tab-btn");
         buttons.forEach((btn) => {
           btn.classList.remove("active");
         });
 
-        document.getElementById(tabId).style.display = "block";
-        event.currentTarget.classList.add("active");
+        // Show selected tab and activate button
+        const selectedTab = getElement(tabId);
+        if (selectedTab) {
+          selectedTab.style.display = "block";
+        }
+        
+        if (event && event.currentTarget) {
+          event.currentTarget.classList.add("active");
+        }
 
-        if (tabId === "timeline") {
-          loadPosts();
-        } else if (tabId === "chat") {
-          loadChatHistory();
-          // Focus on chat input when switching to chat tab
-          setTimeout(() => {
-            document.getElementById("chatMessageInput").focus();
-          }, 100);
+        // Load tab-specific content
+        switch(tabId) {
+          case "timeline":
+            loadPosts();
+            break;
+          case "chat":
+            loadChatHistory();
+            setTimeout(() => {
+              const chatInput = getElement("chatMessageInput");
+              if (chatInput) chatInput.focus();
+            }, 100);
+            break;
+          case "dashboard":
+            if (isAdmin) {
+              loadDashboardData();
+            }
+            break;
         }
       }
 
       function inviteMember() {
         const groupCode = "<%= group._id.toString().slice(-8).toUpperCase() %>";
-        const inviteLink =
-          window.location.origin + "/groups/join?code=" + groupCode;
+        const inviteLink = window.location.origin + "/groups/join?code=" + groupCode;
 
         if (navigator.clipboard) {
           navigator.clipboard
             .writeText(inviteLink)
             .then(() => {
-              alert(
-                "Invite link copied to clipboard!\\n\\nGroup Code: " + groupCode
-              );
+              alert("Invite link copied to clipboard!\n\nGroup Code: " + groupCode);
             })
             .catch(() => {
-              alert(
-                "Group Code: " + groupCode + "\\nInvite Link: " + inviteLink
-              );
+              alert("Group Code: " + groupCode + "\nInvite Link: " + inviteLink);
             });
         } else {
-          alert("Group Code: " + groupCode + "\\nInvite Link: " + inviteLink);
+          alert("Group Code: " + groupCode + "\nInvite Link: " + inviteLink);
         }
       }
 
       // Socket initialization with chat functionality
       function initializeSocket() {
         socket = io();
+        
         // Send authentication data when connecting
         socket.emit("authenticate", {
           userId: "<%= user._id %>",
@@ -231,7 +436,7 @@
           updatePostVotes(data.postId, data.votes);
         });
 
-        // Add chat event handlers
+        // Chat event handlers - only bind if elements exist
         socket.on("chat-message", (data) => {
           addChatMessage(data);
         });
@@ -263,63 +468,72 @@
         });
       }
 
-      // Chat functionality
+      // Chat functionality with safe element checking
       function loadChatHistory() {
-        socket.emit("get-chat-history", groupId);
+        if (socket) {
+          socket.emit("get-chat-history", groupId);
+        }
       }
 
       function renderChatHistory(messages) {
-        const container = document.getElementById("chatMessages");
-        container.innerHTML = messages
-          .map((message) => createChatMessageHTML(message))
-          .join("");
-        scrollChatToBottom();
+        const container = getElement("chatMessages");
+        if (container && messages) {
+          container.innerHTML = messages
+            .map((message) => createChatMessageHTML(message))
+            .join("");
+          scrollChatToBottom();
+        }
       }
 
       function addChatMessage(data) {
-        const container = document.getElementById("chatMessages");
-        const messageHTML = createChatMessageHTML(data);
-        container.insertAdjacentHTML("beforeend", messageHTML);
-        scrollChatToBottom();
-
-        // Hide typing indicator if this message is from the typing user
-        hideTypingIndicator(data.userId);
+        const container = getElement("chatMessages");
+        if (container && data) {
+          const messageHTML = createChatMessageHTML(data);
+          container.insertAdjacentHTML("beforeend", messageHTML);
+          scrollChatToBottom();
+          hideTypingIndicator(data.userId);
+        }
       }
 
       function createChatMessageHTML(message) {
+        if (!message) return '';
+        
         const isCurrentUser = message.userId === "<%= user._id %>";
         const messageClass = isCurrentUser
           ? "message own-message"
           : "message other-message";
 
         return `
-          <div class="${messageClass}" data-message-id="${message._id}">
+          <div class="${messageClass}" data-message-id="${message._id || ''}">
             <div class="message-header">
-              <span class="message-sender">${message.userName}</span>
+              <span class="message-sender">${message.userName || 'Unknown'}</span>
               <span class="message-time">${new Date(
-                message.timestamp
+                message.timestamp || Date.now()
               ).toLocaleTimeString()}</span>
             </div>
-            <div class="message-content">${message.content}</div>
+            <div class="message-content">${message.content || ''}</div>
           </div>
         `;
       }
 
       function addSystemMessage(content) {
-        const container = document.getElementById("chatMessages");
-        const messageHTML = `
-          <div class="message system-message">
-            <div class="message-content">${content}</div>
-          </div>
-        `;
-        container.insertAdjacentHTML("beforeend", messageHTML);
-        scrollChatToBottom();
+        const container = getElement("chatMessages");
+        if (container && content) {
+          const messageHTML = `
+            <div class="message system-message">
+              <div class="message-content">${content}</div>
+            </div>
+          `;
+          container.insertAdjacentHTML("beforeend", messageHTML);
+          scrollChatToBottom();
+        }
       }
 
       function sendChatMessage() {
-        const input = document.getElementById("chatMessageInput");
-        const content = input.value.trim();
+        const input = getElement("chatMessageInput");
+        if (!input) return;
 
+        const content = input.value.trim();
         if (!content) return;
 
         const messageData = {
@@ -329,10 +543,10 @@
           userId: "<%= user._id %>",
         };
 
-        socket.emit("chat-message", messageData);
+        if (socket) {
+          socket.emit("chat-message", messageData);
+        }
         input.value = "";
-
-        // Stop typing indicator
         stopTyping();
       }
 
@@ -341,17 +555,17 @@
           event.preventDefault();
           sendChatMessage();
         } else {
-          // Start typing indicator
           if (!isTyping) {
             isTyping = true;
-            socket.emit("typing-start", {
-              groupId: groupId,
-              userName: "<%= user.fullName %>",
-              userId: "<%= user._id %>",
-            });
+            if (socket) {
+              socket.emit("typing-start", {
+                groupId: groupId,
+                userName: "<%= user.fullName %>",
+                userId: "<%= user._id %>",
+              });
+            }
           }
 
-          // Reset typing timer
           clearTimeout(typingTimer);
           typingTimer = setTimeout(stopTyping, 1000);
         }
@@ -360,41 +574,52 @@
       function stopTyping() {
         if (isTyping) {
           isTyping = false;
-          socket.emit("typing-stop", {
-            groupId: groupId,
-            userId: "<%= user._id %>",
-          });
+          if (socket) {
+            socket.emit("typing-stop", {
+              groupId: groupId,
+              userId: "<%= user._id %>",
+            });
+          }
         }
       }
 
       function showTypingIndicator(userName, userId) {
-        if (userId === "<%= user._id %>") return; // Don't show own typing indicator
+        if (userId === "<%= user._id %>") return;
 
-        const indicator = document.getElementById("typingIndicator");
-        const typingUsers = document.getElementById("typingUsers");
-
-        typingUsers.textContent = userName;
-        indicator.style.display = "block";
-        scrollChatToBottom();
+        const indicator = getElement("typingIndicator");
+        const typingUsers = getElement("typingUsers");
+        
+        if (indicator && typingUsers) {
+          typingUsers.textContent = userName;
+          indicator.style.display = "block";
+          scrollChatToBottom();
+        }
       }
 
       function hideTypingIndicator(userId) {
         if (userId === "<%= user._id %>") return;
 
-        const indicator = document.getElementById("typingIndicator");
-        indicator.style.display = "none";
+        const indicator = getElement("typingIndicator");
+        if (indicator) {
+          indicator.style.display = "none";
+        }
       }
 
       function updateOnlineCount(count) {
-        document.getElementById("onlineCount").textContent = count;
+        const onlineCount = getElement("onlineCount");
+        if (onlineCount) {
+          onlineCount.textContent = count;
+        }
       }
 
       function scrollChatToBottom() {
-        const container = document.getElementById("chatMessages");
-        container.scrollTop = container.scrollHeight;
+        const container = getElement("chatMessages");
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
       }
 
-      // Existing timeline functions (unchanged)
+      // Timeline functions with safe element checking
       async function loadPosts() {
         try {
           const response = await fetch(`/groups/${groupId}/posts`);
@@ -406,79 +631,76 @@
       }
 
       function renderPosts(posts) {
-        const container = document.getElementById("postsContainer");
-        container.innerHTML = posts
-          .map(
-            (post) => `
-          <div class="post-card" data-post-id="${post._id}">
-            <div class="post-header">
-              <div class="post-author">
-                <strong>${post.author.fullName}</strong>
-                <span>Level ${post.author.level}</span>
+        const container = getElement("postsContainer");
+        if (container && posts) {
+          container.innerHTML = posts
+            .map(
+              (post) => `
+            <div class="post-card" data-post-id="${post._id}">
+              <div class="post-header">
+                <div class="post-author">
+                  <strong>${post.author?.fullName || 'Unknown'}</strong>
+                  <span>Level ${post.author?.level || 'N/A'}</span>
+                </div>
+                <small>${new Date(post.createdAt).toLocaleString()}</small>
               </div>
-              <small>${new Date(post.createdAt).toLocaleString()}</small>
-            </div>
-            <div class="post-content">${post.content}</div>
-            <div class="post-actions">
-              <button class="vote-btn" onclick="votePost('${post._id}', 'up')">
-                ▲ ${post.votes}
-              </button>
-              <button class="vote-btn" onclick="votePost('${
-                post._id
-              }', 'down')">▼</button>
-              <button class="comment-btn" onclick="toggleComments('${
-                post._id
-              }')">
-                💬 ${post.comments ? post.comments.length : 0}
-              </button>
-            </div>
-            <div class="comments-section" id="comments-${
-              post._id
-            }" style="display: none;">
-              <div class="comments-list" id="comments-list-${post._id}">
-                ${
-                  post.comments
-                    ? post.comments
-                        .map(
-                          (comment) => `
-                  <div class="comment">
-                    <strong>${comment.author.fullName}</strong>: ${
-                            comment.content
-                          }
-                    <small>${new Date(
-                      comment.createdAt
-                    ).toLocaleString()}</small>
-                  </div>
-                `
-                        )
-                        .join("")
-                    : ""
-                }
+              <div class="post-content">${post.content}</div>
+              <div class="post-actions">
+                <button class="vote-btn" onclick="votePost('${post._id}', 'up')">
+                  ▲ ${post.votes || 0}
+                </button>
+                <button class="vote-btn" onclick="votePost('${post._id}', 'down')">▼</button>
+                <button class="comment-btn" onclick="toggleComments('${post._id}')">
+                  💬 ${post.comments ? post.comments.length : 0}
+                </button>
               </div>
-              <div class="comment-form">
-                <input type="text" id="comment-input-${
-                  post._id
-                }" placeholder="Write a comment...">
-                <button onclick="addComment('${post._id}')">Post</button>
+              <div class="comments-section" id="comments-${post._id}" style="display: none;">
+                <div class="comments-list" id="comments-list-${post._id}">
+                  ${
+                    post.comments
+                      ? post.comments
+                          .map(
+                            (comment) => `
+                    <div class="comment">
+                      <strong>${comment.author?.fullName || 'Unknown'}</strong>: ${comment.content}
+                      <small>${new Date(comment.createdAt).toLocaleString()}</small>
+                    </div>
+                  `
+                          )
+                          .join("")
+                      : ""
+                  }
+                </div>
+                <div class="comment-form">
+                  <input type="text" id="comment-input-${post._id}" placeholder="Write a comment...">
+                  <button onclick="addComment('${post._id}')">Post</button>
+                </div>
               </div>
             </div>
-          </div>
-        `
-          )
-          .join("");
+          `
+            )
+            .join("");
+        }
       }
 
       function showPostForm() {
-        document.getElementById("postForm").style.display = "block";
+        const postForm = getElement("postForm");
+        if (postForm) postForm.style.display = "block";
       }
 
       function hidePostForm() {
-        document.getElementById("postForm").style.display = "none";
-        document.getElementById("postContent").value = "";
+        const postForm = getElement("postForm");
+        const postContent = getElement("postContent");
+        
+        if (postForm) postForm.style.display = "none";
+        if (postContent) postContent.value = "";
       }
 
       async function createPost() {
-        const content = document.getElementById("postContent").value.trim();
+        const postContent = getElement("postContent");
+        if (!postContent) return;
+
+        const content = postContent.value.trim();
         if (!content) return;
 
         try {
@@ -501,7 +723,9 @@
       }
 
       async function addComment(postId) {
-        const input = document.getElementById(`comment-input-${postId}`);
+        const input = getElement(`comment-input-${postId}`);
+        if (!input) return;
+
         const content = input.value.trim();
         if (!content) return;
 
@@ -543,6 +767,8 @@
         const voteButton = document.querySelector(
           `[data-post-id="${postId}"] .vote-btn`
         );
+        if (!voteButton) return;
+
         const originalText = voteButton.textContent;
 
         try {
@@ -566,56 +792,50 @@
       }
 
       function toggleComments(postId) {
-        const commentsSection = document.getElementById(`comments-${postId}`);
-        commentsSection.style.display =
-          commentsSection.style.display === "none" ? "block" : "none";
+        const commentsSection = getElement(`comments-${postId}`);
+        if (commentsSection) {
+          commentsSection.style.display =
+            commentsSection.style.display === "none" ? "block" : "none";
+        }
       }
 
       function addPostToTimeline(post) {
-        const container = document.getElementById("postsContainer");
-        const postHTML = `
-          <div class="post-card" data-post-id="${post._id}">
-            <div class="post-header">
-              <div class="post-author">
-                <strong>${post.author.fullName}</strong>
-                <span>Level ${post.author.level}</span>
+        const container = getElement("postsContainer");
+        if (container && post) {
+          const postHTML = `
+            <div class="post-card" data-post-id="${post._id}">
+              <div class="post-header">
+                <div class="post-author">
+                  <strong>${post.author?.fullName || 'Unknown'}</strong>
+                  <span>Level ${post.author?.level || 'N/A'}</span>
+                </div>
+                <small>${new Date(post.createdAt).toLocaleString()}</small>
               </div>
-              <small>${new Date(post.createdAt).toLocaleString()}</small>
-            </div>
-            <div class="post-content">${post.content}</div>
-            <div class="post-actions">
-              <button class="vote-btn" onclick="votePost('${
-                post._id
-              }', 'up')">▲ 0</button>
-              <button class="vote-btn" onclick="votePost('${
-                post._id
-              }', 'down')">▼</button>
-              <button class="comment-btn" onclick="toggleComments('${
-                post._id
-              }')">Comment (0)</button>
-            </div>
-            <div class="comments-section" id="comments-${
-              post._id
-            }" style="display: none;">
-              <div class="comments-list" id="comments-list-${post._id}"></div>
-              <div class="comment-form">
-                <input type="text" id="comment-input-${
-                  post._id
-                }" placeholder="Write a comment...">
-                <button onclick="addComment('${post._id}')">Post</button>
+              <div class="post-content">${post.content}</div>
+              <div class="post-actions">
+                <button class="vote-btn" onclick="votePost('${post._id}', 'up')">▲ 0</button>
+                <button class="vote-btn" onclick="votePost('${post._id}', 'down')">▼</button>
+                <button class="comment-btn" onclick="toggleComments('${post._id}')">Comment (0)</button>
+              </div>
+              <div class="comments-section" id="comments-${post._id}" style="display: none;">
+                <div class="comments-list" id="comments-list-${post._id}"></div>
+                <div class="comment-form">
+                  <input type="text" id="comment-input-${post._id}" placeholder="Write a comment...">
+                  <button onclick="addComment('${post._id}')">Post</button>
+                </div>
               </div>
             </div>
-          </div>
-        `;
-        container.insertAdjacentHTML("afterbegin", postHTML);
+          `;
+          container.insertAdjacentHTML("afterbegin", postHTML);
+        }
       }
 
       function addCommentToPost(postId, comment) {
-        const commentsList = document.getElementById(`comments-list-${postId}`);
-        if (commentsList) {
+        const commentsList = getElement(`comments-list-${postId}`);
+        if (commentsList && comment) {
           const commentHTML = `
             <div class="comment">
-              <strong>${comment.author.fullName}</strong>: ${comment.content}
+              <strong>${comment.author?.fullName || 'Unknown'}</strong>: ${comment.content}
               <small>${new Date(comment.createdAt).toLocaleString()}</small>
             </div>
           `;
@@ -632,11 +852,259 @@
         }
       }
 
-      // Initialize when page loads
-      document.addEventListener("DOMContentLoaded", function () {
-        initializeSocket();
-        loadPosts();
+      // Dashboard functionality
+      function showDashboardSection(sectionId) {
+        // Hide all sections
+        const sections = document.querySelectorAll(".dashboard-section");
+        sections.forEach((section) => {
+          section.classList.remove("active");
+        });
+
+        // Remove active class from all buttons
+        const buttons = document.querySelectorAll(".dashboard-tab-btn");
+        buttons.forEach((btn) => {
+          btn.classList.remove("active");
+        });
+
+        // Show selected section and activate button
+        const selectedSection = getElement(`dashboard-${sectionId}`);
+        if (selectedSection) {
+          selectedSection.classList.add("active");
+        }
+        
+        if (event && event.currentTarget) {
+          event.currentTarget.classList.add("active");
+        }
+        
+        currentDashboardSection = sectionId;
+        
+        // Load section-specific data
+        switch(sectionId) {
+          case 'members':
+            loadMembersManagement();
+            break;
+          case 'missions':
+            loadMissionsManagement();
+            break;
+          case 'content':
+            loadContentManagement();
+            break;
+          case 'settings':
+            loadGroupSettings();
+            break;
+        }
+      }
+
+      async function loadDashboardData() {
+        if (!isAdmin) return;
+        
+        try {
+          const response = await fetch(`/groups/${groupId}/dashboard`);
+          const data = await response.json();
+          
+          if (response.ok) {
+            updateDashboardStats(data.stats);
+            if (currentDashboardSection === 'members') {
+              loadMembersManagement();
+            }
+          } else {
+            console.error('Failed to load dashboard data:', data.error);
+          }
+        } catch (error) {
+          console.error('Error loading dashboard data:', error);
+        }
+      }
+
+      function updateDashboardStats(stats) {
+        if (!stats) return;
+        
+        const totalPosts = getElement('totalPostsCount');
+        const weeklyPosts = getElement('weeklyPostsCount');
+        const totalComments = getElement('totalCommentsCount');
+        
+        if (totalPosts) totalPosts.textContent = stats.totalPosts || 0;
+        if (weeklyPosts) weeklyPosts.textContent = stats.weeklyPosts || 0;
+        if (totalComments) totalComments.textContent = stats.totalComments || 0;
+      }
+
+      async function loadMembersManagement() {
+        if (!isAdmin) return;
+        
+        try {
+          const response = await fetch(`/groups/${groupId}/members`);
+          const members = await response.json();
+          
+          const membersList = getElement('adminMembersList');
+          if (membersList && members) {
+            membersList.innerHTML = members.map(member => `
+              <div class="member-management-card">
+                <div class="member-info">
+                  <h5>${member.user?.fullName || 'Unknown User'}</h5>
+                  <p>Level: ${member.user?.level || 'N/A'} | Role: ${member.role}</p>
+                  <small>Joined: ${new Date(member.joinedAt || Date.now()).toLocaleDateString()}</small>
+                </div>
+                <div class="member-actions">
+                  <select onchange="updateMemberRole('${member.user?._id}', this.value)" ${member.role === 'Admin' ? 'disabled' : ''}>
+                    <option value="Member" ${member.role === 'Member' ? 'selected' : ''}>Member</option>
+                    <option value="Contributor" ${member.role === 'Contributor' ? 'selected' : ''}>Contributor</option>
+                    <option value="Strategist" ${member.role === 'Strategist' ? 'selected' : ''}>Strategist</option>
+                    <option value="Challenger" ${member.role === 'Challenger' ? 'selected' : ''}>Challenger</option>
+                    <option value="Admin" ${member.role === 'Admin' ? 'selected' : ''}>Admin</option>
+                  </select>
+                  <button class="btn btn-sm btn-danger" onclick="removeMember('${member.user?._id}')" ${member.role === 'Admin' ? 'disabled' : ''}>
+                    Remove
+                  </button>
+                </div>
+              </div>
+            `).join('');
+          }
+        } catch (error) {
+          console.error('Error loading members:', error);
+        }
+      }
+
+      async function updateMemberRole(userId, newRole) {
+        if (!isAdmin || !userId) return;
+        
+        try {
+          const response = await fetch(`/groups/${groupId}/members/${userId}/role`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ role: newRole })
+          });
+          
+          if (response.ok) {
+            alert('Member role updated successfully');
+            loadMembersManagement();
+          } else {
+            const error = await response.json();
+            alert('Error updating role: ' + error.error);
+          }
+        } catch (error) {
+          console.error('Error updating member role:', error);
+          alert('Error updating member role');
+        }
+      }
+
+    async function removeMember(userId) {
+        if (!isAdmin || !userId) return;
+        if (!confirm('Are you sure you want to remove this member?')) return;
+        
+        try {
+          const response = await fetch(`/groups/${groupId}/members/${userId}`, {
+            method: 'DELETE'
+          });
+          
+          if (response.ok) {
+            alert('Member removed successfully');
+            loadMembersManagement();
+          } 
+          else {
+            const error = await response.json();
+            }
+        }
+          catch (error) {
+            console.error('Error removing member:', error);
+            alert('Error removing member');
+            }
+        }
+
+  async function saveGroupSettings() {
+    if (!isAdmin) return;
+    
+    const form = getElement('groupSettingsForm');
+    if (!form) return;
+    
+    const formData = new FormData(form);
+    const settings = Object.fromEntries(formData.entries());
+    
+    try {
+      const response = await fetch(`/groups/${groupId}/settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(settings)
       });
-    </script>
-  </body>
+      
+      if (response.ok) {
+        alert('Group settings updated successfully');
+      } else {
+        const error = await response.json();
+        alert('Error updating settings: ' + error.error);
+      }
+    } catch (error) {
+      console.error('Error updating group settings:', error);
+      alert('Error updating group settings');
+    }
+  }
+
+  function loadGroupSettings() {
+    // Settings are already pre-populated in the HTML
+    console.log('Loading group settings...');
+  }
+
+  function loadMissionsManagement() {
+    console.log('Loading missions management...');
+    // Implement missions management
+  }
+
+  function loadContentManagement() {
+    console.log('Loading content management...');
+    // Implement content management
+  }
+
+  // Stub functions for dashboard actions
+  function searchMembers() {
+    console.log('Searching members...');
+  }
+
+  function showInviteModal() {
+    alert('Invite modal would open here');
+  }
+
+  function exportMembers() {
+    alert('Export members functionality');
+  }
+
+  function createNewMission() {
+    alert('Create new mission functionality');
+  }
+
+  function viewAllMissions() {
+    alert('View all missions functionality');
+  }
+
+  function manageFeaturedContent() {
+    alert('Manage featured content functionality');
+  }
+
+  function viewContentAnalytics() {
+    alert('View content analytics functionality');
+  }
+
+  function showDeleteGroupModal() {
+    if (confirm('Are you sure you want to delete this group? This action cannot be undone.')) {
+      alert('Group deletion functionality');
+    }
+  }
+
+  // Initialize when page loads
+  document.addEventListener("DOMContentLoaded", function () {
+    initializeSocket();
+    loadPosts();
+    
+    // Hide dashboard tab if user is not admin
+    if (!isAdmin) {
+      const dashboardTab = getElement('dashboardTab');
+      if (dashboardTab) dashboardTab.style.display = 'none';
+    }
+    
+    // Show the timeline tab by default
+    showTab('timeline');
+  });
+</script>
+</body>
 </html>
