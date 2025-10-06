@@ -1,0 +1,122 @@
+<!-- Stats Tab -->
+<div id="stats" class="tab-content" style="display: none">
+  <div class="stats-header">
+    <h3>Group Statistics</h3>
+    <div class="time-filter">
+      <select id="statsTimeRange" onchange="loadStats()">
+        <option value="7days">Last 7 Days</option>
+        <option value="30days">Last 30 Days</option>
+        <option value="90days">Last 90 Days</option>
+        <option value="alltime">All Time</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="stats-container">
+    <div class="stats-grid">
+      <div class="stat-card large">
+        <h5>Activity Overview</h5>
+        <div class="stat-value" id="totalActivity">0</div>
+        <div class="stat-trend" id="activityTrend">+0% from last period</div>
+      </div>
+
+      <div class="stat-card">
+        <h5>Posts Created</h5>
+        <div class="stat-value" id="postsCount">0</div>
+      </div>
+
+      <div class="stat-card">
+        <h5>Comments</h5>
+        <div class="stat-value" id="commentsCount">0</div>
+      </div>
+
+      <div class="stat-card">
+        <h5>Active Members</h5>
+        <div class="stat-value" id="activeMembers">0</div>
+      </div>
+    </div>
+
+    <div class="charts-section">
+      <div class="chart-container">
+        <h5>Activity Over Time</h5>
+        <canvas id="activityChart"></canvas>
+      </div>
+
+      <div class="chart-container">
+        <h5>Member Participation</h5>
+        <canvas id="participationChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Stats-specific JavaScript
+  async function loadStats() {
+    const timeRange =
+      document.getElementById("statsTimeRange")?.value || "7days";
+
+    try {
+      const response = await fetch(
+        `/groups/${groupId}/stats?range=${timeRange}`
+      );
+      const stats = await response.json();
+      renderStats(stats);
+    } catch (error) {
+      console.error("Error loading stats:", error);
+    }
+  }
+
+  function renderStats(stats) {
+    // Update stat cards
+    const totalActivity = getElement("totalActivity");
+    const postsCount = getElement("postsCount");
+    const commentsCount = getElement("commentsCount");
+    const activeMembers = getElement("activeMembers");
+    const activityTrend = getElement("activityTrend");
+
+    if (totalActivity && stats)
+      totalActivity.textContent = stats.totalActivity || 0;
+    if (postsCount && stats) postsCount.textContent = stats.postsCount || 0;
+    if (commentsCount && stats)
+      commentsCount.textContent = stats.commentsCount || 0;
+    if (activeMembers && stats)
+      activeMembers.textContent = stats.activeMembers || 0;
+    if (activityTrend && stats) {
+      const trend = stats.activityTrend || 0;
+      activityTrend.textContent = `${
+        trend >= 0 ? "+" : ""
+      }${trend}% from last period`;
+      activityTrend.className = `stat-trend ${
+        trend >= 0 ? "positive" : "negative"
+      }`;
+    }
+
+    // Render charts if data available
+    if (stats.charts) {
+      renderActivityChart(stats.charts.activity);
+      renderParticipationChart(stats.charts.participation);
+    }
+  }
+
+  function renderActivityChart(activityData) {
+    const ctx = document.getElementById("activityChart")?.getContext("2d");
+    if (!ctx || !activityData) return;
+
+    // Simple chart implementation - you might want to use a chart library
+    console.log("Rendering activity chart with data:", activityData);
+  }
+
+  function renderParticipationChart(participationData) {
+    const ctx = document.getElementById("participationChart")?.getContext("2d");
+    if (!ctx || !participationData) return;
+
+    // Simple chart implementation
+    console.log("Rendering participation chart with data:", participationData);
+  }
+
+  // Load stats when tab is shown
+  document.addEventListener("DOMContentLoaded", function () {
+    // Stats will be loaded when the tab is shown via showTab function
+  });
+</script>

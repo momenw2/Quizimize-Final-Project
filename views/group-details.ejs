@@ -5,7 +5,6 @@
     <title><%= group.name %> - Group Details</title>
     <link rel="stylesheet" href="/groupDetailsStyle.css" />
     <script src="/socket.io/socket.io.js"></script>
-    
   </head>
   <body class="<%= isAdmin ? 'is-admin' : '' %>">
     <div class="container">
@@ -13,31 +12,38 @@
         <div class="group-summary">
           <h1 class="group-title"><%= group.name %></h1>
           <p class="group-meta">
-            Level: <%= group.level || 1 %> | Members: <%= group.members.length %>
+            Level: <%= group.level || 1 %> | Members: <%= group.members.length
+            %>
           </p>
           <p class="group-meta">Specialization: <%= group.specialization %></p>
-          
+
           <!-- Description Display -->
           <div class="group-description">
             <% if (group.description) { %>
-              <p class="description-text" id="currentDescription"><%= group.description %></p>
+            <p class="description-text" id="currentDescription">
+              <%= group.description %>
+            </p>
             <% } else { %>
-              <p class="description-text no-description" id="currentDescription">
-                No description yet. 
-                <% if (isAdmin) { %>
-                  <a href="javascript:void(0)" onclick="showEditDescription()">Add a description</a>
-                <% } %>
-              </p>
+            <p class="description-text no-description" id="currentDescription">
+              No description yet. <% if (isAdmin) { %>
+              <a href="javascript:void(0)" onclick="showEditDescription()"
+                >Add a description</a
+              >
+              <% } %>
+            </p>
             <% } %>
-            
+
             <!-- Edit Description Button (Admin Only) -->
             <% if (isAdmin) { %>
-              <button class="btn-edit-description" onclick="showEditDescription()">
-                <%= group.description ? 'Edit Description' : 'Add Description' %>
-              </button>
+            <button
+              class="btn-edit-description"
+              onclick="showEditDescription()"
+            >
+              <%= group.description ? 'Edit Description' : 'Add Description' %>
+            </button>
             <% } %>
           </div>
-          
+
           <p class="group-meta">
             Created: <%= new Date(group.createdAt).toLocaleDateString() %>
           </p>
@@ -48,292 +54,43 @@
       <div class="main-grid">
         <div class="content-area">
           <div class="tabs">
-            <button class="tab-btn active" onclick="showTab('timeline')">
+            <button
+              class="tab-btn active"
+              data-tab="timeline"
+              onclick="showTab('timeline')"
+            >
               Timeline
             </button>
-            <button class="tab-btn" onclick="showTab('missions')">
+            <button
+              class="tab-btn"
+              data-tab="missions"
+              onclick="showTab('missions')"
+            >
               Missions
             </button>
-            <button class="tab-btn" onclick="showTab('chat')">Chat</button>
-            <button class="tab-btn" onclick="showTab('stats')">Stats</button>
+            <button class="tab-btn" data-tab="chat" onclick="showTab('chat')">
+              Chat
+            </button>
+            <button class="tab-btn" data-tab="stats" onclick="showTab('stats')">
+              Stats
+            </button>
             <!-- Dashboard Tab - Only visible to admin -->
-            <button class="tab-btn admin-only" onclick="showTab('dashboard')" id="dashboardTab">
+            <% if (isAdmin) { %>
+            <button
+              class="tab-btn admin-only"
+              data-tab="dashboard"
+              onclick="showTab('dashboard')"
+              id="dashboardTab"
+            >
               Dashboard
             </button>
+            <% } %>
           </div>
 
-          <!-- Timeline Tab -->
-          <div id="timeline" class="tab-content">
-            <div class="timeline-header">
-              <h3>Group Timeline</h3>
-              <button class="btn btn-primary" onclick="showPostForm()">
-                Create Post
-              </button>
-            </div>
-
-            <!-- Post Creation Form -->
-            <div id="postForm" class="post-form" style="display: none">
-              <textarea
-                id="postContent"
-                placeholder="What's happening in your group?"
-                rows="3"
-              ></textarea>
-              <div class="form-actions">
-                <button class="btn btn-secondary" onclick="hidePostForm()">
-                  Cancel
-                </button>
-                <button class="btn btn-primary" onclick="createPost()">
-                  Post
-                </button>
-              </div>
-            </div>
-
-            <!-- Posts Container -->
-            <div id="postsContainer" class="posts-container">
-              <!-- Posts will be loaded here dynamically -->
-            </div>
-          </div>
-
-          <!-- Missions Tab -->
-          <div id="missions" class="tab-content" style="display: none">
-            <h3>Missions</h3>
-            <p>This is where group missions and quests will be displayed.</p>
-          </div>
-
-          <!-- Chat Tab -->
-          <div id="chat" class="tab-content" style="display: none">
-            <div class="chat-header">
-              <h3>Group Chat</h3>
-              <div class="online-indicator">
-                <span id="onlineCount">0</span> members online
-              </div>
-            </div>
-
-            <div class="chat-container">
-              <div id="chatMessages" class="chat-messages">
-                <!-- Chat messages will appear here -->
-              </div>
-
-              <div class="chat-input-container">
-                <div
-                  class="typing-indicator"
-                  id="typingIndicator"
-                  style="display: none"
-                >
-                  <span id="typingUsers"></span> is typing...
-                </div>
-
-                <div class="chat-input-group">
-                  <input
-                    type="text"
-                    id="chatMessageInput"
-                    placeholder="Type a message..."
-                    maxlength="500"
-                    onkeypress="handleChatKeyPress(event)"
-                  />
-                  <button id="sendMessageBtn" onclick="sendChatMessage()">
-                    Send
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Stats Tab -->
-          <div id="stats" class="tab-content" style="display: none">
-            <h3>Stats</h3>
-            <p>
-              This section will show detailed group statistics and analytics.
-            </p>
-          </div>
-
-          <!-- Dashboard Tab -->
-          <div id="dashboard" class="tab-content" style="display: none">
-            <div class="dashboard-header">
-              <h3>Group Dashboard</h3>
-              <p>Manage your group settings and members</p>
-            </div>
-
-            <div class="dashboard-tabs">
-              <button class="dashboard-tab-btn active" onclick="showDashboardSection('members')">
-                Members
-              </button>
-              <button class="dashboard-tab-btn" onclick="showDashboardSection('missions')">
-                Missions
-              </button>
-              <button class="dashboard-tab-btn" onclick="showDashboardSection('content')">
-                Content
-              </button>
-              <button class="dashboard-tab-btn" onclick="showDashboardSection('settings')">
-                Group Settings
-              </button>
-            </div>
-
-            <div class="dashboard-content">
-              <!-- Members Section -->
-              <div id="dashboard-members" class="dashboard-section active">
-                <h4>Member Management</h4>
-                <div class="members-management">
-                  <div class="search-section">
-                    <input type="text" id="memberSearch" placeholder="Search members..." onkeyup="searchMembers()">
-                  </div>
-                  <div id="adminMembersList" class="members-list">
-                    <!-- Members will be loaded here with admin controls -->
-                  </div>
-                  <div class="admin-actions">
-                    <button class="btn btn-primary" onclick="showInviteModal()">
-                      Invite New Member
-                    </button>
-                    <button class="btn btn-secondary" onclick="exportMembers()">
-                      Export Members List
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Missions Section -->
-              <div id="dashboard-missions" class="dashboard-section">
-                <h4>Mission Management</h4>
-                <div class="missions-management">
-                  <div class="missions-stats">
-                    <div class="stat-card">
-                      <h5>Active Missions</h5>
-                      <span id="activeMissionsCount">0</span>
-                    </div>
-                    <div class="stat-card">
-                      <h5>Completed</h5>
-                      <span id="completedMissionsCount">0</span>
-                    </div>
-                    <div class="stat-card">
-                      <h5>Pending</h5>
-                      <span id="pendingMissionsCount">0</span>
-                    </div>
-                  </div>
-                  <div class="missions-actions">
-                    <button class="btn btn-primary" onclick="createNewMission()">
-                      Create New Mission
-                    </button>
-                    <button class="btn btn-secondary" onclick="viewAllMissions()">
-                      View All Missions
-                    </button>
-                  </div>
-                  <div id="missionsList" class="missions-list">
-                    <!-- Missions will be loaded here -->
-                  </div>
-                </div>
-              </div>
-
-              <!-- Content Section -->
-              <div id="dashboard-content" class="dashboard-section">
-                <h4>Content Management</h4>
-                <div class="content-management">
-                  <div class="content-stats">
-                    <div class="stat-card">
-                      <h5>Total Posts</h5>
-                      <span id="totalPostsCount">0</span>
-                    </div>
-                    <div class="stat-card">
-                      <h5>This Week</h5>
-                      <span id="weeklyPostsCount">0</span>
-                    </div>
-                    <div class="stat-card">
-                      <h5>Comments</h5>
-                      <span id="totalCommentsCount">0</span>
-                    </div>
-                  </div>
-                  
-                  <div class="content-filters">
-                    <input type="text" id="contentSearch" placeholder="Search posts and comments..." onkeyup="searchContent()">
-                    <select id="contentSort" onchange="loadContentManagement()">
-                      <option value="newest">Newest First</option>
-                      <option value="oldest">Oldest First</option>
-                      <option value="most-comments">Most Comments</option>
-                      <option value="most-votes">Most Votes</option>
-                    </select>
-                  </div>
-
-                  <div class="posts-management">
-                    <h5>All Posts</h5>
-                    <div id="adminPostsList" class="admin-posts-list">
-                      <!-- Posts will be loaded here with admin controls -->
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Group Settings Section -->
-              <div id="dashboard-settings" class="dashboard-section">
-                <h4>Group Settings</h4>
-                <div class="settings-management">
-                  <form id="groupSettingsForm">
-                    <div class="form-group">
-                      <label for="groupName">Group Name</label>
-                      <input type="text" id="groupName" name="name" value="<%= group.name %>" class="form-control">
-                    </div>
-                    
-                    <div class="form-group">
-                      <label for="groupSpecialization">Specialization</label>
-                      <select id="groupSpecialization" name="specialization" class="form-control">
-                        <option value="JavaScript" <%= group.specialization === 'JavaScript' ? 'selected' : '' %>>JavaScript</option>
-                        <option value="React" <%= group.specialization === 'React' ? 'selected' : '' %>>React</option>
-                        <option value="Node.js" <%= group.specialization === 'Node.js' ? 'selected' : '' %>>Node.js</option>
-                        <option value="Python" <%= group.specialization === 'Python' ? 'selected' : '' %>>Python</option>
-                        <option value="SQL" <%= group.specialization === 'SQL' ? 'selected' : '' %>>SQL</option>
-                      </select>
-                    </div>
-                    
-                    <!-- Add Description Field to Settings -->
-                    <div class="form-group">
-                      <label for="groupDescription">Group Description</label>
-                      <textarea 
-                        id="groupDescription" 
-                        name="description" 
-                        class="form-control" 
-                        rows="4" 
-                        placeholder="Describe your group's purpose, goals, or any important information..."
-                        maxlength="500"
-                      ><%= group.description || '' %></textarea>
-                      <small class="form-text text-muted">
-                        <span id="descriptionCharCount"><%= group.description ? group.description.length : 0 %></span>/500 characters
-                      </small>
-                    </div>
-                    
-                    <div class="form-group">
-                      <label for="groupVisibility">Group Visibility</label>
-                      <select id="groupVisibility" name="visibility" class="form-control">
-                        <option value="public">Public</option>
-                        <option value="private">Private</option>
-                        <option value="invite-only">Invite Only</option>
-                      </select>
-                    </div>
-                    
-                    <div class="form-group">
-                      <label>
-                        <input type="checkbox" name="allowMemberPosts" checked> 
-                        Allow members to create posts
-                      </label>
-                    </div>
-                    
-                    <div class="form-group">
-                      <label>
-                        <input type="checkbox" name="allowMemberInvites" checked> 
-                        Allow members to invite others
-                      </label>
-                    </div>
-                    
-                    <div class="form-actions">
-                      <button type="button" class="btn btn-primary" onclick="saveGroupSettings()">
-                        Save Settings
-                      </button>
-                      <button type="button" class="btn btn-danger" onclick="showDeleteGroupModal()">
-                        Delete Group
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- Include Tab Contents -->
+          <%- include('partials/timeline') %> <%- include('partials/missions')
+          %> <%- include('partials/chat') %> <%- include('partials/stats') %> <%
+          if (isAdmin) { %> <%- include('partials/dashboard') %> <% } %>
         </div>
 
         <div class="side-panel">
@@ -345,10 +102,8 @@
               <div class="member-card">
                 <div class="member-info">
                   <h4>
-                    <% if (member.user && member.user.fullName) { %> 
-                      <%= member.user.fullName %> 
-                    <% } else { %> 
-                      User <%= index + 1 %> 
+                    <% if (member.user && member.user.fullName) { %> <%=
+                    member.user.fullName %> <% } else { %> User <%= index + 1 %>
                     <% } %>
                   </h4>
                   <p>Level: <%= member.user ? member.user.level : "N/A" %></p>
@@ -373,21 +128,25 @@
     </div>
 
     <!-- Description Edit Modal -->
-    <div id="descriptionModal" class="modal" style="display: none;">
+    <div id="descriptionModal" class="modal" style="display: none">
       <div class="modal-content">
         <div class="modal-header">
           <h3>Edit Group Description</h3>
           <span class="close" onclick="hideEditDescription()">&times;</span>
         </div>
         <div class="modal-body">
-          <textarea 
-            id="descriptionInput" 
+          <textarea
+            id="descriptionInput"
             placeholder="Describe your group's purpose, goals, or any important information..."
             rows="5"
             maxlength="500"
-          ><%= group.description || '' %></textarea>
+          >
+<%= group.description || '' %></textarea
+          >
           <div class="char-count">
-            <span id="charCount"><%= group.description ? group.description.length : 0 %></span>/500 characters
+            <span id="charCount"
+              ><%= group.description ? group.description.length : 0 %></span
+            >/500 characters
           </div>
         </div>
         <div class="modal-footer">
@@ -402,12 +161,10 @@
     </div>
 
     <script>
+      // Common variables and functions used across all tabs
       let socket;
       const groupId = "<%= group._id %>";
-      let isTyping = false;
-      let typingTimer;
       let isAdmin = "<%= isAdmin %>";
-      let currentDashboardSection = 'members';
 
       // Safe DOM element getter with null checking
       function getElement(id) {
@@ -418,108 +175,10 @@
         return element;
       }
 
-      // Description Management Functions
-      function showEditDescription() {
-        const modal = getElement('descriptionModal');
-        const descriptionInput = getElement('descriptionInput');
-        const charCount = getElement('charCount');
-        
-        if (modal && descriptionInput && charCount) {
-          // Get current description from the displayed text
-          const currentDescElement = getElement('currentDescription');
-          let currentDescription = '';
-          
-          if (currentDescElement && !currentDescElement.classList.contains('no-description')) {
-            currentDescription = currentDescElement.textContent || '';
-          }
-          
-          descriptionInput.value = currentDescription;
-          charCount.textContent = currentDescription.length;
-          modal.style.display = 'block';
-        }
-      }
-
-      function hideEditDescription() {
-        const modal = getElement('descriptionModal');
-        if (modal) {
-          modal.style.display = 'none';
-        }
-      }
-
-      async function saveDescription() {
-        const descriptionInput = getElement('descriptionInput');
-        if (!descriptionInput) return;
-
-        const description = descriptionInput.value.trim();
-        
-        try {
-          const response = await fetch(`/groups/${groupId}/settings`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ description: description })
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            alert('Description updated successfully!');
-            hideEditDescription();
-            
-            // Update the displayed description
-            updateDescriptionDisplay(description);
-            
-          } else {
-            const error = await response.json();
-            alert('Error updating description: ' + error.error);
-          }
-        } catch (error) {
-          console.error('Error updating description:', error);
-          alert('Error updating description');
-        }
-      }
-
-      function updateDescriptionDisplay(description) {
-        const descriptionElement = getElement('currentDescription');
-        const editButton = document.querySelector('.btn-edit-description');
-        
-        if (descriptionElement) {
-          if (description) {
-            descriptionElement.textContent = description;
-            descriptionElement.classList.remove('no-description');
-            // Remove any links that might be there
-            const links = descriptionElement.querySelectorAll('a');
-            links.forEach(link => link.remove());
-          } else {
-            descriptionElement.innerHTML = 'No description yet. ';
-            if (isAdmin) {
-              const addLink = document.createElement('a');
-              addLink.href = 'javascript:void(0)';
-              addLink.onclick = showEditDescription;
-              addLink.textContent = 'Add a description';
-              descriptionElement.appendChild(addLink);
-            }
-            descriptionElement.classList.add('no-description');
-          }
-        }
-        
-        // Update edit button text
-        if (editButton) {
-          editButton.textContent = description ? 'Edit Description' : 'Add Description';
-        }
-      }
-
-      // Close modal when clicking outside
-      window.onclick = function(event) {
-        const modal = getElement('descriptionModal');
-        if (event.target === modal) {
-          hideEditDescription();
-        }
-      }
-
+      // Tab management
       function showTab(tabId) {
-        console.log('Showing tab:', tabId);
-        
+        console.log("Showing tab:", tabId);
+
         // Hide all tab contents
         const tabs = document.querySelectorAll(".tab-content");
         tabs.forEach((tab) => {
@@ -537,53 +196,214 @@
         if (selectedTab) {
           selectedTab.style.display = "block";
         }
-        
-        if (event && event.currentTarget) {
-          event.currentTarget.classList.add("active");
+
+        // Activate the clicked button
+        const clickedButton =
+          event?.currentTarget ||
+          document.querySelector(`[data-tab="${tabId}"]`);
+        if (clickedButton) {
+          clickedButton.classList.add("active");
         }
 
         // Load tab-specific content
-        switch(tabId) {
+        switch (tabId) {
           case "timeline":
-            loadPosts();
+            if (typeof loadPosts === "function") {
+              loadPosts();
+            } else {
+              console.warn("loadPosts function not found");
+            }
             break;
           case "chat":
-            loadChatHistory();
+            if (typeof loadChatHistory === "function") loadChatHistory();
             setTimeout(() => {
               const chatInput = getElement("chatMessageInput");
               if (chatInput) chatInput.focus();
             }, 100);
             break;
           case "dashboard":
-            if (isAdmin) {
+            if (isAdmin && typeof loadDashboardData === "function") {
               loadDashboardData();
             }
             break;
+          case "missions":
+            if (typeof loadMissions === "function") loadMissions();
+            break;
+          case "stats":
+            if (typeof loadStats === "function") loadStats();
+            break;
+        }
+      }
+
+      // Function to show timeline by default
+      function showDefaultTab() {
+        console.log("Showing default timeline tab...");
+
+        // Hide all tab contents first
+        const tabs = document.querySelectorAll(".tab-content");
+        tabs.forEach((tab) => {
+          tab.style.display = "none";
+        });
+
+        // Remove active class from all buttons
+        const buttons = document.querySelectorAll(".tab-btn");
+        buttons.forEach((btn) => {
+          btn.classList.remove("active");
+        });
+
+        // Show timeline tab and activate its button
+        const timelineTab = getElement("timeline");
+        const timelineButton = document.querySelector('[data-tab="timeline"]');
+
+        if (timelineTab) {
+          timelineTab.style.display = "block";
+          console.log("Timeline tab displayed");
+        }
+
+        if (timelineButton) {
+          timelineButton.classList.add("active");
+          console.log("Timeline button activated");
+        }
+
+        // Load timeline posts
+        if (typeof loadPosts === "function") {
+          console.log("Loading posts...");
+          loadPosts();
+        } else {
+          console.warn("loadPosts function not available yet");
         }
       }
 
       function inviteMember() {
         const groupCode = "<%= group._id.toString().slice(-8).toUpperCase() %>";
-        const inviteLink = window.location.origin + "/groups/join?code=" + groupCode;
+        const inviteLink =
+          window.location.origin + "/groups/join?code=" + groupCode;
 
         if (navigator.clipboard) {
           navigator.clipboard
             .writeText(inviteLink)
             .then(() => {
-              alert("Invite link copied to clipboard!\n\nGroup Code: " + groupCode);
+              alert(
+                "Invite link copied to clipboard!\n\nGroup Code: " + groupCode
+              );
             })
             .catch(() => {
-              alert("Group Code: " + groupCode + "\nInvite Link: " + inviteLink);
+              alert(
+                "Group Code: " + groupCode + "\nInvite Link: " + inviteLink
+              );
             });
         } else {
           alert("Group Code: " + groupCode + "\nInvite Link: " + inviteLink);
         }
       }
 
-      // Socket initialization with chat functionality
+      // Description Management Functions
+      function showEditDescription() {
+        const modal = getElement("descriptionModal");
+        const descriptionInput = getElement("descriptionInput");
+        const charCount = getElement("charCount");
+
+        if (modal && descriptionInput && charCount) {
+          const currentDescElement = getElement("currentDescription");
+          let currentDescription = "";
+
+          if (
+            currentDescElement &&
+            !currentDescElement.classList.contains("no-description")
+          ) {
+            currentDescription = currentDescElement.textContent || "";
+          }
+
+          descriptionInput.value = currentDescription;
+          charCount.textContent = currentDescription.length;
+          modal.style.display = "block";
+        }
+      }
+
+      function hideEditDescription() {
+        const modal = getElement("descriptionModal");
+        if (modal) {
+          modal.style.display = "none";
+        }
+      }
+
+      async function saveDescription() {
+        const descriptionInput = getElement("descriptionInput");
+        if (!descriptionInput) return;
+
+        const description = descriptionInput.value.trim();
+
+        try {
+          const response = await fetch(`/groups/${groupId}/settings`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ description: description }),
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            alert("Description updated successfully!");
+            hideEditDescription();
+            updateDescriptionDisplay(description);
+          } else {
+            const error = await response.json();
+            alert("Error updating description: " + error.error);
+          }
+        } catch (error) {
+          console.error("Error updating description:", error);
+          alert("Error updating description");
+        }
+      }
+
+      function updateDescriptionDisplay(description) {
+        const descriptionElement = getElement("currentDescription");
+        const editButton = document.querySelector(".btn-edit-description");
+
+        if (descriptionElement) {
+          if (description) {
+            descriptionElement.textContent = description;
+            descriptionElement.classList.remove("no-description");
+            const links = descriptionElement.querySelectorAll("a");
+            links.forEach((link) => link.remove());
+          } else {
+            descriptionElement.innerHTML = "No description yet. ";
+            if (isAdmin) {
+              const addLink = document.createElement("a");
+              addLink.href = "javascript:void(0)";
+              addLink.onclick = showEditDescription;
+              addLink.textContent = "Add a description";
+              descriptionElement.appendChild(addLink);
+            }
+            descriptionElement.classList.add("no-description");
+          }
+        }
+
+        if (editButton) {
+          editButton.textContent = description
+            ? "Edit Description"
+            : "Add Description";
+        }
+      }
+
+      // Close modal when clicking outside
+      window.onclick = function (event) {
+        const modal = getElement("descriptionModal");
+        if (event.target === modal) {
+          hideEditDescription();
+        }
+      };
+
+      // Socket initialization
       function initializeSocket() {
+        if (typeof io === "undefined") {
+          console.error("Socket.io not loaded");
+          return;
+        }
+
         socket = io();
-        
+
         // Send authentication data when connecting
         socket.emit("authenticate", {
           userId: "<%= user._id %>",
@@ -594,902 +414,113 @@
 
         // Timeline events
         socket.on("new-post", (post) => {
-          addPostToTimeline(post);
+          if (typeof addPostToTimeline === "function") {
+            addPostToTimeline(post);
+          }
         });
 
         socket.on("new-comment", (data) => {
-          addCommentToPost(data.postId, data.comment);
+          if (typeof addCommentToPost === "function") {
+            addCommentToPost(data.postId, data.comment);
+          }
         });
 
         socket.on("vote-update", (data) => {
-          updatePostVotes(data.postId, data.votes);
+          if (typeof updatePostVotes === "function") {
+            updatePostVotes(data.postId, data.votes);
+          }
         });
 
-        // Chat event handlers - only bind if elements exist
+        // Chat event handlers
         socket.on("chat-message", (data) => {
-          addChatMessage(data);
+          if (typeof addChatMessage === "function") {
+            addChatMessage(data);
+          }
         });
 
         socket.on("chat-history", (messages) => {
-          renderChatHistory(messages);
+          if (typeof renderChatHistory === "function") {
+            renderChatHistory(messages);
+          }
         });
 
         socket.on("user-joined-chat", (data) => {
-          addSystemMessage(`${data.userName} joined the chat`);
-          updateOnlineCount(data.onlineCount);
+          if (
+            typeof addSystemMessage === "function" &&
+            typeof updateOnlineCount === "function"
+          ) {
+            addSystemMessage(`${data.userName} joined the chat`);
+            updateOnlineCount(data.onlineCount);
+          }
         });
 
         socket.on("user-left-chat", (data) => {
-          addSystemMessage(`${data.userName} left the chat`);
-          updateOnlineCount(data.onlineCount);
+          if (
+            typeof addSystemMessage === "function" &&
+            typeof updateOnlineCount === "function"
+          ) {
+            addSystemMessage(`${data.userName} left the chat`);
+            updateOnlineCount(data.onlineCount);
+          }
         });
 
         socket.on("typing-start", (data) => {
-          showTypingIndicator(data.userName, data.userId);
+          if (typeof showTypingIndicator === "function") {
+            showTypingIndicator(data.userName, data.userId);
+          }
         });
 
         socket.on("typing-stop", (data) => {
-          hideTypingIndicator(data.userId);
+          if (typeof hideTypingIndicator === "function") {
+            hideTypingIndicator(data.userId);
+          }
         });
 
         socket.on("online-count", (count) => {
-          updateOnlineCount(count);
+          if (typeof updateOnlineCount === "function") {
+            updateOnlineCount(count);
+          }
         });
 
         // Add socket event handlers for content management
         socket.on("post-deleted", (data) => {
           // Remove post from timeline if visible
-          const postElement = document.querySelector(`[data-post-id="${data.postId}"]`);
+          const postElement = document.querySelector(
+            `[data-post-id="${data.postId}"]`
+          );
           if (postElement) {
             postElement.remove();
-          }
-          
-          // Refresh dashboard content if open
-          if (currentDashboardSection === 'content') {
-            loadContentManagement();
           }
         });
 
         socket.on("comment-deleted", (data) => {
           // Remove comment from posts if visible
-          const commentElement = document.querySelector(`[data-comment-id="${data.commentId}"]`);
+          const commentElement = document.querySelector(
+            `[data-comment-id="${data.commentId}"]`
+          );
           if (commentElement) {
             commentElement.remove();
           }
-          
-          // Update comment counts
-          const commentBtn = document.querySelector(`[data-post-id="${data.postId}"] .comment-btn`);
-          if (commentBtn) {
-            const currentCount = parseInt(commentBtn.textContent.match(/\d+/)) || 0;
-            commentBtn.textContent = `💬 ${Math.max(0, currentCount - 1)}`;
-          }
-          
-          // Refresh dashboard content if open
-          if (currentDashboardSection === 'content') {
-            loadContentManagement();
-          }
         });
-      }
-
-      // Chat functionality with safe element checking
-      function loadChatHistory() {
-        if (socket) {
-          socket.emit("get-chat-history", groupId);
-        }
-      }
-
-      function renderChatHistory(messages) {
-        const container = getElement("chatMessages");
-        if (container && messages) {
-          container.innerHTML = messages
-            .map((message) => createChatMessageHTML(message))
-            .join("");
-          scrollChatToBottom();
-        }
-      }
-
-      function addChatMessage(data) {
-        const container = getElement("chatMessages");
-        if (container && data) {
-          const messageHTML = createChatMessageHTML(data);
-          container.insertAdjacentHTML("beforeend", messageHTML);
-          scrollChatToBottom();
-          hideTypingIndicator(data.userId);
-        }
-      }
-
-      function createChatMessageHTML(message) {
-        if (!message) return '';
-        
-        const isCurrentUser = message.userId === "<%= user._id %>";
-        const messageClass = isCurrentUser
-          ? "message own-message"
-          : "message other-message";
-
-        return `
-          <div class="${messageClass}" data-message-id="${message._id || ''}">
-            <div class="message-header">
-              <span class="message-sender">${message.userName || 'Unknown'}</span>
-              <span class="message-time">${new Date(
-                message.timestamp || Date.now()
-              ).toLocaleTimeString()}</span>
-            </div>
-            <div class="message-content">${message.content || ''}</div>
-          </div>
-        `;
-      }
-
-      function addSystemMessage(content) {
-        const container = getElement("chatMessages");
-        if (container && content) {
-          const messageHTML = `
-            <div class="message system-message">
-              <div class="message-content">${content}</div>
-            </div>
-          `;
-          container.insertAdjacentHTML("beforeend", messageHTML);
-          scrollChatToBottom();
-        }
-      }
-
-      function sendChatMessage() {
-        const input = getElement("chatMessageInput");
-        if (!input) return;
-
-        const content = input.value.trim();
-        if (!content) return;
-
-        const messageData = {
-          groupId: groupId,
-          content: content,
-          userName: "<%= user.fullName %>",
-          userId: "<%= user._id %>",
-        };
-
-        if (socket) {
-          socket.emit("chat-message", messageData);
-        }
-        input.value = "";
-        stopTyping();
-      }
-
-      function handleChatKeyPress(event) {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          sendChatMessage();
-        } else {
-          if (!isTyping) {
-            isTyping = true;
-            if (socket) {
-              socket.emit("typing-start", {
-                groupId: groupId,
-                userName: "<%= user.fullName %>",
-                userId: "<%= user._id %>",
-              });
-            }
-          }
-
-          clearTimeout(typingTimer);
-          typingTimer = setTimeout(stopTyping, 1000);
-        }
-      }
-
-      function stopTyping() {
-        if (isTyping) {
-          isTyping = false;
-          if (socket) {
-            socket.emit("typing-stop", {
-              groupId: groupId,
-              userId: "<%= user._id %>",
-            });
-          }
-        }
-      }
-
-      function showTypingIndicator(userName, userId) {
-        if (userId === "<%= user._id %>") return;
-
-        const indicator = getElement("typingIndicator");
-        const typingUsers = getElement("typingUsers");
-        
-        if (indicator && typingUsers) {
-          typingUsers.textContent = userName;
-          indicator.style.display = "block";
-          scrollChatToBottom();
-        }
-      }
-
-      function hideTypingIndicator(userId) {
-        if (userId === "<%= user._id %>") return;
-
-        const indicator = getElement("typingIndicator");
-        if (indicator) {
-          indicator.style.display = "none";
-        }
-      }
-
-      function updateOnlineCount(count) {
-        const onlineCount = getElement("onlineCount");
-        if (onlineCount) {
-          onlineCount.textContent = count;
-        }
-      }
-
-      function scrollChatToBottom() {
-        const container = getElement("chatMessages");
-        if (container) {
-          container.scrollTop = container.scrollHeight;
-        }
-      }
-
-      // Timeline functions with safe element checking
-      async function loadPosts() {
-        try {
-          const response = await fetch(`/groups/${groupId}/posts`);
-          const posts = await response.json();
-          renderPosts(posts);
-        } catch (error) {
-          console.error("Error loading posts:", error);
-        }
-      }
-
-      function renderPosts(posts) {
-        const container = getElement("postsContainer");
-        if (container && posts) {
-          container.innerHTML = posts
-            .map(
-              (post) => `
-            <div class="post-card" data-post-id="${post._id}">
-              <div class="post-header">
-                <div class="post-author">
-                  <strong>${post.author?.fullName || 'Unknown'}</strong>
-                  <span>Level ${post.author?.level || 'N/A'}</span>
-                </div>
-                <small>${new Date(post.createdAt).toLocaleString()}</small>
-              </div>
-              <div class="post-content">${post.content}</div>
-              <div class="post-actions">
-                <button class="vote-btn" onclick="votePost('${post._id}', 'up')">
-                  ▲ ${post.votes || 0}
-                </button>
-                <button class="vote-btn" onclick="votePost('${post._id}', 'down')">▼</button>
-                <button class="comment-btn" onclick="toggleComments('${post._id}')">
-                  💬 ${post.comments ? post.comments.length : 0}
-                </button>
-              </div>
-              <div class="comments-section" id="comments-${post._id}" style="display: none;">
-                <div class="comments-list" id="comments-list-${post._id}">
-                  ${
-                    post.comments
-                      ? post.comments
-                          .map(
-                            (comment) => `
-                    <div class="comment">
-                      <strong>${comment.author?.fullName || 'Unknown'}</strong>: ${comment.content}
-                      <small>${new Date(comment.createdAt).toLocaleString()}</small>
-                    </div>
-                  `
-                          )
-                          .join("")
-                      : ""
-                  }
-                </div>
-                <div class="comment-form">
-                  <input type="text" id="comment-input-${post._id}" placeholder="Write a comment...">
-                  <button onclick="addComment('${post._id}')">Post</button>
-                </div>
-              </div>
-            </div>
-          `
-            )
-            .join("");
-        }
-      }
-
-      function showPostForm() {
-        const postForm = getElement("postForm");
-        if (postForm) postForm.style.display = "block";
-      }
-
-      function hidePostForm() {
-        const postForm = getElement("postForm");
-        const postContent = getElement("postContent");
-        
-        if (postForm) postForm.style.display = "none";
-        if (postContent) postContent.value = "";
-      }
-
-      async function createPost() {
-        const postContent = getElement("postContent");
-        if (!postContent) return;
-
-        const content = postContent.value.trim();
-        if (!content) return;
-
-        try {
-          const response = await fetch(`/groups/${groupId}/posts`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content }),
-          });
-
-          if (response.ok) {
-            const newPost = await response.json();
-            addPostToTimeline(newPost);
-            hidePostForm();
-          } else {
-            console.error("Failed to create post");
-          }
-        } catch (error) {
-          console.error("Error creating post:", error);
-        }
-      }
-
-      async function addComment(postId) {
-        const input = getElement(`comment-input-${postId}`);
-        if (!input) return;
-
-        const content = input.value.trim();
-        if (!content) return;
-
-        const commentButton = input.nextElementSibling;
-        const originalText = commentButton.textContent;
-
-        try {
-          commentButton.textContent = "Posting...";
-          commentButton.disabled = true;
-
-          const response = await fetch(`/groups/posts/${postId}/comments`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content }),
-          });
-
-          const responseData = await response.json();
-
-          if (response.ok) {
-            addCommentToPost(postId, responseData);
-            input.value = "";
-          } else {
-            alert(
-              "Failed to create comment: " +
-                (responseData.error || "Unknown error")
-            );
-          }
-        } catch (error) {
-          alert(
-            "Network error creating comment. Please check your connection."
-          );
-        } finally {
-          commentButton.textContent = originalText;
-          commentButton.disabled = false;
-        }
-      }
-
-      async function votePost(postId, voteType) {
-        const voteButton = document.querySelector(
-          `[data-post-id="${postId}"] .vote-btn`
-        );
-        if (!voteButton) return;
-
-        const originalText = voteButton.textContent;
-
-        try {
-          voteButton.textContent = voteType === "up" ? "▲ ..." : "▼ ...";
-          voteButton.disabled = true;
-
-          const response = await fetch(`/groups/posts/${postId}/vote`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ voteType }),
-          });
-
-          const responseData = await response.json();
-
-          if (!response.ok) {
-            alert("Failed to vote: " + (responseData.error || "Unknown error"));
-          }
-        } catch (error) {
-          alert("Network error voting. Please check your connection.");
-        }
-      }
-
-      function toggleComments(postId) {
-        const commentsSection = getElement(`comments-${postId}`);
-        if (commentsSection) {
-          commentsSection.style.display =
-            commentsSection.style.display === "none" ? "block" : "none";
-        }
-      }
-
-      function addPostToTimeline(post) {
-        const container = getElement("postsContainer");
-        if (container && post) {
-          const postHTML = `
-            <div class="post-card" data-post-id="${post._id}">
-              <div class="post-header">
-                <div class="post-author">
-                  <strong>${post.author?.fullName || 'Unknown'}</strong>
-                  <span>Level ${post.author?.level || 'N/A'}</span>
-                </div>
-                <small>${new Date(post.createdAt).toLocaleString()}</small>
-              </div>
-              <div class="post-content">${post.content}</div>
-              <div class="post-actions">
-                <button class="vote-btn" onclick="votePost('${post._id}', 'up')">▲ 0</button>
-                <button class="vote-btn" onclick="votePost('${post._id}', 'down')">▼</button>
-                <button class="comment-btn" onclick="toggleComments('${post._id}')">Comment (0)</button>
-              </div>
-              <div class="comments-section" id="comments-${post._id}" style="display: none;">
-                <div class="comments-list" id="comments-list-${post._id}"></div>
-                <div class="comment-form">
-                  <input type="text" id="comment-input-${post._id}" placeholder="Write a comment...">
-                  <button onclick="addComment('${post._id}')">Post</button>
-                </div>
-              </div>
-            </div>
-          `;
-          container.insertAdjacentHTML("afterbegin", postHTML);
-        }
-      }
-
-      function addCommentToPost(postId, comment) {
-        const commentsList = getElement(`comments-list-${postId}`);
-        if (commentsList && comment) {
-          const commentHTML = `
-            <div class="comment">
-              <strong>${comment.author?.fullName || 'Unknown'}</strong>: ${comment.content}
-              <small>${new Date(comment.createdAt).toLocaleString()}</small>
-            </div>
-          `;
-          commentsList.insertAdjacentHTML("beforeend", commentHTML);
-        }
-      }
-
-      function updatePostVotes(postId, votes) {
-        const voteBtn = document.querySelector(
-          `[data-post-id="${postId}"] .vote-btn`
-        );
-        if (voteBtn) {
-          voteBtn.textContent = `▲ ${votes}`;
-        }
-      }
-
-      // Dashboard functionality
-      function showDashboardSection(sectionId) {
-        // Hide all sections
-        const sections = document.querySelectorAll(".dashboard-section");
-        sections.forEach((section) => {
-          section.classList.remove("active");
-        });
-
-        // Remove active class from all buttons
-        const buttons = document.querySelectorAll(".dashboard-tab-btn");
-        buttons.forEach((btn) => {
-          btn.classList.remove("active");
-        });
-
-        // Show selected section and activate button
-        const selectedSection = getElement(`dashboard-${sectionId}`);
-        if (selectedSection) {
-          selectedSection.classList.add("active");
-        }
-        
-        if (event && event.currentTarget) {
-          event.currentTarget.classList.add("active");
-        }
-        
-        currentDashboardSection = sectionId;
-        
-        // Load section-specific data
-        switch(sectionId) {
-          case 'members':
-            loadMembersManagement();
-            break;
-          case 'missions':
-            loadMissionsManagement();
-            break;
-          case 'content':
-            loadContentManagement();
-            break;
-          case 'settings':
-            loadGroupSettings();
-            break;
-        }
-      }
-
-      async function loadDashboardData() {
-        if (!isAdmin) return;
-        
-        try {
-          const response = await fetch(`/groups/${groupId}/dashboard`);
-          const data = await response.json();
-          
-          if (response.ok) {
-            updateDashboardStats(data.stats);
-            if (currentDashboardSection === 'members') {
-              loadMembersManagement();
-            }
-          } else {
-            console.error('Failed to load dashboard data:', data.error);
-          }
-        } catch (error) {
-          console.error('Error loading dashboard data:', error);
-        }
-      }
-
-      function updateDashboardStats(stats) {
-        if (!stats) return;
-        
-        const totalPosts = getElement('totalPostsCount');
-        const weeklyPosts = getElement('weeklyPostsCount');
-        const totalComments = getElement('totalCommentsCount');
-        
-        if (totalPosts) totalPosts.textContent = stats.totalPosts || 0;
-        if (weeklyPosts) weeklyPosts.textContent = stats.weeklyPosts || 0;
-        if (totalComments) totalComments.textContent = stats.totalComments || 0;
-      }
-
-      async function loadMembersManagement() {
-        if (!isAdmin) return;
-        
-        try {
-          const response = await fetch(`/groups/${groupId}/members`);
-          const members = await response.json();
-          
-          const membersList = getElement('adminMembersList');
-          if (membersList && members) {
-            membersList.innerHTML = members.map(member => `
-              <div class="member-management-card">
-                <div class="member-info">
-                  <h5>${member.user?.fullName || 'Unknown User'}</h5>
-                  <p>Level: ${member.user?.level || 'N/A'} | Role: ${member.role}</p>
-                  <small>Joined: ${new Date(member.joinedAt || Date.now()).toLocaleDateString()}</small>
-                </div>
-                <div class="member-actions">
-                  <select onchange="updateMemberRole('${member.user?._id}', this.value)" ${member.role === 'Admin' ? 'disabled' : ''}>
-                    <option value="Member" ${member.role === 'Member' ? 'selected' : ''}>Member</option>
-                    <option value="Contributor" ${member.role === 'Contributor' ? 'selected' : ''}>Contributor</option>
-                    <option value="Strategist" ${member.role === 'Strategist' ? 'selected' : ''}>Strategist</option>
-                    <option value="Challenger" ${member.role === 'Challenger' ? 'selected' : ''}>Challenger</option>
-                    <option value="Admin" ${member.role === 'Admin' ? 'selected' : ''}>Admin</option>
-                  </select>
-                  <button class="btn btn-sm btn-danger" onclick="removeMember('${member.user?._id}')" ${member.role === 'Admin' ? 'disabled' : ''}>
-                    Remove
-                  </button>
-                </div>
-              </div>
-            `).join('');
-          }
-        } catch (error) {
-          console.error('Error loading members:', error);
-        }
-      }
-
-      async function updateMemberRole(userId, newRole) {
-        if (!isAdmin || !userId) return;
-        
-        try {
-          const response = await fetch(`/groups/${groupId}/members/${userId}/role`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ role: newRole })
-          });
-          
-          if (response.ok) {
-            alert('Member role updated successfully');
-            loadMembersManagement();
-          } else {
-            const error = await response.json();
-            alert('Error updating role: ' + error.error);
-          }
-        } catch (error) {
-          console.error('Error updating member role:', error);
-          alert('Error updating member role');
-        }
-      }
-
-      async function removeMember(userId) {
-        if (!isAdmin || !userId) return;
-        if (!confirm('Are you sure you want to remove this member?')) return;
-        
-        try {
-          const response = await fetch(`/groups/${groupId}/members/${userId}`, {
-            method: 'DELETE'
-          });
-          
-          if (response.ok) {
-            alert('Member removed successfully');
-            loadMembersManagement();
-          } 
-          else {
-            const error = await response.json();
-            }
-        }
-          catch (error) {
-            console.error('Error removing member:', error);
-            alert('Error removing member');
-            }
-        }
-
-      async function saveGroupSettings() {
-        if (!isAdmin) return;
-        
-        const form = getElement('groupSettingsForm');
-        if (!form) return;
-        
-        const formData = new FormData(form);
-        const settings = Object.fromEntries(formData.entries());
-        
-        try {
-          const response = await fetch(`/groups/${groupId}/settings`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(settings)
-          });
-          
-          if (response.ok) {
-            alert('Group settings updated successfully');
-            // Update the description display if it was changed
-            if (settings.description !== undefined) {
-              updateDescriptionDisplay(settings.description);
-            }
-          } else {
-            const error = await response.json();
-            alert('Error updating settings: ' + error.error);
-          }
-        } catch (error) {
-          console.error('Error updating group settings:', error);
-          alert('Error updating group settings');
-        }
-      }
-
-      function loadGroupSettings() {
-        // Settings are already pre-populated in the HTML
-        console.log('Loading group settings...');
-      }
-
-      function loadMissionsManagement() {
-        console.log('Loading missions management...');
-        // Implement missions management
-      }
-
-      // Content Management Functions
-      async function loadContentManagement() {
-        if (!isAdmin) return;
-        
-        try {
-          const sortBy = document.getElementById('contentSort')?.value || 'newest';
-          const response = await fetch(`/groups/${groupId}/dashboard/content?sort=${sortBy}`);
-          const data = await response.json();
-          
-          if (response.ok) {
-            renderAdminPosts(data.posts);
-          } else {
-            console.error('Failed to load content:', data.error);
-          }
-        } catch (error) {
-          console.error('Error loading content:', error);
-        }
-      }
-
-      function renderAdminPosts(posts) {
-        const container = document.getElementById('adminPostsList');
-        if (!container) return;
-
-        if (!posts || posts.length === 0) {
-          container.innerHTML = `
-            <div class="empty-state">
-              <i>📝</i>
-              <p>No posts found in this group</p>
-            </div>
-          `;
-          return;
-        }
-
-        container.innerHTML = posts.map(post => `
-          <div class="admin-post-card" data-post-id="${post._id}">
-            <div class="admin-post-header">
-              <div class="post-author-info">
-                <h6>${post.author?.fullName || 'Unknown User'}</h6>
-                <div class="post-meta">
-                  ${new Date(post.createdAt).toLocaleString()} | 
-                  Level ${post.author?.level || 'N/A'}
-                </div>
-              </div>
-              <div class="post-stats">
-                <span>▲ ${post.votes || 0}</span>
-                <span>💬 ${post.comments ? post.comments.length : 0}</span>
-              </div>
-            </div>
-            
-            <div class="post-content">
-              ${post.content}
-            </div>
-            
-            <div class="post-actions-admin">
-              <button class="btn btn-sm btn-danger" onclick="deletePost('${post._id}')">
-                Delete Post
-              </button>
-              <button class="btn btn-sm btn-secondary" onclick="toggleCommentsAdmin('${post._id}')">
-                ${post.comments && post.comments.length > 0 ? `Manage Comments (${post.comments.length})` : 'No Comments'}
-              </button>
-            </div>
-            
-            <div class="admin-comments-section" id="admin-comments-${post._id}" style="display: none;">
-              <h6>Comments</h6>
-              <div id="admin-comments-list-${post._id}">
-                ${renderAdminComments(post.comments)}
-              </div>
-            </div>
-          </div>
-        `).join('');
-      }
-
-      function renderAdminComments(comments) {
-        if (!comments || comments.length === 0) {
-          return '<p class="no-comments">No comments yet</p>';
-        }
-
-        return comments.map(comment => `
-          <div class="comment-item" data-comment-id="${comment._id}">
-            <div class="comment-header">
-              <span class="comment-author">${comment.author?.fullName || 'Unknown User'}</span>
-              <span class="comment-meta">
-                ${new Date(comment.createdAt).toLocaleString()} | 
-                Level ${comment.author?.level || 'N/A'}
-              </span>
-            </div>
-            <div class="comment-content">${comment.content}</div>
-            <div class="comment-actions">
-              <button class="btn btn-sm btn-danger" onclick="deleteComment('${comment._id}', '${comment.postId}')">
-                Delete Comment
-              </button>
-            </div>
-          </div>
-        `).join('');
-      }
-
-      function toggleCommentsAdmin(postId) {
-        const commentsSection = document.getElementById(`admin-comments-${postId}`);
-        if (commentsSection) {
-          commentsSection.style.display = commentsSection.style.display === 'none' ? 'block' : 'none';
-        }
-      }
-
-      async function deletePost(postId) {
-        if (!isAdmin || !confirm('Are you sure you want to delete this post? This will also delete all comments and cannot be undone.')) {
-          return;
-        }
-
-        try {
-          const response = await fetch(`/groups/posts/${postId}`, {
-            method: 'DELETE'
-          });
-
-          if (response.ok) {
-            alert('Post deleted successfully');
-            loadContentManagement(); // Reload the content
-          } else {
-            const error = await response.json();
-            alert('Error deleting post: ' + error.error);
-          }
-        } catch (error) {
-          console.error('Error deleting post:', error);
-          alert('Error deleting post');
-        }
-      }
-
-      async function deleteComment(commentId, postId) {
-        if (!isAdmin || !confirm('Are you sure you want to delete this comment?')) {
-          return;
-        }
-
-        try {
-          const response = await fetch(`/groups/comments/${commentId}`, {
-            method: 'DELETE'
-          });
-
-          if (response.ok) {
-            alert('Comment deleted successfully');
-            // Refresh the comments for this post
-            loadContentManagement();
-          } else {
-            const error = await response.json();
-            alert('Error deleting comment: ' + error.error);
-          }
-        } catch (error) {
-          console.error('Error deleting comment:', error);
-          alert('Error deleting comment');
-        }
-      }
-
-      function searchContent() {
-        const searchTerm = document.getElementById('contentSearch')?.value.toLowerCase();
-        const postCards = document.querySelectorAll('.admin-post-card');
-        
-        postCards.forEach(card => {
-          const content = card.querySelector('.post-content')?.textContent.toLowerCase() || '';
-          const author = card.querySelector('.post-author-info h6')?.textContent.toLowerCase() || '';
-          const comments = card.querySelector('.admin-comments-section')?.textContent.toLowerCase() || '';
-          
-          const matches = content.includes(searchTerm) || 
-                        author.includes(searchTerm) || 
-                        comments.includes(searchTerm);
-          
-          card.style.display = matches ? 'block' : 'none';
-        });
-      }
-
-      // Stub functions for dashboard actions
-      function searchMembers() {
-        console.log('Searching members...');
-      }
-
-      function showInviteModal() {
-        alert('Invite modal would open here');
-      }
-
-      function exportMembers() {
-        alert('Export members functionality');
-      }
-
-      function createNewMission() {
-        alert('Create new mission functionality');
-      }
-
-      function viewAllMissions() {
-        alert('View all missions functionality');
-      }
-
-      function manageFeaturedContent() {
-        alert('Manage featured content functionality');
-      }
-
-      function viewContentAnalytics() {
-        alert('View content analytics functionality');
-      }
-
-      function showDeleteGroupModal() {
-        if (confirm('Are you sure you want to delete this group? This action cannot be undone.')) {
-          alert('Group deletion functionality');
-        }
       }
 
       // Initialize when page loads
       document.addEventListener("DOMContentLoaded", function () {
+        console.log("DOM loaded, initializing...");
+
+        // Initialize socket
         initializeSocket();
-        loadPosts();
-        
-        // Hide dashboard tab if user is not admin
-        if (!isAdmin) {
-          const dashboardTab = getElement('dashboardTab');
-          if (dashboardTab) dashboardTab.style.display = 'none';
-        }
-        
-        // Show the timeline tab by default
-        showTab('timeline');
+
+        // Show timeline by default after a short delay to ensure all elements are loaded
+        setTimeout(() => {
+          showDefaultTab();
+        }, 100);
 
         // Initialize description character count
-        const descriptionInput = getElement('descriptionInput');
+        const descriptionInput = getElement("descriptionInput");
         if (descriptionInput) {
-          descriptionInput.addEventListener('input', function() {
-            const charCount = getElement('charCount');
-            if (charCount) {
-              charCount.textContent = this.value.length;
-            }
-          });
-        }
-
-        // Initialize settings description character count
-        const groupDescription = getElement('groupDescription');
-        if (groupDescription) {
-          groupDescription.addEventListener('input', function() {
-            const charCount = getElement('descriptionCharCount');
+          descriptionInput.addEventListener("input", function () {
+            const charCount = getElement("charCount");
             if (charCount) {
               charCount.textContent = this.value.length;
             }

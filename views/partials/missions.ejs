@@ -1,0 +1,109 @@
+<!-- Missions Tab -->
+<div id="missions" class="tab-content" style="display: none">
+  <div class="missions-header">
+    <h3>Group Missions</h3>
+    <button class="btn btn-primary" onclick="createNewMission()">
+      Create Mission
+    </button>
+  </div>
+
+  <div class="missions-container">
+    <div class="missions-stats">
+      <div class="stat-card">
+        <h5>Active Missions</h5>
+        <span id="activeMissions">0</span>
+      </div>
+      <div class="stat-card">
+        <h5>Completed</h5>
+        <span id="completedMissions">0</span>
+      </div>
+      <div class="stat-card">
+        <h5>Members Participating</h5>
+        <span id="participatingMembers">0</span>
+      </div>
+    </div>
+
+    <div id="missionsList" class="missions-list">
+      <!-- Missions will be loaded here -->
+    </div>
+  </div>
+</div>
+
+<script>
+  // Missions-specific JavaScript
+  async function loadMissions() {
+    try {
+      const response = await fetch(`/groups/${groupId}/missions`);
+      const missions = await response.json();
+      renderMissions(missions);
+    } catch (error) {
+      console.error("Error loading missions:", error);
+    }
+  }
+
+  function renderMissions(missions) {
+    const container = getElement("missionsList");
+    if (container && missions) {
+      if (missions.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i>🎯</i>
+            <p>No missions yet. Create your first mission!</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = missions
+        .map(
+          (mission) => `
+          <div class="mission-card" data-mission-id="${mission._id}">
+            <div class="mission-header">
+              <h4>${mission.title}</h4>
+              <span class="mission-status ${mission.status}">${
+            mission.status
+          }</span>
+            </div>
+            <div class="mission-content">
+              <p>${mission.description}</p>
+              <div class="mission-meta">
+                <span>Difficulty: ${mission.difficulty}</span>
+                <span>Reward: ${mission.reward} XP</span>
+                <span>Deadline: ${new Date(
+                  mission.deadline
+                ).toLocaleDateString()}</span>
+              </div>
+            </div>
+            <div class="mission-actions">
+              <button class="btn btn-primary" onclick="joinMission('${
+                mission._id
+              }')">
+                Join Mission
+              </button>
+              <button class="btn btn-secondary" onclick="viewMissionDetails('${
+                mission._id
+              }')">
+                Details
+              </button>
+            </div>
+          </div>
+        `
+        )
+        .join("");
+    }
+  }
+
+  function createNewMission() {
+    alert("Create new mission functionality - would open a modal");
+  }
+
+  function joinMission(missionId) {
+    console.log("Joining mission:", missionId);
+    // Implement join mission logic
+  }
+
+  function viewMissionDetails(missionId) {
+    console.log("Viewing mission details:", missionId);
+    // Implement view mission details logic
+  }
+</script>

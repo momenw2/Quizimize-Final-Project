@@ -1,0 +1,283 @@
+<!-- Timeline Tab -->
+<div id="timeline" class="tab-content">
+  <div class="timeline-header">
+    <h3>Group Timeline</h3>
+    <button class="btn btn-primary" onclick="showPostForm()">
+      Create Post
+    </button>
+  </div>
+
+  <!-- Post Creation Form -->
+  <div id="postForm" class="post-form" style="display: none">
+    <textarea
+      id="postContent"
+      placeholder="What's happening in your group?"
+      rows="3"
+    ></textarea>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="hidePostForm()">Cancel</button>
+      <button class="btn btn-primary" onclick="createPost()">Post</button>
+    </div>
+  </div>
+
+  <!-- Posts Container -->
+  <div id="postsContainer" class="posts-container">
+    <!-- Posts will be loaded here dynamically -->
+  </div>
+</div>
+
+<script>
+  // Timeline-specific JavaScript
+  function showPostForm() {
+    const postForm = getElement("postForm");
+    if (postForm) postForm.style.display = "block";
+  }
+
+  function hidePostForm() {
+    const postForm = getElement("postForm");
+    const postContent = getElement("postContent");
+
+    if (postForm) postForm.style.display = "none";
+    if (postContent) postContent.value = "";
+  }
+
+  async function createPost() {
+    const postContent = getElement("postContent");
+    if (!postContent) return;
+
+    const content = postContent.value.trim();
+    if (!content) return;
+
+    try {
+      const response = await fetch(`/groups/${groupId}/posts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+
+      if (response.ok) {
+        const newPost = await response.json();
+        addPostToTimeline(newPost);
+        hidePostForm();
+      } else {
+        console.error("Failed to create post");
+      }
+    } catch (error) {
+      console.error("Error creating post:", error);
+    }
+  }
+
+  async function loadPosts() {
+    try {
+      const response = await fetch(`/groups/${groupId}/posts`);
+      const posts = await response.json();
+      renderPosts(posts);
+    } catch (error) {
+      console.error("Error loading posts:", error);
+    }
+  }
+
+  function renderPosts(posts) {
+    const container = getElement("postsContainer");
+    if (container && posts) {
+      container.innerHTML = posts
+        .map(
+          (post) => `
+          <div class="post-card" data-post-id="${post._id}">
+            <div class="post-header">
+              <div class="post-author">
+                <strong>${post.author?.fullName || "Unknown"}</strong>
+                <span>Level ${post.author?.level || "N/A"}</span>
+              </div>
+              <small>${new Date(post.createdAt).toLocaleString()}</small>
+            </div>
+            <div class="post-content">${post.content}</div>
+            <div class="post-actions">
+              <button class="vote-btn" onclick="votePost('${post._id}', 'up')">
+                ▲ ${post.votes || 0}
+              </button>
+              <button class="vote-btn" onclick="votePost('${
+                post._id
+              }', 'down')">▼</button>
+              <button class="comment-btn" onclick="toggleComments('${
+                post._id
+              }')">
+                💬 ${post.comments ? post.comments.length : 0}
+              </button>
+            </div>
+            <div class="comments-section" id="comments-${
+              post._id
+            }" style="display: none;">
+              <div class="comments-list" id="comments-list-${post._id}">
+                ${
+                  post.comments
+                    ? post.comments
+                        .map(
+                          (comment) => `
+                    <div class="comment">
+                      <strong>${
+                        comment.author?.fullName || "Unknown"
+                      }</strong>: ${comment.content}
+                      <small>${new Date(
+                        comment.createdAt
+                      ).toLocaleString()}</small>
+                    </div>
+                  `
+                        )
+                        .join("")
+                    : ""
+                }
+              </div>
+              <div class="comment-form">
+                <input type="text" id="comment-input-${
+                  post._id
+                }" placeholder="Write a comment...">
+                <button onclick="addComment('${post._id}')">Post</button>
+              </div>
+            </div>
+          </div>
+        `
+        )
+        .join("");
+    }
+  }
+
+  async function addComment(postId) {
+    const input = getElement(`comment-input-${postId}`);
+    if (!input) return;
+
+    const content = input.value.trim();
+    if (!content) return;
+
+    const commentButton = input.nextElementSibling;
+    const originalText = commentButton.textContent;
+
+    try {
+      commentButton.textContent = "Posting...";
+      commentButton.disabled = true;
+
+      const response = await fetch(`/groups/posts/${postId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+
+      const responseData = await response.json();
+
+      if (response.ok) {
+        addCommentToPost(postId, responseData);
+        input.value = "";
+      } else {
+        alert(
+          "Failed to create comment: " + (responseData.error || "Unknown error")
+        );
+      }
+    } catch (error) {
+      alert("Network error creating comment. Please check your connection.");
+    } finally {
+      commentButton.textContent = originalText;
+      commentButton.disabled = false;
+    }
+  }
+
+  async function votePost(postId, voteType) {
+    const voteButton = document.querySelector(
+      `[data-post-id="${postId}"] .vote-btn`
+    );
+    if (!voteButton) return;
+
+    const originalText = voteButton.textContent;
+
+    try {
+      voteButton.textContent = voteType === "up" ? "▲ ..." : "▼ ...";
+      voteButton.disabled = true;
+
+      const response = await fetch(`/groups/posts/${postId}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voteType }),
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        alert("Failed to vote: " + (responseData.error || "Unknown error"));
+      }
+    } catch (error) {
+      alert("Network error voting. Please check your connection.");
+    }
+  }
+
+  function toggleComments(postId) {
+    const commentsSection = getElement(`comments-${postId}`);
+    if (commentsSection) {
+      commentsSection.style.display =
+        commentsSection.style.display === "none" ? "block" : "none";
+    }
+  }
+
+  function addPostToTimeline(post) {
+    const container = getElement("postsContainer");
+    if (container && post) {
+      const postHTML = `
+        <div class="post-card" data-post-id="${post._id}">
+          <div class="post-header">
+            <div class="post-author">
+              <strong>${post.author?.fullName || "Unknown"}</strong>
+              <span>Level ${post.author?.level || "N/A"}</span>
+            </div>
+            <small>${new Date(post.createdAt).toLocaleString()}</small>
+          </div>
+          <div class="post-content">${post.content}</div>
+          <div class="post-actions">
+            <button class="vote-btn" onclick="votePost('${
+              post._id
+            }', 'up')">▲ 0</button>
+            <button class="vote-btn" onclick="votePost('${
+              post._id
+            }', 'down')">▼</button>
+            <button class="comment-btn" onclick="toggleComments('${
+              post._id
+            }')">Comment (0)</button>
+          </div>
+          <div class="comments-section" id="comments-${
+            post._id
+          }" style="display: none;">
+            <div class="comments-list" id="comments-list-${post._id}"></div>
+            <div class="comment-form">
+              <input type="text" id="comment-input-${
+                post._id
+              }" placeholder="Write a comment...">
+              <button onclick="addComment('${post._id}')">Post</button>
+            </div>
+          </div>
+        </div>
+      `;
+      container.insertAdjacentHTML("afterbegin", postHTML);
+    }
+  }
+
+  function addCommentToPost(postId, comment) {
+    const commentsList = getElement(`comments-list-${postId}`);
+    if (commentsList && comment) {
+      const commentHTML = `
+        <div class="comment">
+          <strong>${comment.author?.fullName || "Unknown"}</strong>: ${
+        comment.content
+      }
+          <small>${new Date(comment.createdAt).toLocaleString()}</small>
+        </div>
+      `;
+      commentsList.insertAdjacentHTML("beforeend", commentHTML);
+    }
+  }
+
+  function updatePostVotes(postId, votes) {
+    const voteBtn = document.querySelector(
+      `[data-post-id="${postId}"] .vote-btn`
+    );
+    if (voteBtn) {
+      voteBtn.textContent = `▲ ${votes}`;
+    }
+  }
+</script>

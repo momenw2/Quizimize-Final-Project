@@ -1,0 +1,236 @@
+<!-- Chat Tab -->
+<div id="chat" class="tab-content" style="display: none">
+  <div class="chat-header">
+    <h3>Group Chat</h3>
+    <div class="online-indicator">
+      <span id="onlineCount">0</span> members online
+    </div>
+  </div>
+
+  <div class="chat-container">
+    <div id="chatMessages" class="chat-messages">
+      <!-- Chat messages will appear here -->
+    </div>
+
+    <div class="chat-input-container">
+      <div class="typing-indicator" id="typingIndicator" style="display: none">
+        <span id="typingUsers"></span> is typing...
+      </div>
+
+      <div class="chat-input-group">
+        <input
+          type="text"
+          id="chatMessageInput"
+          placeholder="Type a message..."
+          maxlength="500"
+          onkeypress="handleChatKeyPress(event)"
+        />
+        <button id="sendMessageBtn" onclick="sendChatMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Chat-specific JavaScript
+  let isTyping = false;
+  let typingTimer;
+
+  function initializeSocket() {
+    socket = io();
+
+    // Send authentication data when connecting
+    socket.emit("authenticate", {
+      userId: "<%= user._id %>",
+      userName: "<%= user.fullName %>",
+    });
+
+    socket.emit("join-group", groupId);
+
+    // Chat event handlers
+    socket.on("chat-message", (data) => {
+      addChatMessage(data);
+    });
+
+    socket.on("chat-history", (messages) => {
+      renderChatHistory(messages);
+    });
+
+    socket.on("user-joined-chat", (data) => {
+      addSystemMessage(`${data.userName} joined the chat`);
+      updateOnlineCount(data.onlineCount);
+    });
+
+    socket.on("user-left-chat", (data) => {
+      addSystemMessage(`${data.userName} left the chat`);
+      updateOnlineCount(data.onlineCount);
+    });
+
+    socket.on("typing-start", (data) => {
+      showTypingIndicator(data.userName, data.userId);
+    });
+
+    socket.on("typing-stop", (data) => {
+      hideTypingIndicator(data.userId);
+    });
+
+    socket.on("online-count", (count) => {
+      updateOnlineCount(count);
+    });
+  }
+
+  function loadChatHistory() {
+    if (socket) {
+      socket.emit("get-chat-history", groupId);
+    }
+  }
+
+  function renderChatHistory(messages) {
+    const container = getElement("chatMessages");
+    if (container && messages) {
+      container.innerHTML = messages
+        .map((message) => createChatMessageHTML(message))
+        .join("");
+      scrollChatToBottom();
+    }
+  }
+
+  function addChatMessage(data) {
+    const container = getElement("chatMessages");
+    if (container && data) {
+      const messageHTML = createChatMessageHTML(data);
+      container.insertAdjacentHTML("beforeend", messageHTML);
+      scrollChatToBottom();
+      hideTypingIndicator(data.userId);
+    }
+  }
+
+  function createChatMessageHTML(message) {
+    if (!message) return "";
+
+    const isCurrentUser = message.userId === "<%= user._id %>";
+    const messageClass = isCurrentUser
+      ? "message own-message"
+      : "message other-message";
+
+    return `
+      <div class="${messageClass}" data-message-id="${message._id || ""}">
+        <div class="message-header">
+          <span class="message-sender">${message.userName || "Unknown"}</span>
+          <span class="message-time">${new Date(
+            message.timestamp || Date.now()
+          ).toLocaleTimeString()}</span>
+        </div>
+        <div class="message-content">${message.content || ""}</div>
+      </div>
+    `;
+  }
+
+  function addSystemMessage(content) {
+    const container = getElement("chatMessages");
+    if (container && content) {
+      const messageHTML = `
+        <div class="message system-message">
+          <div class="message-content">${content}</div>
+        </div>
+      `;
+      container.insertAdjacentHTML("beforeend", messageHTML);
+      scrollChatToBottom();
+    }
+  }
+
+  function sendChatMessage() {
+    const input = getElement("chatMessageInput");
+    if (!input) return;
+
+    const content = input.value.trim();
+    if (!content) return;
+
+    const messageData = {
+      groupId: groupId,
+      content: content,
+      userName: "<%= user.fullName %>",
+      userId: "<%= user._id %>",
+    };
+
+    if (socket) {
+      socket.emit("chat-message", messageData);
+    }
+    input.value = "";
+    stopTyping();
+  }
+
+  function handleChatKeyPress(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      sendChatMessage();
+    } else {
+      if (!isTyping) {
+        isTyping = true;
+        if (socket) {
+          socket.emit("typing-start", {
+            groupId: groupId,
+            userName: "<%= user.fullName %>",
+            userId: "<%= user._id %>",
+          });
+        }
+      }
+
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(stopTyping, 1000);
+    }
+  }
+
+  function stopTyping() {
+    if (isTyping) {
+      isTyping = false;
+      if (socket) {
+        socket.emit("typing-stop", {
+          groupId: groupId,
+          userId: "<%= user._id %>",
+        });
+      }
+    }
+  }
+
+  function showTypingIndicator(userName, userId) {
+    if (userId === "<%= user._id %>") return;
+
+    const indicator = getElement("typingIndicator");
+    const typingUsers = getElement("typingUsers");
+
+    if (indicator && typingUsers) {
+      typingUsers.textContent = userName;
+      indicator.style.display = "block";
+      scrollChatToBottom();
+    }
+  }
+
+  function hideTypingIndicator(userId) {
+    if (userId === "<%= user._id %>") return;
+
+    const indicator = getElement("typingIndicator");
+    if (indicator) {
+      indicator.style.display = "none";
+    }
+  }
+
+  function updateOnlineCount(count) {
+    const onlineCount = getElement("onlineCount");
+    if (onlineCount) {
+      onlineCount.textContent = count;
+    }
+  }
+
+  function scrollChatToBottom() {
+    const container = getElement("chatMessages");
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }
+
+  // Initialize socket when chat tab is loaded
+  document.addEventListener("DOMContentLoaded", function () {
+    initializeSocket();
+  });
+</script>
