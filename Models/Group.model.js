@@ -2,7 +2,8 @@ const mongoose = require("mongoose");
 
 const groupSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
-  specialization: { type: String, required: true }, // e.g., JavaScript, React, SQL
+  specialization: { type: String, required: true },
+  description: { type: String, default: "" }, // Add this line
   level: { type: Number, default: 1 },
   members: [
     {

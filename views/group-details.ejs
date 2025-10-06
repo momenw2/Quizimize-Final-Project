@@ -16,6 +16,28 @@
             Level: <%= group.level || 1 %> | Members: <%= group.members.length %>
           </p>
           <p class="group-meta">Specialization: <%= group.specialization %></p>
+          
+          <!-- Description Display -->
+          <div class="group-description">
+            <% if (group.description) { %>
+              <p class="description-text" id="currentDescription"><%= group.description %></p>
+            <% } else { %>
+              <p class="description-text no-description" id="currentDescription">
+                No description yet. 
+                <% if (isAdmin) { %>
+                  <a href="javascript:void(0)" onclick="showEditDescription()">Add a description</a>
+                <% } %>
+              </p>
+            <% } %>
+            
+            <!-- Edit Description Button (Admin Only) -->
+            <% if (isAdmin) { %>
+              <button class="btn-edit-description" onclick="showEditDescription()">
+                <%= group.description ? 'Edit Description' : 'Add Description' %>
+              </button>
+            <% } %>
+          </div>
+          
           <p class="group-meta">
             Created: <%= new Date(group.createdAt).toLocaleDateString() %>
           </p>
@@ -260,6 +282,22 @@
                       </select>
                     </div>
                     
+                    <!-- Add Description Field to Settings -->
+                    <div class="form-group">
+                      <label for="groupDescription">Group Description</label>
+                      <textarea 
+                        id="groupDescription" 
+                        name="description" 
+                        class="form-control" 
+                        rows="4" 
+                        placeholder="Describe your group's purpose, goals, or any important information..."
+                        maxlength="500"
+                      ><%= group.description || '' %></textarea>
+                      <small class="form-text text-muted">
+                        <span id="descriptionCharCount"><%= group.description ? group.description.length : 0 %></span>/500 characters
+                      </small>
+                    </div>
+                    
                     <div class="form-group">
                       <label for="groupVisibility">Group Visibility</label>
                       <select id="groupVisibility" name="visibility" class="form-control">
@@ -334,6 +372,35 @@
       </div>
     </div>
 
+    <!-- Description Edit Modal -->
+    <div id="descriptionModal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Edit Group Description</h3>
+          <span class="close" onclick="hideEditDescription()">&times;</span>
+        </div>
+        <div class="modal-body">
+          <textarea 
+            id="descriptionInput" 
+            placeholder="Describe your group's purpose, goals, or any important information..."
+            rows="5"
+            maxlength="500"
+          ><%= group.description || '' %></textarea>
+          <div class="char-count">
+            <span id="charCount"><%= group.description ? group.description.length : 0 %></span>/500 characters
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="hideEditDescription()">
+            Cancel
+          </button>
+          <button class="btn btn-primary" onclick="saveDescription()">
+            Save Description
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script>
       let socket;
       const groupId = "<%= group._id %>";
@@ -349,6 +416,105 @@
           console.warn(`Element with id '${id}' not found`);
         }
         return element;
+      }
+
+      // Description Management Functions
+      function showEditDescription() {
+        const modal = getElement('descriptionModal');
+        const descriptionInput = getElement('descriptionInput');
+        const charCount = getElement('charCount');
+        
+        if (modal && descriptionInput && charCount) {
+          // Get current description from the displayed text
+          const currentDescElement = getElement('currentDescription');
+          let currentDescription = '';
+          
+          if (currentDescElement && !currentDescElement.classList.contains('no-description')) {
+            currentDescription = currentDescElement.textContent || '';
+          }
+          
+          descriptionInput.value = currentDescription;
+          charCount.textContent = currentDescription.length;
+          modal.style.display = 'block';
+        }
+      }
+
+      function hideEditDescription() {
+        const modal = getElement('descriptionModal');
+        if (modal) {
+          modal.style.display = 'none';
+        }
+      }
+
+      async function saveDescription() {
+        const descriptionInput = getElement('descriptionInput');
+        if (!descriptionInput) return;
+
+        const description = descriptionInput.value.trim();
+        
+        try {
+          const response = await fetch(`/groups/${groupId}/settings`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ description: description })
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            alert('Description updated successfully!');
+            hideEditDescription();
+            
+            // Update the displayed description
+            updateDescriptionDisplay(description);
+            
+          } else {
+            const error = await response.json();
+            alert('Error updating description: ' + error.error);
+          }
+        } catch (error) {
+          console.error('Error updating description:', error);
+          alert('Error updating description');
+        }
+      }
+
+      function updateDescriptionDisplay(description) {
+        const descriptionElement = getElement('currentDescription');
+        const editButton = document.querySelector('.btn-edit-description');
+        
+        if (descriptionElement) {
+          if (description) {
+            descriptionElement.textContent = description;
+            descriptionElement.classList.remove('no-description');
+            // Remove any links that might be there
+            const links = descriptionElement.querySelectorAll('a');
+            links.forEach(link => link.remove());
+          } else {
+            descriptionElement.innerHTML = 'No description yet. ';
+            if (isAdmin) {
+              const addLink = document.createElement('a');
+              addLink.href = 'javascript:void(0)';
+              addLink.onclick = showEditDescription;
+              addLink.textContent = 'Add a description';
+              descriptionElement.appendChild(addLink);
+            }
+            descriptionElement.classList.add('no-description');
+          }
+        }
+        
+        // Update edit button text
+        if (editButton) {
+          editButton.textContent = description ? 'Edit Description' : 'Add Description';
+        }
+      }
+
+      // Close modal when clicking outside
+      window.onclick = function(event) {
+        const modal = getElement('descriptionModal');
+        if (event.target === modal) {
+          hideEditDescription();
+        }
       }
 
       function showTab(tabId) {
@@ -1068,6 +1234,10 @@
           
           if (response.ok) {
             alert('Group settings updated successfully');
+            // Update the description display if it was changed
+            if (settings.description !== undefined) {
+              updateDescriptionDisplay(settings.description);
+            }
           } else {
             const error = await response.json();
             alert('Error updating settings: ' + error.error);
@@ -1303,6 +1473,28 @@
         
         // Show the timeline tab by default
         showTab('timeline');
+
+        // Initialize description character count
+        const descriptionInput = getElement('descriptionInput');
+        if (descriptionInput) {
+          descriptionInput.addEventListener('input', function() {
+            const charCount = getElement('charCount');
+            if (charCount) {
+              charCount.textContent = this.value.length;
+            }
+          });
+        }
+
+        // Initialize settings description character count
+        const groupDescription = getElement('groupDescription');
+        if (groupDescription) {
+          groupDescription.addEventListener('input', function() {
+            const charCount = getElement('descriptionCharCount');
+            if (charCount) {
+              charCount.textContent = this.value.length;
+            }
+          });
+        }
       });
     </script>
   </body>

@@ -665,7 +665,7 @@ router.delete("/:groupId/members/:userId", requireAuth, async (req, res) => {
 router.put("/:id/settings", requireAuth, async (req, res) => {
   try {
     const groupId = req.params.id;
-    const { name, specialization } = req.body;
+    const { name, specialization, description } = req.body; // Add description
 
     const group = await Group.findById(groupId);
     if (!group) {
@@ -686,6 +686,7 @@ router.put("/:id/settings", requireAuth, async (req, res) => {
     // Update group settings
     if (name) group.name = name;
     if (specialization) group.specialization = specialization;
+    if (description !== undefined) group.description = description; // Add this line
 
     await group.save();
 
