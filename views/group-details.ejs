@@ -219,18 +219,21 @@
                       <span id="totalCommentsCount">0</span>
                     </div>
                   </div>
-                  <div class="content-actions">
-                    <button class="btn btn-primary" onclick="manageFeaturedContent()">
-                      Manage Featured Content
-                    </button>
-                    <button class="btn btn-secondary" onclick="viewContentAnalytics()">
-                      View Analytics
-                    </button>
+                  
+                  <div class="content-filters">
+                    <input type="text" id="contentSearch" placeholder="Search posts and comments..." onkeyup="searchContent()">
+                    <select id="contentSort" onchange="loadContentManagement()">
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                      <option value="most-comments">Most Comments</option>
+                      <option value="most-votes">Most Votes</option>
+                    </select>
                   </div>
-                  <div class="recent-content">
-                    <h5>Recent Activity</h5>
-                    <div id="recentActivityList">
-                      <!-- Recent activity will be loaded here -->
+
+                  <div class="posts-management">
+                    <h5>All Posts</h5>
+                    <div id="adminPostsList" class="admin-posts-list">
+                      <!-- Posts will be loaded here with admin controls -->
                     </div>
                   </div>
                 </div>
@@ -465,6 +468,40 @@
 
         socket.on("online-count", (count) => {
           updateOnlineCount(count);
+        });
+
+        // Add socket event handlers for content management
+        socket.on("post-deleted", (data) => {
+          // Remove post from timeline if visible
+          const postElement = document.querySelector(`[data-post-id="${data.postId}"]`);
+          if (postElement) {
+            postElement.remove();
+          }
+          
+          // Refresh dashboard content if open
+          if (currentDashboardSection === 'content') {
+            loadContentManagement();
+          }
+        });
+
+        socket.on("comment-deleted", (data) => {
+          // Remove comment from posts if visible
+          const commentElement = document.querySelector(`[data-comment-id="${data.commentId}"]`);
+          if (commentElement) {
+            commentElement.remove();
+          }
+          
+          // Update comment counts
+          const commentBtn = document.querySelector(`[data-post-id="${data.postId}"] .comment-btn`);
+          if (commentBtn) {
+            const currentCount = parseInt(commentBtn.textContent.match(/\d+/)) || 0;
+            commentBtn.textContent = `💬 ${Math.max(0, currentCount - 1)}`;
+          }
+          
+          // Refresh dashboard content if open
+          if (currentDashboardSection === 'content') {
+            loadContentManagement();
+          }
         });
       }
 
@@ -988,7 +1025,7 @@
         }
       }
 
-    async function removeMember(userId) {
+      async function removeMember(userId) {
         if (!isAdmin || !userId) return;
         if (!confirm('Are you sure you want to remove this member?')) return;
         
@@ -1011,100 +1048,262 @@
             }
         }
 
-  async function saveGroupSettings() {
-    if (!isAdmin) return;
-    
-    const form = getElement('groupSettingsForm');
-    if (!form) return;
-    
-    const formData = new FormData(form);
-    const settings = Object.fromEntries(formData.entries());
-    
-    try {
-      const response = await fetch(`/groups/${groupId}/settings`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(settings)
-      });
-      
-      if (response.ok) {
-        alert('Group settings updated successfully');
-      } else {
-        const error = await response.json();
-        alert('Error updating settings: ' + error.error);
+      async function saveGroupSettings() {
+        if (!isAdmin) return;
+        
+        const form = getElement('groupSettingsForm');
+        if (!form) return;
+        
+        const formData = new FormData(form);
+        const settings = Object.fromEntries(formData.entries());
+        
+        try {
+          const response = await fetch(`/groups/${groupId}/settings`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(settings)
+          });
+          
+          if (response.ok) {
+            alert('Group settings updated successfully');
+          } else {
+            const error = await response.json();
+            alert('Error updating settings: ' + error.error);
+          }
+        } catch (error) {
+          console.error('Error updating group settings:', error);
+          alert('Error updating group settings');
+        }
       }
-    } catch (error) {
-      console.error('Error updating group settings:', error);
-      alert('Error updating group settings');
-    }
-  }
 
-  function loadGroupSettings() {
-    // Settings are already pre-populated in the HTML
-    console.log('Loading group settings...');
-  }
+      function loadGroupSettings() {
+        // Settings are already pre-populated in the HTML
+        console.log('Loading group settings...');
+      }
 
-  function loadMissionsManagement() {
-    console.log('Loading missions management...');
-    // Implement missions management
-  }
+      function loadMissionsManagement() {
+        console.log('Loading missions management...');
+        // Implement missions management
+      }
 
-  function loadContentManagement() {
-    console.log('Loading content management...');
-    // Implement content management
-  }
+      // Content Management Functions
+      async function loadContentManagement() {
+        if (!isAdmin) return;
+        
+        try {
+          const sortBy = document.getElementById('contentSort')?.value || 'newest';
+          const response = await fetch(`/groups/${groupId}/dashboard/content?sort=${sortBy}`);
+          const data = await response.json();
+          
+          if (response.ok) {
+            renderAdminPosts(data.posts);
+          } else {
+            console.error('Failed to load content:', data.error);
+          }
+        } catch (error) {
+          console.error('Error loading content:', error);
+        }
+      }
 
-  // Stub functions for dashboard actions
-  function searchMembers() {
-    console.log('Searching members...');
-  }
+      function renderAdminPosts(posts) {
+        const container = document.getElementById('adminPostsList');
+        if (!container) return;
 
-  function showInviteModal() {
-    alert('Invite modal would open here');
-  }
+        if (!posts || posts.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <i>📝</i>
+              <p>No posts found in this group</p>
+            </div>
+          `;
+          return;
+        }
 
-  function exportMembers() {
-    alert('Export members functionality');
-  }
+        container.innerHTML = posts.map(post => `
+          <div class="admin-post-card" data-post-id="${post._id}">
+            <div class="admin-post-header">
+              <div class="post-author-info">
+                <h6>${post.author?.fullName || 'Unknown User'}</h6>
+                <div class="post-meta">
+                  ${new Date(post.createdAt).toLocaleString()} | 
+                  Level ${post.author?.level || 'N/A'}
+                </div>
+              </div>
+              <div class="post-stats">
+                <span>▲ ${post.votes || 0}</span>
+                <span>💬 ${post.comments ? post.comments.length : 0}</span>
+              </div>
+            </div>
+            
+            <div class="post-content">
+              ${post.content}
+            </div>
+            
+            <div class="post-actions-admin">
+              <button class="btn btn-sm btn-danger" onclick="deletePost('${post._id}')">
+                Delete Post
+              </button>
+              <button class="btn btn-sm btn-secondary" onclick="toggleCommentsAdmin('${post._id}')">
+                ${post.comments && post.comments.length > 0 ? `Manage Comments (${post.comments.length})` : 'No Comments'}
+              </button>
+            </div>
+            
+            <div class="admin-comments-section" id="admin-comments-${post._id}" style="display: none;">
+              <h6>Comments</h6>
+              <div id="admin-comments-list-${post._id}">
+                ${renderAdminComments(post.comments)}
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
 
-  function createNewMission() {
-    alert('Create new mission functionality');
-  }
+      function renderAdminComments(comments) {
+        if (!comments || comments.length === 0) {
+          return '<p class="no-comments">No comments yet</p>';
+        }
 
-  function viewAllMissions() {
-    alert('View all missions functionality');
-  }
+        return comments.map(comment => `
+          <div class="comment-item" data-comment-id="${comment._id}">
+            <div class="comment-header">
+              <span class="comment-author">${comment.author?.fullName || 'Unknown User'}</span>
+              <span class="comment-meta">
+                ${new Date(comment.createdAt).toLocaleString()} | 
+                Level ${comment.author?.level || 'N/A'}
+              </span>
+            </div>
+            <div class="comment-content">${comment.content}</div>
+            <div class="comment-actions">
+              <button class="btn btn-sm btn-danger" onclick="deleteComment('${comment._id}', '${comment.postId}')">
+                Delete Comment
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
 
-  function manageFeaturedContent() {
-    alert('Manage featured content functionality');
-  }
+      function toggleCommentsAdmin(postId) {
+        const commentsSection = document.getElementById(`admin-comments-${postId}`);
+        if (commentsSection) {
+          commentsSection.style.display = commentsSection.style.display === 'none' ? 'block' : 'none';
+        }
+      }
 
-  function viewContentAnalytics() {
-    alert('View content analytics functionality');
-  }
+      async function deletePost(postId) {
+        if (!isAdmin || !confirm('Are you sure you want to delete this post? This will also delete all comments and cannot be undone.')) {
+          return;
+        }
 
-  function showDeleteGroupModal() {
-    if (confirm('Are you sure you want to delete this group? This action cannot be undone.')) {
-      alert('Group deletion functionality');
-    }
-  }
+        try {
+          const response = await fetch(`/groups/posts/${postId}`, {
+            method: 'DELETE'
+          });
 
-  // Initialize when page loads
-  document.addEventListener("DOMContentLoaded", function () {
-    initializeSocket();
-    loadPosts();
-    
-    // Hide dashboard tab if user is not admin
-    if (!isAdmin) {
-      const dashboardTab = getElement('dashboardTab');
-      if (dashboardTab) dashboardTab.style.display = 'none';
-    }
-    
-    // Show the timeline tab by default
-    showTab('timeline');
-  });
-</script>
-</body>
+          if (response.ok) {
+            alert('Post deleted successfully');
+            loadContentManagement(); // Reload the content
+          } else {
+            const error = await response.json();
+            alert('Error deleting post: ' + error.error);
+          }
+        } catch (error) {
+          console.error('Error deleting post:', error);
+          alert('Error deleting post');
+        }
+      }
+
+      async function deleteComment(commentId, postId) {
+        if (!isAdmin || !confirm('Are you sure you want to delete this comment?')) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`/groups/comments/${commentId}`, {
+            method: 'DELETE'
+          });
+
+          if (response.ok) {
+            alert('Comment deleted successfully');
+            // Refresh the comments for this post
+            loadContentManagement();
+          } else {
+            const error = await response.json();
+            alert('Error deleting comment: ' + error.error);
+          }
+        } catch (error) {
+          console.error('Error deleting comment:', error);
+          alert('Error deleting comment');
+        }
+      }
+
+      function searchContent() {
+        const searchTerm = document.getElementById('contentSearch')?.value.toLowerCase();
+        const postCards = document.querySelectorAll('.admin-post-card');
+        
+        postCards.forEach(card => {
+          const content = card.querySelector('.post-content')?.textContent.toLowerCase() || '';
+          const author = card.querySelector('.post-author-info h6')?.textContent.toLowerCase() || '';
+          const comments = card.querySelector('.admin-comments-section')?.textContent.toLowerCase() || '';
+          
+          const matches = content.includes(searchTerm) || 
+                        author.includes(searchTerm) || 
+                        comments.includes(searchTerm);
+          
+          card.style.display = matches ? 'block' : 'none';
+        });
+      }
+
+      // Stub functions for dashboard actions
+      function searchMembers() {
+        console.log('Searching members...');
+      }
+
+      function showInviteModal() {
+        alert('Invite modal would open here');
+      }
+
+      function exportMembers() {
+        alert('Export members functionality');
+      }
+
+      function createNewMission() {
+        alert('Create new mission functionality');
+      }
+
+      function viewAllMissions() {
+        alert('View all missions functionality');
+      }
+
+      function manageFeaturedContent() {
+        alert('Manage featured content functionality');
+      }
+
+      function viewContentAnalytics() {
+        alert('View content analytics functionality');
+      }
+
+      function showDeleteGroupModal() {
+        if (confirm('Are you sure you want to delete this group? This action cannot be undone.')) {
+          alert('Group deletion functionality');
+        }
+      }
+
+      // Initialize when page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        initializeSocket();
+        loadPosts();
+        
+        // Hide dashboard tab if user is not admin
+        if (!isAdmin) {
+          const dashboardTab = getElement('dashboardTab');
+          if (dashboardTab) dashboardTab.style.display = 'none';
+        }
+        
+        // Show the timeline tab by default
+        showTab('timeline');
+      });
+    </script>
+  </body>
 </html>

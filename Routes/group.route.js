@@ -694,4 +694,158 @@ router.put("/:id/settings", requireAuth, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Get content for admin management
+router.get("/:id/dashboard/content", requireAuth, async (req, res) => {
+  try {
+    const groupId = req.params.id;
+    const { sort = "newest" } = req.query;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    // Check if user is admin
+    const isAdmin = group.members.some(
+      (member) =>
+        member.user.toString() === res.locals.user._id.toString() &&
+        member.role === "Admin"
+    );
+
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Access denied. Admin only." });
+    }
+
+    // Build sort object
+    let sortOptions = {};
+    switch (sort) {
+      case "oldest":
+        sortOptions = { createdAt: 1 };
+        break;
+      case "most-comments":
+        sortOptions = { commentsCount: -1, createdAt: -1 };
+        break;
+      case "most-votes":
+        sortOptions = { votes: -1, createdAt: -1 };
+        break;
+      default: // newest
+        sortOptions = { createdAt: -1 };
+    }
+
+    // Get posts with comments populated
+    const posts = await Post.find({ groupId })
+      .populate("author", "fullName level")
+      .populate({
+        path: "comments",
+        populate: { path: "author", select: "fullName level" },
+        options: { sort: { createdAt: -1 } },
+      })
+      .sort(sortOptions);
+
+    res.json({ posts });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a post (admin only)
+router.delete("/posts/:postId", requireAuth, async (req, res) => {
+  try {
+    const postId = req.params.postId;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // Check if user is admin of the group
+    const group = await Group.findById(post.groupId);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    const isAdmin = group.members.some(
+      (member) =>
+        member.user.toString() === res.locals.user._id.toString() &&
+        member.role === "Admin"
+    );
+
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Access denied. Admin only." });
+    }
+
+    // Delete all comments associated with this post
+    await Comment.deleteMany({ postId: postId });
+
+    // Delete the post
+    await Post.findByIdAndDelete(postId);
+
+    // Emit socket event to notify clients
+    if (io) {
+      io.to(post.groupId.toString()).emit("post-deleted", { postId });
+    }
+
+    res.json({
+      success: true,
+      message: "Post and associated comments deleted",
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a comment (admin only)
+router.delete("/comments/:commentId", requireAuth, async (req, res) => {
+  try {
+    const commentId = req.params.commentId;
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json({ error: "Comment not found" });
+    }
+
+    // Get the post to check group membership
+    const post = await Post.findById(comment.postId);
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // Check if user is admin of the group
+    const group = await Group.findById(post.groupId);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    const isAdmin = group.members.some(
+      (member) =>
+        member.user.toString() === res.locals.user._id.toString() &&
+        member.role === "Admin"
+    );
+
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Access denied. Admin only." });
+    }
+
+    // Remove comment from post
+    await Post.findByIdAndUpdate(comment.postId, {
+      $pull: { comments: commentId },
+    });
+
+    // Delete the comment
+    await Comment.findByIdAndDelete(commentId);
+
+    // Emit socket event to notify clients
+    if (io) {
+      io.to(post.groupId.toString()).emit("comment-deleted", {
+        commentId,
+        postId: comment.postId,
+      });
+    }
+
+    res.json({ success: true, message: "Comment deleted" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 module.exports = router;
