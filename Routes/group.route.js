@@ -854,6 +854,9 @@ router.delete("/comments/:commentId", requireAuth, async (req, res) => {
 // Mission Routes
 
 // Get all missions for a group
+// Mission Routes
+
+// Get all missions for a group
 router.get("/:id/missions", requireAuth, async (req, res) => {
   try {
     const groupId = req.params.id;
@@ -886,7 +889,8 @@ router.get("/:id/missions", requireAuth, async (req, res) => {
 router.post("/:id/missions", requireAuth, async (req, res) => {
   try {
     const groupId = req.params.id;
-    const { title, description, type, questions, points, deadline } = req.body;
+    const { title, description, type, questions, points, deadline, duration } =
+      req.body;
 
     const group = await Group.findById(groupId);
     if (!group) {
@@ -905,18 +909,35 @@ router.post("/:id/missions", requireAuth, async (req, res) => {
     }
 
     // Validate required fields
-    if (!title || !type) {
-      return res.status(400).json({ error: "Title and type are required" });
+    if (!title || !type || !duration) {
+      return res
+        .status(400)
+        .json({ error: "Title, type, and duration are required" });
+    }
+
+    // Validate duration (1-7 days)
+    if (duration < 1 || duration > 7) {
+      return res
+        .status(400)
+        .json({ error: "Mission duration must be between 1 and 7 days" });
     }
 
     // Validate custom questions
-    if (type === "custom" && (!questions || questions.length === 0)) {
-      return res
-        .status(400)
-        .json({ error: "Custom missions require at least one question" });
-    }
-
     if (type === "custom") {
+      if (!questions || questions.length === 0) {
+        return res
+          .status(400)
+          .json({ error: "Custom missions require at least one question" });
+      }
+
+      // Validate minimum questions requirement (5 per day)
+      const minQuestionsRequired = duration * 5;
+      if (questions.length < minQuestionsRequired) {
+        return res.status(400).json({
+          error: `For a ${duration}-day mission, you need at least ${minQuestionsRequired} questions`,
+        });
+      }
+
       // Validate each question
       for (const question of questions) {
         if (
@@ -941,12 +962,19 @@ router.post("/:id/missions", requireAuth, async (req, res) => {
       }
     }
 
+    // For system questions, calculate points based on duration
+    let calculatedPoints = points;
+    if (type === "system") {
+      calculatedPoints = duration * 5 * 50; // 5 questions per day * 50 points each
+    }
+
     const mission = new Mission({
       title,
       description,
       type,
+      duration,
       questions: type === "custom" ? questions : undefined,
-      points: points || 100,
+      points: calculatedPoints,
       deadline: deadline ? new Date(deadline) : undefined,
       groupId,
       createdBy: res.locals.user._id,

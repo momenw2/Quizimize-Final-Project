@@ -213,11 +213,49 @@
           </select>
         </div>
         
+        <!-- Mission Duration Section -->
+        <div class="form-group">
+          <label for="missionDuration">Mission Duration (Days)</label>
+          <select id="missionDuration" name="duration" class="form-control" onchange="updateMissionRequirements()" required>
+            <option value="">Select duration</option>
+            <option value="1">1 Day</option>
+            <option value="2">2 Days</option>
+            <option value="3">3 Days</option>
+            <option value="4">4 Days</option>
+            <option value="5">5 Days</option>
+            <option value="6">6 Days</option>
+            <option value="7">7 Days</option>
+          </select>
+          <small class="form-text text-muted">Mission will be available for 1-7 days</small>
+        </div>
+        
+        <!-- Requirements Display -->
+        <div class="requirements-card">
+          <h5>Mission Requirements</h5>
+          <div class="requirements-info">
+            <div class="requirement-item">
+              <span class="requirement-label">Minimum Questions Required:</span>
+              <span id="minQuestionsRequired" class="requirement-value">0</span>
+            </div>
+            <div class="requirement-item">
+              <span class="requirement-label">Total Points Reward:</span>
+              <span id="totalPointsReward" class="requirement-value">0</span>
+            </div>
+            <div class="requirement-item">
+              <span class="requirement-label">Questions Added:</span>
+              <span id="questionsAdded" class="requirement-value">0</span>
+            </div>
+            <div class="requirement-item">
+              <span class="requirement-status" id="requirementsStatus">Please select mission duration</span>
+            </div>
+          </div>
+        </div>
+        
         <!-- Custom Questions Section -->
         <div id="customQuestionsSection">
           <div class="section-header">
             <h5>Custom Questions</h5>
-            <button type="button" class="btn btn-sm btn-primary" onclick="addQuestion()">
+            <button type="button" class="btn btn-sm btn-primary" onclick="addQuestion()" id="addQuestionBtn">
               Add Question
             </button>
           </div>
@@ -227,21 +265,15 @@
           </div>
         </div>
         
-        <div class="form-group">
-          <label for="missionPoints">Points Reward</label>
-          <input type="number" id="missionPoints" name="points" class="form-control" value="100" min="1">
-        </div>
-        
-        <div class="form-group">
-          <label for="missionDeadline">Deadline (Optional)</label>
-          <input type="datetime-local" id="missionDeadline" name="deadline" class="form-control">
-        </div>
+        <!-- Hidden fields for calculated values -->
+        <input type="hidden" id="missionPoints" name="points" value="0">
+        <input type="hidden" id="missionDeadline" name="deadline">
         
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" onclick="closeMissionModal()">
             Cancel
           </button>
-          <button type="submit" class="btn btn-primary">
+          <button type="submit" class="btn btn-primary" id="createMissionBtn" disabled>
             Create Mission
           </button>
         </div>
@@ -250,10 +282,110 @@
   </div>
 </div>
 
+<style>
+  .requirements-card {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .requirements-card h5 {
+    margin-top: 0;
+    color: #495057;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 8px;
+  }
+  
+  .requirement-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 5px 0;
+  }
+  
+  .requirement-label {
+    font-weight: 500;
+    color: #6c757d;
+  }
+  
+  .requirement-value {
+    font-weight: 600;
+    color: #495057;
+  }
+  
+  .requirement-status {
+    font-weight: 500;
+    padding: 8px;
+    border-radius: 4px;
+    text-align: center;
+    display: block;
+    margin-top: 10px;
+  }
+  
+  .status-pending {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+  }
+  
+  .status-met {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+  }
+  
+  .status-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+  }
+  
+  .question-card {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e9ecef;
+  }
+  
+  .choices-container {
+    margin: 15px 0;
+  }
+  
+  .choice-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 10px;
+  }
+  
+  .choice-row input[type="radio"] {
+    margin: 0;
+  }
+  
+  .choice-input {
+    flex: 1;
+  }
+</style>
+
 <script>
   // Dashboard-specific JavaScript
   let currentDashboardSection = 'members';
   let questionCounter = 0;
+  let currentDuration = 0;
+  let minQuestionsRequired = 0;
 
   // Utility function to safely get elements
   function getElement(id) {
@@ -332,12 +464,22 @@
   function resetMissionForm() {
     const form = getElement('missionForm');
     const questionsContainer = getElement('questionsContainer');
+    const durationSelect = getElement('missionDuration');
     
     if (form) form.reset();
     if (questionsContainer) questionsContainer.innerHTML = '';
+    if (durationSelect) durationSelect.value = '';
     
     questionCounter = 0;
-    addQuestion(); // Add first question by default
+    currentDuration = 0;
+    minQuestionsRequired = 0;
+    updateMissionRequirements();
+    
+    // Reset the add question button
+    const addQuestionBtn = getElement('addQuestionBtn');
+    if (addQuestionBtn) {
+      addQuestionBtn.disabled = false;
+    }
   }
 
   function toggleQuestionType() {
@@ -347,13 +489,110 @@
     if (missionType && customSection) {
       if (missionType.value === 'system') {
         customSection.style.display = 'none';
+        // For system questions, we don't need to validate custom questions
+        validateMissionRequirements();
       } else {
         customSection.style.display = 'block';
+        validateMissionRequirements();
       }
     }
   }
 
+  function updateMissionRequirements() {
+    const durationSelect = getElement('missionDuration');
+    const missionType = getElement('missionType');
+    
+    if (!durationSelect || !missionType) return;
+    
+    currentDuration = parseInt(durationSelect.value) || 0;
+    
+    // Calculate minimum questions required (5 per day)
+    minQuestionsRequired = currentDuration * 5;
+    
+    // Calculate total points (50 points per question)
+    const totalPoints = minQuestionsRequired * 50;
+    
+    // Update the display
+    const minQuestionsElement = getElement('minQuestionsRequired');
+    const totalPointsElement = getElement('totalPointsReward');
+    const questionsAddedElement = getElement('questionsAdded');
+    const statusElement = getElement('requirementsStatus');
+    const pointsInput = getElement('missionPoints');
+    
+    if (minQuestionsElement) minQuestionsElement.textContent = minQuestionsRequired;
+    if (totalPointsElement) totalPointsElement.textContent = totalPoints;
+    if (questionsAddedElement) questionsAddedElement.textContent = questionCounter;
+    if (pointsInput) pointsInput.value = totalPoints;
+    
+    // Calculate and set deadline (current time + duration days)
+    if (currentDuration > 0) {
+      const deadline = new Date();
+      deadline.setDate(deadline.getDate() + currentDuration);
+      const deadlineInput = getElement('missionDeadline');
+      if (deadlineInput) {
+        deadlineInput.value = deadline.toISOString().slice(0, 16);
+      }
+    }
+    
+    // Update status
+    if (currentDuration === 0) {
+      if (statusElement) {
+        statusElement.textContent = 'Please select mission duration';
+        statusElement.className = 'requirement-status status-pending';
+      }
+    } else if (missionType.value === 'system') {
+      if (statusElement) {
+        statusElement.textContent = 'System questions will be automatically assigned';
+        statusElement.className = 'requirement-status status-met';
+      }
+    } else {
+      validateMissionRequirements();
+    }
+    
+    // Update add question button state
+    const addQuestionBtn = getElement('addQuestionBtn');
+    if (addQuestionBtn && missionType.value === 'custom') {
+      addQuestionBtn.disabled = questionCounter >= minQuestionsRequired;
+    }
+  }
+
+  function validateMissionRequirements() {
+    const missionType = getElement('missionType');
+    const statusElement = getElement('requirementsStatus');
+    const createBtn = getElement('createMissionBtn');
+    
+    if (!missionType || !statusElement || !createBtn) return;
+    
+    if (missionType.value === 'system') {
+      // For system questions, requirements are always met
+      statusElement.textContent = 'System questions will be automatically assigned';
+      statusElement.className = 'requirement-status status-met';
+      createBtn.disabled = currentDuration === 0;
+      return;
+    }
+    
+    // For custom questions
+    if (currentDuration === 0) {
+      statusElement.textContent = 'Please select mission duration';
+      statusElement.className = 'requirement-status status-pending';
+      createBtn.disabled = true;
+    } else if (questionCounter < minQuestionsRequired) {
+      statusElement.textContent = `Need ${minQuestionsRequired - questionCounter} more questions`;
+      statusElement.className = 'requirement-status status-error';
+      createBtn.disabled = true;
+    } else {
+      statusElement.textContent = 'All requirements met! Mission can be created';
+      statusElement.className = 'requirement-status status-met';
+      createBtn.disabled = false;
+    }
+  }
+
   function addQuestion() {
+    if (questionCounter >= minQuestionsRequired && minQuestionsRequired > 0) {
+      alert(`Maximum questions reached for ${currentDuration}-day mission. Maximum allowed: ${minQuestionsRequired}`);
+      return;
+    }
+    
     questionCounter++;
     const questionsContainer = getElement('questionsContainer');
     
@@ -370,7 +609,7 @@
         
         <div class="form-group">
           <label>Question Text</label>
-          <input type="text" name="questions[${questionCounter}][text]" class="form-control" required>
+          <input type="text" name="questions[${questionCounter}][text]" class="form-control" required oninput="validateQuestionInput(this)">
         </div>
         
         <div class="choices-container">
@@ -378,7 +617,7 @@
           ${[1, 2, 3, 4].map(choiceNum => `
             <div class="choice-row">
               <input type="radio" name="questions[${questionCounter}][correctAnswer]" value="${choiceNum - 1}" ${choiceNum === 1 ? 'checked' : ''} required>
-              <input type="text" name="questions[${questionCounter}][choices][${choiceNum - 1}]" class="form-control choice-input" placeholder="Choice ${choiceNum}" required>
+              <input type="text" name="questions[${questionCounter}][choices][${choiceNum - 1}]" class="form-control choice-input" placeholder="Choice ${choiceNum}" required oninput="validateQuestionInput(this)">
             </div>
           `).join('')}
         </div>
@@ -391,6 +630,26 @@
     `;
     
     questionsContainer.insertAdjacentHTML('beforeend', questionHtml);
+    
+    // Update requirements
+    updateQuestionsAdded();
+    validateMissionRequirements();
+    
+    // Update add question button state
+    const addQuestionBtn = getElement('addQuestionBtn');
+    const missionType = getElement('missionType');
+    if (addQuestionBtn && missionType && missionType.value === 'custom') {
+      addQuestionBtn.disabled = questionCounter >= minQuestionsRequired;
+    }
+  }
+
+  function validateQuestionInput(input) {
+    // Basic validation - you can extend this as needed
+    if (input.value.trim() === '') {
+      input.style.borderColor = '#dc3545';
+    } else {
+      input.style.borderColor = '#28a745';
+    }
   }
 
   function removeQuestion(questionId) {
@@ -399,6 +658,22 @@
       questionElement.remove();
       // Renumber remaining questions
       renumberQuestions();
+      // Update requirements
+      updateQuestionsAdded();
+      validateMissionRequirements();
+      
+      // Update add question button state
+      const addQuestionBtn = getElement('addQuestionBtn');
+      if (addQuestionBtn) {
+        addQuestionBtn.disabled = questionCounter >= minQuestionsRequired;
+      }
+    }
+  }
+
+  function updateQuestionsAdded() {
+    const questionsAddedElement = getElement('questionsAdded');
+    if (questionsAddedElement) {
+      questionsAddedElement.textContent = questionCounter;
     }
   }
 
@@ -449,9 +724,16 @@
           title: formData.get('title'),
           description: formData.get('description'),
           type: formData.get('type'),
+          duration: parseInt(formData.get('duration')),
           points: parseInt(formData.get('points')),
           deadline: formData.get('deadline') || null
         };
+        
+        // Validate duration
+        if (missionData.duration < 1 || missionData.duration > 7) {
+          alert('Mission duration must be between 1 and 7 days');
+          return;
+        }
         
         // Process custom questions if type is custom
         if (missionData.type === 'custom') {
@@ -459,6 +741,13 @@
           
           if (missionData.questions.length === 0) {
             alert('Please add at least one question');
+            return;
+          }
+          
+          // Validate minimum questions requirement
+          const minQuestionsRequired = missionData.duration * 5;
+          if (missionData.questions.length < minQuestionsRequired) {
+            alert(`For a ${missionData.duration}-day mission, you need at least ${minQuestionsRequired} questions`);
             return;
           }
         }
@@ -561,6 +850,7 @@
               <p class="mission-description">${mission.description || 'No description'}</p>
               <div class="mission-details">
                 <span>Type: ${mission.type}</span>
+                <span>Duration: ${mission.duration || 'N/A'} days</span>
                 <span>Questions: ${mission.questions ? mission.questions.length : 'System'}</span>
                 <span>Points: ${mission.points}</span>
                 ${mission.deadline ? `<span>Deadline: ${new Date(mission.deadline).toLocaleDateString()}</span>` : ''}
