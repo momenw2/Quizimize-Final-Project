@@ -6,16 +6,16 @@
   </div>
 
   <div class="dashboard-tabs">
-    <button class="dashboard-tab-btn active" onclick="showDashboardSection('members')">
+    <button class="dashboard-tab-btn active" onclick="showDashboardSection('members', event)">
       Members
     </button>
-    <button class="dashboard-tab-btn" onclick="showDashboardSection('missions')">
+    <button class="dashboard-tab-btn" onclick="showDashboardSection('missions', event)">
       Missions
     </button>
-    <button class="dashboard-tab-btn" onclick="showDashboardSection('content')">
+    <button class="dashboard-tab-btn" onclick="showDashboardSection('content', event)">
       Content
     </button>
-    <button class="dashboard-tab-btn" onclick="showDashboardSection('settings')">
+    <button class="dashboard-tab-btn" onclick="showDashboardSection('settings', event)">
       Group Settings
     </button>
   </div>
@@ -186,11 +186,85 @@
   </div>
 </div>
 
+<!-- Mission Creation Modal -->
+<div id="missionModal" class="modal" style="display: none">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4>Create New Mission</h4>
+      <span class="close" onclick="closeMissionModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="missionForm">
+        <div class="form-group">
+          <label for="missionTitle">Mission Title</label>
+          <input type="text" id="missionTitle" name="title" class="form-control" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="missionDescription">Description</label>
+          <textarea id="missionDescription" name="description" class="form-control" rows="3"></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="missionType">Question Type</label>
+          <select id="missionType" name="type" class="form-control" onchange="toggleQuestionType()">
+            <option value="system">Use System Questions</option>
+            <option value="custom" selected>Create Custom Questions</option>
+          </select>
+        </div>
+        
+        <!-- Custom Questions Section -->
+        <div id="customQuestionsSection">
+          <div class="section-header">
+            <h5>Custom Questions</h5>
+            <button type="button" class="btn btn-sm btn-primary" onclick="addQuestion()">
+              Add Question
+            </button>
+          </div>
+          
+          <div id="questionsContainer">
+            <!-- Questions will be added here dynamically -->
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="missionPoints">Points Reward</label>
+          <input type="number" id="missionPoints" name="points" class="form-control" value="100" min="1">
+        </div>
+        
+        <div class="form-group">
+          <label for="missionDeadline">Deadline (Optional)</label>
+          <input type="datetime-local" id="missionDeadline" name="deadline" class="form-control">
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeMissionModal()">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            Create Mission
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
   // Dashboard-specific JavaScript
   let currentDashboardSection = 'members';
+  let questionCounter = 0;
 
-  function showDashboardSection(sectionId) {
+  // Utility function to safely get elements
+  function getElement(id) {
+    const element = document.getElementById(id);
+    if (!element) {
+      console.warn(`Element with id '${id}' not found`);
+    }
+    return element;
+  }
+
+  function showDashboardSection(sectionId, event) {
     // Hide all sections
     const sections = document.querySelectorAll(".dashboard-section");
     sections.forEach((section) => {
@@ -232,6 +306,355 @@
     }
   }
 
+  // Initialize dashboard when it becomes visible
+  function initializeDashboard() {
+    console.log('Initializing dashboard...');
+    // Load initial data for the active section
+    showDashboardSection(currentDashboardSection);
+  }
+
+  // Mission Management Functions
+  function createNewMission() {
+    const modal = getElement('missionModal');
+    if (modal) {
+      modal.style.display = 'block';
+      resetMissionForm();
+    }
+  }
+
+  function closeMissionModal() {
+    const modal = getElement('missionModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  }
+
+  function resetMissionForm() {
+    const form = getElement('missionForm');
+    const questionsContainer = getElement('questionsContainer');
+    
+    if (form) form.reset();
+    if (questionsContainer) questionsContainer.innerHTML = '';
+    
+    questionCounter = 0;
+    addQuestion(); // Add first question by default
+  }
+
+  function toggleQuestionType() {
+    const missionType = getElement('missionType');
+    const customSection = getElement('customQuestionsSection');
+    
+    if (missionType && customSection) {
+      if (missionType.value === 'system') {
+        customSection.style.display = 'none';
+      } else {
+        customSection.style.display = 'block';
+      }
+    }
+  }
+
+  function addQuestion() {
+    questionCounter++;
+    const questionsContainer = getElement('questionsContainer');
+    
+    if (!questionsContainer) return;
+    
+    const questionHtml = `
+      <div class="question-card" data-question-id="${questionCounter}">
+        <div class="question-header">
+          <h6>Question ${questionCounter}</h6>
+          <button type="button" class="btn btn-sm btn-danger" onclick="removeQuestion(${questionCounter})" ${questionCounter === 1 ? 'disabled' : ''}>
+            Remove
+          </button>
+        </div>
+        
+        <div class="form-group">
+          <label>Question Text</label>
+          <input type="text" name="questions[${questionCounter}][text]" class="form-control" required>
+        </div>
+        
+        <div class="choices-container">
+          <label>Choices (Mark the correct answer)</label>
+          ${[1, 2, 3, 4].map(choiceNum => `
+            <div class="choice-row">
+              <input type="radio" name="questions[${questionCounter}][correctAnswer]" value="${choiceNum - 1}" ${choiceNum === 1 ? 'checked' : ''} required>
+              <input type="text" name="questions[${questionCounter}][choices][${choiceNum - 1}]" class="form-control choice-input" placeholder="Choice ${choiceNum}" required>
+            </div>
+          `).join('')}
+        </div>
+        
+        <div class="form-group">
+          <label>Explanation (Optional)</label>
+          <textarea name="questions[${questionCounter}][explanation]" class="form-control" rows="2" placeholder="Explain why the correct answer is right..."></textarea>
+        </div>
+      </div>
+    `;
+    
+    questionsContainer.insertAdjacentHTML('beforeend', questionHtml);
+  }
+
+  function removeQuestion(questionId) {
+    const questionElement = document.querySelector(`[data-question-id="${questionId}"]`);
+    if (questionElement) {
+      questionElement.remove();
+      // Renumber remaining questions
+      renumberQuestions();
+    }
+  }
+
+  function renumberQuestions() {
+    const questionCards = document.querySelectorAll('.question-card');
+    questionCounter = 0;
+    
+    questionCards.forEach((card, index) => {
+      questionCounter++;
+      const newQuestionId = questionCounter;
+      card.setAttribute('data-question-id', newQuestionId);
+      
+      // Update question header
+      const header = card.querySelector('h6');
+      if (header) header.textContent = `Question ${newQuestionId}`;
+      
+      // Update input names
+      const questionInputs = card.querySelectorAll('[name*="questions"]');
+      questionInputs.forEach(input => {
+        const name = input.getAttribute('name');
+        const newName = name.replace(/questions\[\d+\]/, `questions[${newQuestionId}]`);
+        input.setAttribute('name', newName);
+      });
+      
+      // Update remove button
+      const removeBtn = card.querySelector('button');
+      if (removeBtn) {
+        removeBtn.setAttribute('onclick', `removeQuestion(${newQuestionId})`);
+        removeBtn.disabled = newQuestionId === 1;
+      }
+    });
+  }
+
+  // Handle mission form submission
+  document.addEventListener('DOMContentLoaded', function() {
+    const missionForm = getElement('missionForm');
+    if (missionForm) {
+      missionForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (!isAdmin) {
+          alert('Only admins can create missions');
+          return;
+        }
+        
+        const formData = new FormData(this);
+        const missionData = {
+          title: formData.get('title'),
+          description: formData.get('description'),
+          type: formData.get('type'),
+          points: parseInt(formData.get('points')),
+          deadline: formData.get('deadline') || null
+        };
+        
+        // Process custom questions if type is custom
+        if (missionData.type === 'custom') {
+          missionData.questions = processCustomQuestions(formData);
+          
+          if (missionData.questions.length === 0) {
+            alert('Please add at least one question');
+            return;
+          }
+        }
+        
+        try {
+          const response = await fetch(`/groups/${groupId}/missions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(missionData)
+          });
+          
+          if (response.ok) {
+            alert('Mission created successfully!');
+            closeMissionModal();
+            loadMissionsManagement(); // Refresh missions list
+          } else {
+            const error = await response.json();
+            alert('Error creating mission: ' + error.error);
+          }
+        } catch (error) {
+          console.error('Error creating mission:', error);
+          alert('Error creating mission');
+        }
+      });
+    }
+  });
+
+  function processCustomQuestions(formData) {
+    const questions = [];
+    const questionMap = new Map();
+    
+    // Group form data by question
+    for (const [key, value] of formData.entries()) {
+      const match = key.match(/questions\[(\d+)\]\[(\w+)\](?:\[(\d+)\])?/);
+      if (match) {
+        const [, questionId, field, index] = match;
+        
+        if (!questionMap.has(questionId)) {
+          questionMap.set(questionId, {
+            text: '',
+            choices: ['', '', '', ''],
+            correctAnswer: 0,
+            explanation: ''
+          });
+        }
+        
+        const question = questionMap.get(questionId);
+        
+        if (field === 'text') {
+          question.text = value;
+        } else if (field === 'choices' && index !== undefined) {
+          question.choices[parseInt(index)] = value;
+        } else if (field === 'correctAnswer') {
+          question.correctAnswer = parseInt(value);
+        } else if (field === 'explanation') {
+          question.explanation = value;
+        }
+      }
+    }
+    
+    // Convert map to array and validate
+    for (const [questionId, question] of questionMap) {
+      if (question.text.trim() && question.choices.every(choice => choice.trim())) {
+        questions.push(question);
+      }
+    }
+    
+    return questions;
+  }
+
+  // Load missions management
+  async function loadMissionsManagement() {
+    if (!isAdmin) return;
+    
+    try {
+      const response = await fetch(`/groups/${groupId}/missions`);
+      const missions = await response.json();
+      
+      const missionsList = getElement('missionsList');
+      if (missionsList) {
+        if (!missions || missions.length === 0) {
+          missionsList.innerHTML = `
+            <div class="empty-state">
+              <i>🎯</i>
+              <p>No missions created yet</p>
+              <button class="btn btn-primary" onclick="createNewMission()">
+                Create Your First Mission
+              </button>
+            </div>
+          `;
+        } else {
+          missionsList.innerHTML = missions.map(mission => `
+            <div class="mission-card">
+              <div class="mission-header">
+                <h5>${mission.title}</h5>
+                <span class="mission-status ${mission.status}">${mission.status}</span>
+              </div>
+              <p class="mission-description">${mission.description || 'No description'}</p>
+              <div class="mission-details">
+                <span>Type: ${mission.type}</span>
+                <span>Questions: ${mission.questions ? mission.questions.length : 'System'}</span>
+                <span>Points: ${mission.points}</span>
+                ${mission.deadline ? `<span>Deadline: ${new Date(mission.deadline).toLocaleDateString()}</span>` : ''}
+              </div>
+              <div class="mission-actions">
+                <button class="btn btn-sm btn-primary" onclick="viewMission('${mission._id}')">
+                  View
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="editMission('${mission._id}')">
+                  Edit
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteMission('${mission._id}')">
+                  Delete
+                </button>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+      
+      // Update mission stats
+      updateMissionStats(missions);
+    } catch (error) {
+      console.error('Error loading missions:', error);
+    }
+  }
+
+  function updateMissionStats(missions) {
+    // Safely update stats
+    const activeElement = getElement('activeMissionsCount');
+    const completedElement = getElement('completedMissionsCount');
+    const pendingElement = getElement('pendingMissionsCount');
+    
+    if (!missions || !Array.isArray(missions)) {
+      if (activeElement) activeElement.textContent = '0';
+      if (completedElement) completedElement.textContent = '0';
+      if (pendingElement) pendingElement.textContent = '0';
+      return;
+    }
+    
+    const activeMissions = missions.filter(m => m.status === 'active').length;
+    const completedMissions = missions.filter(m => m.status === 'completed').length;
+    const pendingMissions = missions.filter(m => m.status === 'pending').length;
+    
+    if (activeElement) activeElement.textContent = activeMissions;
+    if (completedElement) completedElement.textContent = completedMissions;
+    if (pendingElement) pendingElement.textContent = pendingMissions;
+  }
+
+  // Stub functions for mission actions
+  function viewMission(missionId) {
+    alert(`View mission ${missionId} - to be implemented`);
+  }
+
+  function editMission(missionId) {
+    alert(`Edit mission ${missionId} - to be implemented`);
+  }
+
+  async function deleteMission(missionId) {
+    if (!confirm('Are you sure you want to delete this mission?')) return;
+    
+    try {
+      const response = await fetch(`/groups/${groupId}/missions/${missionId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        alert('Mission deleted successfully');
+        loadMissionsManagement();
+      } else {
+        const error = await response.json();
+        alert('Error deleting mission: ' + error.error);
+      }
+    } catch (error) {
+      console.error('Error deleting mission:', error);
+      alert('Error deleting mission');
+    }
+  }
+
+  // Initialize when dashboard tab is shown
+  document.addEventListener('DOMContentLoaded', function() {
+    // Check if we're on the dashboard tab
+    const dashboardTab = getElement('dashboard');
+    if (dashboardTab) {
+      // Initialize mission form
+      const missionType = getElement('missionType');
+      if (missionType) {
+        missionType.value = 'custom';
+        toggleQuestionType();
+      }
+    }
+  });
+
+  // Your existing dashboard functions
   async function loadDashboardData() {
     if (!isAdmin) return;
     
@@ -396,11 +819,6 @@
         }
       });
     }
-  }
-
-  function loadMissionsManagement() {
-    console.log('Loading missions management...');
-    // Implement missions management
   }
 
   // Content Management Functions
@@ -583,10 +1001,6 @@
     alert('Export members functionality');
   }
 
-  function createNewMission() {
-    alert('Create new mission functionality');
-  }
-
   function viewAllMissions() {
     alert('View all missions functionality');
   }
@@ -595,5 +1009,10 @@
     if (confirm('Are you sure you want to delete this group? This action cannot be undone.')) {
       alert('Group deletion functionality');
     }
+  }
+
+  function updateDescriptionDisplay(description) {
+    // This function would update the description display in the group header
+    console.log('Description updated to:', description);
   }
 </script>

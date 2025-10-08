@@ -8,6 +8,7 @@ const Comment = require("../Models/Comment.model");
 const { io } = require("../app"); // Import io from app.js
 // Chat message model (you'll need to create this)
 const ChatMessage = require("../Models/ChatMessage.model");
+const Mission = require("../Models/Mission.model");
 
 // Store online users for each group (in-memory, consider Redis for production)
 const onlineUsers = new Map();
@@ -849,4 +850,163 @@ router.delete("/comments/:commentId", requireAuth, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Mission Routes
+
+// Get all missions for a group
+router.get("/:id/missions", requireAuth, async (req, res) => {
+  try {
+    const groupId = req.params.id;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    // Check if user is member of the group
+    const isMember = group.members.some(
+      (member) => member.user.toString() === res.locals.user._id.toString()
+    );
+
+    if (!isMember) {
+      return res
+        .status(403)
+        .json({ error: "Access denied. Group members only." });
+    }
+
+    const missions = await Mission.find({ groupId }).sort({ createdAt: -1 });
+
+    res.json(missions);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create a new mission
+router.post("/:id/missions", requireAuth, async (req, res) => {
+  try {
+    const groupId = req.params.id;
+    const { title, description, type, questions, points, deadline } = req.body;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    // Check if user is admin
+    const isAdmin = group.members.some(
+      (member) =>
+        member.user.toString() === res.locals.user._id.toString() &&
+        member.role === "Admin"
+    );
+
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Access denied. Admin only." });
+    }
+
+    // Validate required fields
+    if (!title || !type) {
+      return res.status(400).json({ error: "Title and type are required" });
+    }
+
+    // Validate custom questions
+    if (type === "custom" && (!questions || questions.length === 0)) {
+      return res
+        .status(400)
+        .json({ error: "Custom missions require at least one question" });
+    }
+
+    if (type === "custom") {
+      // Validate each question
+      for (const question of questions) {
+        if (
+          !question.text ||
+          !question.choices ||
+          question.choices.length !== 4
+        ) {
+          return res.status(400).json({
+            error: "Each question must have text and exactly 4 choices",
+          });
+        }
+
+        if (question.choices.some((choice) => !choice.trim())) {
+          return res.status(400).json({ error: "All choices must be filled" });
+        }
+
+        if (question.correctAnswer < 0 || question.correctAnswer > 3) {
+          return res
+            .status(400)
+            .json({ error: "Invalid correct answer index" });
+        }
+      }
+    }
+
+    const mission = new Mission({
+      title,
+      description,
+      type,
+      questions: type === "custom" ? questions : undefined,
+      points: points || 100,
+      deadline: deadline ? new Date(deadline) : undefined,
+      groupId,
+      createdBy: res.locals.user._id,
+      status: "active",
+    });
+
+    await mission.save();
+
+    // Emit socket event for real-time update
+    if (io) {
+      io.to(groupId).emit("new-mission", mission);
+    }
+
+    res.status(201).json(mission);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a mission
+router.delete(
+  "/:groupId/missions/:missionId",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const { groupId, missionId } = req.params;
+
+      const group = await Group.findById(groupId);
+      if (!group) {
+        return res.status(404).json({ error: "Group not found" });
+      }
+
+      // Check if user is admin
+      const isAdmin = group.members.some(
+        (member) =>
+          member.user.toString() === res.locals.user._id.toString() &&
+          member.role === "Admin"
+      );
+
+      if (!isAdmin) {
+        return res.status(403).json({ error: "Access denied. Admin only." });
+      }
+
+      const mission = await Mission.findOne({ _id: missionId, groupId });
+      if (!mission) {
+        return res.status(404).json({ error: "Mission not found" });
+      }
+
+      await Mission.findByIdAndDelete(missionId);
+
+      // Emit socket event for real-time update
+      if (io) {
+        io.to(groupId).emit("mission-deleted", { missionId });
+      }
+
+      res.json({ success: true, message: "Mission deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
 module.exports = router;
