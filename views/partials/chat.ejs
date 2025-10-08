@@ -32,11 +32,16 @@
 </div>
 
 <script>
-  // Chat-specific JavaScript
-  let isTyping = false;
-  let typingTimer;
+  // Chat-specific JavaScript - remove the duplicate declarations
+  // These are now global variables defined at the top
 
   function initializeSocket() {
+    // Only initialize once
+    if (socket) {
+      return socket;
+    }
+
+    console.log("Initializing socket connection...");
     socket = io();
 
     // Send authentication data when connecting
@@ -45,42 +50,104 @@
       userName: "<%= user.fullName %>",
     });
 
-    socket.emit("join-group", groupId);
+    // Set up event listeners only once
+    setupSocketListeners();
+
+    return socket;
+  }
+
+  function setupSocketListeners() {
+    if (!socket) return;
+
+    // Remove any existing listeners first to prevent duplicates
+    socket.off("chat-message");
+    socket.off("chat-history");
+    socket.off("user-joined-chat");
+    socket.off("user-left-chat");
+    socket.off("typing-start");
+    socket.off("typing-stop");
+    socket.off("online-count");
 
     // Chat event handlers
     socket.on("chat-message", (data) => {
+      console.log("Received chat message:", data);
       addChatMessage(data);
     });
 
     socket.on("chat-history", (messages) => {
+      console.log("Received chat history:", messages?.length, "messages");
       renderChatHistory(messages);
     });
 
     socket.on("user-joined-chat", (data) => {
+      console.log("User joined:", data);
       addSystemMessage(`${data.userName} joined the chat`);
       updateOnlineCount(data.onlineCount);
     });
 
     socket.on("user-left-chat", (data) => {
+      console.log("User left:", data);
       addSystemMessage(`${data.userName} left the chat`);
       updateOnlineCount(data.onlineCount);
     });
 
     socket.on("typing-start", (data) => {
+      console.log("Typing start:", data);
       showTypingIndicator(data.userName, data.userId);
     });
 
     socket.on("typing-stop", (data) => {
+      console.log("Typing stop:", data);
       hideTypingIndicator(data.userId);
     });
 
     socket.on("online-count", (count) => {
+      console.log("Online count:", count);
       updateOnlineCount(count);
     });
   }
 
+  function initializeChat() {
+    if (chatInitialized) {
+      console.log("Chat already initialized");
+      return;
+    }
+
+    console.log("Initializing chat...");
+
+    // Make sure socket is initialized
+    if (!socket) {
+      initializeSocket();
+    }
+
+    // Join group room
+    if (socket) {
+      socket.emit("join-group", groupId);
+      loadChatHistory();
+    }
+
+    chatInitialized = true;
+  }
+
+  function destroyChat() {
+    console.log("Destroying chat state...");
+
+    // Leave group room but keep socket connection
+    if (socket) {
+      socket.emit("leave-group", groupId);
+    }
+
+    // Clear chat state but don't disconnect socket
+    chatInitialized = false;
+
+    // Clear typing indicators
+    hideTypingIndicator();
+    stopTyping();
+  }
+
   function loadChatHistory() {
     if (socket) {
+      console.log("Loading chat history for group:", groupId);
       socket.emit("get-chat-history", groupId);
     }
   }
@@ -88,14 +155,28 @@
   function renderChatHistory(messages) {
     const container = getElement("chatMessages");
     if (container && messages) {
+      console.log("Rendering chat history with", messages.length, "messages");
       container.innerHTML = messages
         .map((message) => createChatMessageHTML(message))
         .join("");
       scrollChatToBottom();
+    } else {
+      console.log("No messages to render or container not found");
     }
   }
 
   function addChatMessage(data) {
+    // Check if message already exists to prevent duplicates
+    if (data._id) {
+      const existingMessage = document.querySelector(
+        `[data-message-id="${data._id}"]`
+      );
+      if (existingMessage) {
+        console.log("Message already exists, skipping:", data._id);
+        return;
+      }
+    }
+
     const container = getElement("chatMessages");
     if (container && data) {
       const messageHTML = createChatMessageHTML(data);
@@ -154,8 +235,12 @@
     };
 
     if (socket) {
+      console.log("Sending chat message:", messageData);
       socket.emit("chat-message", messageData);
+    } else {
+      console.error("Socket not available");
     }
+
     input.value = "";
     stopTyping();
   }
@@ -207,8 +292,16 @@
   }
 
   function hideTypingIndicator(userId) {
-    if (userId === "<%= user._id %>") return;
+    // If no userId provided, hide for all
+    if (!userId || userId === "<%= user._id %>") {
+      const indicator = getElement("typingIndicator");
+      if (indicator) {
+        indicator.style.display = "none";
+      }
+      return;
+    }
 
+    // Only hide for specific user (you might want to implement multi-user typing)
     const indicator = getElement("typingIndicator");
     if (indicator) {
       indicator.style.display = "none";
@@ -229,8 +322,9 @@
     }
   }
 
-  // Initialize socket when chat tab is loaded
+  // Initialize socket once when page loads
   document.addEventListener("DOMContentLoaded", function () {
+    console.log("DOM loaded, initializing socket...");
     initializeSocket();
   });
 </script>
