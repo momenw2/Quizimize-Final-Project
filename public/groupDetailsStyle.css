@@ -1137,3 +1137,51 @@
   justify-content: flex-end;
   margin-top: 20px;
 }
+
+.mission-meta {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.mission-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 25px;
+}
+
+.info-item i {
+  font-style: normal;
+}
+
+.mission-status {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.mission-status.active {
+  background-color: #e8f5e8;
+  color: #2e7d32;
+}
+
+.mission-status.completed {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.mission-status.pending {
+  background-color: #fff3e0;
+  color: #ef6c00;
+}

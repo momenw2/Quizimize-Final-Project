@@ -851,9 +851,7 @@ router.delete("/comments/:commentId", requireAuth, async (req, res) => {
   }
 });
 
-// Mission Routes
 
-// Get all missions for a group
 // Mission Routes
 
 // Get all missions for a group

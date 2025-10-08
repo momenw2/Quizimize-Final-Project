@@ -36,9 +36,27 @@
       const response = await fetch(`/groups/${groupId}/missions`);
       const missions = await response.json();
       renderMissions(missions);
+      updateMissionStats(missions);
     } catch (error) {
       console.error("Error loading missions:", error);
     }
+  }
+
+  function updateMissionStats(missions) {
+    const activeMissions = missions.filter(
+      (mission) => mission.status === "active"
+    ).length;
+    const completedMissions = missions.filter(
+      (mission) => mission.status === "completed"
+    ).length;
+
+    // You might need to fetch participating members count from another endpoint
+    // For now, we'll set it to 0
+    const participatingMembers = 0;
+
+    getElement("activeMissions").textContent = activeMissions;
+    getElement("completedMissions").textContent = completedMissions;
+    getElement("participatingMembers").textContent = participatingMembers;
   }
 
   function renderMissions(missions) {
@@ -67,11 +85,30 @@
             <div class="mission-content">
               <p>${mission.description}</p>
               <div class="mission-meta">
-                <span>Difficulty: ${mission.difficulty}</span>
-                <span>Reward: ${mission.reward} XP</span>
-                <span>Deadline: ${new Date(
-                  mission.deadline
-                ).toLocaleDateString()}</span>
+                <div class="mission-info">
+                  <span class="info-item">
+                    <i>⭐</i>
+                    ${mission.points} Points
+                  </span>
+                  <span class="info-item">
+                    <i>❓</i>
+                    ${
+                      mission.questions
+                        ? mission.questions.length
+                        : mission.duration * 5
+                    } Questions
+                  </span>
+                  ${
+                    mission.deadline
+                      ? `
+                    <span class="info-item">
+                      <i>⏰</i>
+                      ${formatDeadline(mission.deadline)}
+                    </span>
+                  `
+                      : ""
+                  }
+                </div>
               </div>
             </div>
             <div class="mission-actions">
@@ -93,6 +130,25 @@
     }
   }
 
+  function formatDeadline(deadline) {
+    const deadlineDate = new Date(deadline);
+    const now = new Date();
+    const diffTime = deadlineDate - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      return "Expired";
+    } else if (diffDays === 0) {
+      return "Today";
+    } else if (diffDays === 1) {
+      return "Tomorrow";
+    } else if (diffDays <= 7) {
+      return `${diffDays} days left`;
+    } else {
+      return deadlineDate.toLocaleDateString();
+    }
+  }
+
   function createNewMission() {
     alert("Create new mission functionality - would open a modal");
   }
@@ -105,5 +161,10 @@
   function viewMissionDetails(missionId) {
     console.log("Viewing mission details:", missionId);
     // Implement view mission details logic
+  }
+
+  // Helper function to get element
+  function getElement(id) {
+    return document.getElementById(id);
   }
 </script>
