@@ -851,7 +851,6 @@ router.delete("/comments/:commentId", requireAuth, async (req, res) => {
   }
 });
 
-
 // Mission Routes
 
 // Get all missions for a group
@@ -1034,5 +1033,277 @@ router.delete(
     }
   }
 );
+
+// Join a mission
+router.post(
+  "/:groupId/missions/:missionId/join",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const { groupId, missionId } = req.params;
+      const userId = res.locals.user._id;
+
+      const group = await Group.findById(groupId);
+      if (!group) {
+        return res.status(404).json({ error: "Group not found" });
+      }
+
+      // Check if user is member of the group
+      const isMember = group.members.some(
+        (member) => member.user.toString() === userId.toString()
+      );
+
+      if (!isMember) {
+        return res
+          .status(403)
+          .json({ error: "Access denied. Group members only." });
+      }
+
+      const mission = await Mission.findOne({ _id: missionId, groupId });
+      if (!mission) {
+        return res.status(404).json({ error: "Mission not found" });
+      }
+
+      // Check if mission is active
+      if (mission.status !== "active") {
+        return res.status(400).json({ error: "Mission is not active" });
+      }
+
+      // Check if user already joined
+      const alreadyJoined = mission.participants.some(
+        (participant) => participant.user.toString() === userId.toString()
+      );
+
+      if (alreadyJoined) {
+        return res.status(400).json({ error: "Already joined this mission" });
+      }
+
+      // Add user to participants
+      mission.participants.push({
+        user: userId,
+        joinedAt: new Date(),
+      });
+
+      await mission.save();
+
+      res.json({ success: true, message: "Successfully joined mission" });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Get mission questions for a participant
+router.get(
+  "/:groupId/missions/:missionId/questions",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const { groupId, missionId } = req.params;
+      const userId = res.locals.user._id;
+
+      const mission = await Mission.findOne({ _id: missionId, groupId });
+      if (!mission) {
+        return res.status(404).json({ error: "Mission not found" });
+      }
+
+      // Check if user has joined the mission
+      const participant = mission.participants.find(
+        (p) => p.user.toString() === userId.toString()
+      );
+
+      if (!participant) {
+        return res
+          .status(403)
+          .json({ error: "You must join the mission first" });
+      }
+
+      // For system missions, generate questions based on duration
+      let questions = [];
+      if (mission.type === "system") {
+        questions = await generateSystemQuestions(mission.duration);
+      } else {
+        questions = mission.questions;
+      }
+
+      // Return questions without correct answers
+      const safeQuestions = questions.map((q, index) => ({
+        index: index,
+        text: q.text,
+        choices: q.choices,
+        explanation: q.explanation,
+      }));
+
+      res.json({
+        questions: safeQuestions,
+        currentQuestion: participant.currentQuestion,
+        totalQuestions: safeQuestions.length,
+        missionTitle: mission.title,
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Submit answer to a question
+router.post(
+  "/:groupId/missions/:missionId/answer",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const { groupId, missionId } = req.params;
+      const userId = res.locals.user._id;
+      const { questionIndex, selectedAnswer } = req.body;
+
+      const mission = await Mission.findOne({ _id: missionId, groupId });
+      if (!mission) {
+        return res.status(404).json({ error: "Mission not found" });
+      }
+
+      // Check if user has joined the mission
+      const participantIndex = mission.participants.findIndex(
+        (p) => p.user.toString() === userId.toString()
+      );
+
+      if (participantIndex === -1) {
+        return res
+          .status(403)
+          .json({ error: "You must join the mission first" });
+      }
+
+      const participant = mission.participants[participantIndex];
+
+      // Get questions (system or custom)
+      let questions = [];
+      if (mission.type === "system") {
+        questions = await generateSystemQuestions(mission.duration);
+      } else {
+        questions = mission.questions;
+      }
+
+      // Check if question exists
+      if (questionIndex >= questions.length) {
+        return res.status(400).json({ error: "Invalid question index" });
+      }
+
+      const question = questions[questionIndex];
+      const isCorrect = selectedAnswer === question.correctAnswer;
+
+      // Record answer
+      participant.answers.push({
+        questionIndex,
+        selectedAnswer,
+        isCorrect,
+        answeredAt: new Date(),
+      });
+
+      // Update score
+      if (isCorrect) {
+        participant.score += Math.floor(mission.points / questions.length);
+      }
+
+      // Move to next question
+      participant.currentQuestion = questionIndex + 1;
+
+      // Check if mission is completed
+      if (participant.currentQuestion >= questions.length) {
+        participant.completed = true;
+
+        // Update user points (you'll need to implement this in your User model)
+        await updateUserPoints(userId, participant.score);
+      }
+
+      await mission.save();
+
+      res.json({
+        isCorrect,
+        correctAnswer: question.correctAnswer,
+        explanation: question.explanation,
+        currentScore: participant.score,
+        completed: participant.completed,
+        nextQuestion:
+          participant.currentQuestion < questions.length
+            ? participant.currentQuestion
+            : null,
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Get mission progress
+router.get(
+  "/:groupId/missions/:missionId/progress",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const { groupId, missionId } = req.params;
+      const userId = res.locals.user._id;
+
+      const mission = await Mission.findOne({ _id: missionId, groupId });
+      if (!mission) {
+        return res.status(404).json({ error: "Mission not found" });
+      }
+
+      const participant = mission.participants.find(
+        (p) => p.user.toString() === userId.toString()
+      );
+
+      if (!participant) {
+        return res
+          .status(403)
+          .json({ error: "You must join the mission first" });
+      }
+
+      res.json({
+        progress: {
+          currentQuestion: participant.currentQuestion,
+          totalQuestions:
+            mission.type === "system"
+              ? mission.duration * 5
+              : mission.questions.length,
+          score: participant.score,
+          completed: participant.completed,
+          joinedAt: participant.joinedAt,
+        },
+        mission: {
+          title: mission.title,
+          points: mission.points,
+          status: mission.status,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Helper function to generate system questions (you'll need to implement this based on your question bank)
+async function generateSystemQuestions(duration) {
+  // This should fetch questions from your system question bank
+  // For now, returning mock questions
+  const totalQuestions = duration * 5;
+  const questions = [];
+
+  for (let i = 0; i < totalQuestions; i++) {
+    questions.push({
+      text: `System Question ${i + 1}?`,
+      choices: ["Choice A", "Choice B", "Choice C", "Choice D"],
+      correctAnswer: Math.floor(Math.random() * 4),
+      explanation: "This is the explanation for the correct answer.",
+    });
+  }
+
+  return questions;
+}
+
+// Helper function to update user points (implement based on your User model)
+async function updateUserPoints(userId, points) {
+  // Update user's total points in your User model
+  // Example: await User.findByIdAndUpdate(userId, { $inc: { points: points } });
+  console.log(`Adding ${points} points to user ${userId}`);
+}
 
 module.exports = router;

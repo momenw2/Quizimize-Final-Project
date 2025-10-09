@@ -69,6 +69,45 @@ const missionSchema = new mongoose.Schema(
       enum: ["active", "completed", "pending"],
       default: "active",
     },
+    participants: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        joinedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        completed: {
+          type: Boolean,
+          default: false,
+        },
+        score: {
+          type: Number,
+          default: 0,
+        },
+        answers: [
+          {
+            questionIndex: Number,
+            selectedAnswer: Number,
+            isCorrect: Boolean,
+            answeredAt: Date,
+          },
+        ],
+        currentQuestion: {
+          type: Number,
+          default: 0,
+        },
+      },
+    ],
+    duration: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 7,
+    },
   },
   {
     timestamps: true,
@@ -78,5 +117,6 @@ const missionSchema = new mongoose.Schema(
 // Index for efficient queries
 missionSchema.index({ groupId: 1, createdAt: -1 });
 missionSchema.index({ status: 1 });
+missionSchema.index({ "participants.user": 1 });
 
 module.exports = mongoose.model("Mission", missionSchema);

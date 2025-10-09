@@ -1,170 +1,1069 @@
-<!-- Missions Tab -->
-<div id="missions" class="tab-content" style="display: none">
-  <div class="missions-header">
-    <h3>Group Missions</h3>
-    <button class="btn btn-primary" onclick="createNewMission()">
-      Create Mission
-    </button>
-  </div>
-
-  <div class="missions-container">
-    <div class="missions-stats">
-      <div class="stat-card">
-        <h5>Active Missions</h5>
-        <span id="activeMissions">0</span>
-      </div>
-      <div class="stat-card">
-        <h5>Completed</h5>
-        <span id="completedMissions">0</span>
-      </div>
-      <div class="stat-card">
-        <h5>Members Participating</h5>
-        <span id="participatingMembers">0</span>
-      </div>
-    </div>
-
-    <div id="missionsList" class="missions-list">
-      <!-- Missions will be loaded here -->
-    </div>
-  </div>
-</div>
-
-<script>
-  // Missions-specific JavaScript
-  async function loadMissions() {
-    try {
-      const response = await fetch(`/groups/${groupId}/missions`);
-      const missions = await response.json();
-      renderMissions(missions);
-      updateMissionStats(missions);
-    } catch (error) {
-      console.error("Error loading missions:", error);
-    }
-  }
-
-  function updateMissionStats(missions) {
-    const activeMissions = missions.filter(
-      (mission) => mission.status === "active"
-    ).length;
-    const completedMissions = missions.filter(
-      (mission) => mission.status === "completed"
-    ).length;
-
-    // You might need to fetch participating members count from another endpoint
-    // For now, we'll set it to 0
-    const participatingMembers = 0;
-
-    getElement("activeMissions").textContent = activeMissions;
-    getElement("completedMissions").textContent = completedMissions;
-    getElement("participatingMembers").textContent = participatingMembers;
-  }
-
-  function renderMissions(missions) {
-    const container = getElement("missionsList");
-    if (container && missions) {
-      if (missions.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <i>🎯</i>
-            <p>No missions yet. Create your first mission!</p>
-          </div>
-        `;
-        return;
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Group Missions</title>
+    <style>
+      /* Mission Styles */
+      .missions-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #e9ecef;
       }
 
-      container.innerHTML = missions
-        .map(
-          (mission) => `
-          <div class="mission-card" data-mission-id="${mission._id}">
-            <div class="mission-header">
-              <h4>${mission.title}</h4>
-              <span class="mission-status ${mission.status}">${
-            mission.status
-          }</span>
-            </div>
-            <div class="mission-content">
-              <p>${mission.description}</p>
-              <div class="mission-meta">
-                <div class="mission-info">
-                  <span class="info-item">
-                    <i>⭐</i>
-                    ${mission.points} Points
-                  </span>
-                  <span class="info-item">
-                    <i>❓</i>
-                    ${
-                      mission.questions
-                        ? mission.questions.length
-                        : mission.duration * 5
-                    } Questions
-                  </span>
-                  ${
-                    mission.deadline
-                      ? `
-                    <span class="info-item">
-                      <i>⏰</i>
-                      ${formatDeadline(mission.deadline)}
-                    </span>
-                  `
-                      : ""
-                  }
-                </div>
-              </div>
-            </div>
-            <div class="mission-actions">
-              <button class="btn btn-primary" onclick="joinMission('${
-                mission._id
-              }')">
-                Join Mission
-              </button>
-              <button class="btn btn-secondary" onclick="viewMissionDetails('${
-                mission._id
-              }')">
-                Details
-              </button>
-            </div>
+      .missions-header h3 {
+        margin: 0;
+        color: #333;
+        font-size: 1.5rem;
+      }
+
+      .missions-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+
+      .stat-card h5 {
+        margin: 0 0 8px 0;
+        color: #666;
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .stat-card span {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #007bff;
+      }
+
+      .missions-list {
+        display: grid;
+        gap: 20px;
+      }
+
+      .mission-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        padding: 24px;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .mission-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      .mission-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+      }
+
+      .mission-header h4 {
+        margin: 0;
+        color: #333;
+        font-size: 1.25rem;
+        flex: 1;
+      }
+
+      .mission-status-container {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .mission-status {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      .mission-status.active {
+        background-color: #e8f5e8;
+        color: #2e7d32;
+      }
+
+      .mission-status.completed {
+        background-color: #e3f2fd;
+        color: #1565c0;
+      }
+
+      .mission-status.pending {
+        background-color: #fff3e0;
+        color: #ef6c00;
+      }
+
+      .mission-participant-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      .mission-participant-badge.completed {
+        background-color: #e8f5e8;
+        color: #2e7d32;
+      }
+
+      .mission-participant-badge.in-progress {
+        background-color: #fff3e0;
+        color: #ef6c00;
+      }
+
+      .mission-content p {
+        margin: 0 0 16px 0;
+        color: #666;
+        line-height: 1.5;
+      }
+
+      .mission-meta {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #eee;
+      }
+
+      .mission-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        font-size: 0.85rem;
+        color: #666;
+      }
+
+      .info-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .info-item i {
+        font-style: normal;
+        font-size: 1rem;
+      }
+
+      .mission-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 20px;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+      }
+
+      .btn-primary {
+        background: #007bff;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #0056b3;
+      }
+
+      .btn-secondary {
+        background: #6c757d;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: #545b62;
+      }
+
+      .btn-success {
+        background: #28a745;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: #1e7e34;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+      }
+
+      .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 16px;
+        display: block;
+      }
+
+      .empty-state p {
+        margin: 0;
+        font-size: 1.1rem;
+      }
+
+      /* Mission Interface Styles */
+      .mission-interface {
+        display: none;
+      }
+
+      .mission-quiz-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .quiz-header {
+        background: #f8f9fa;
+        padding: 20px;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+
+      .quiz-header h3 {
+        margin: 0;
+        color: #333;
+        flex: 1;
+      }
+
+      .quiz-progress {
+        font-weight: 600;
+        color: #666;
+        background: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        border: 1px solid #dee2e6;
+      }
+
+      .quiz-content {
+        padding: 30px;
+      }
+
+      .question-card {
+        margin-bottom: 30px;
+      }
+
+      .question-card h4 {
+        margin-bottom: 24px;
+        color: #333;
+        line-height: 1.5;
+        font-size: 1.25rem;
+      }
+
+      .choices-container {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .choice-btn {
+        display: flex;
+        align-items: center;
+        padding: 16px 20px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+        width: 100%;
+      }
+
+      .choice-btn:hover {
+        border-color: #007bff;
+        background: #f8f9fa;
+      }
+
+      .choice-btn.correct {
+        border-color: #28a745;
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .choice-btn.incorrect {
+        border-color: #dc3545;
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      .choice-btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.8;
+      }
+
+      .choice-letter {
+        font-weight: bold;
+        margin-right: 16px;
+        color: #666;
+        min-width: 24px;
+        text-align: center;
+      }
+
+      .choice-btn.correct .choice-letter,
+      .choice-btn.incorrect .choice-letter {
+        color: inherit;
+      }
+
+      .choice-text {
+        flex: 1;
+        font-size: 1rem;
+      }
+
+      .explanation {
+        margin-top: 20px;
+        padding: 16px;
+        background: #e7f3ff;
+        border-radius: 8px;
+        border-left: 4px solid #007bff;
+        color: #004085;
+      }
+
+      .explanation strong {
+        color: #002752;
+      }
+
+      .quiz-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 30px;
+      }
+
+      .btn-back {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .btn-back:hover {
+        background: #5a6268;
+      }
+
+      /* Score Display */
+      .score-display {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 20px;
+        text-align: center;
+        font-weight: 600;
+        color: #856404;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .missions-header {
+          flex-direction: column;
+          gap: 16px;
+          align-items: stretch;
+        }
+
+        .missions-stats {
+          grid-template-columns: 1fr;
+        }
+
+        .mission-header {
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .mission-status-container {
+          align-self: flex-start;
+        }
+
+        .mission-actions {
+          flex-direction: column;
+        }
+
+        .mission-info {
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .quiz-header {
+          flex-direction: column;
+          text-align: center;
+        }
+
+        .quiz-header h3 {
+          order: 2;
+        }
+
+        .btn-back {
+          order: 1;
+          align-self: flex-start;
+        }
+
+        .quiz-progress {
+          order: 3;
+        }
+      }
+
+      /* Tab Styles */
+      .tab-content {
+        display: none;
+        padding: 20px;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      .tab-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .tab-btn {
+        padding: 10px 20px;
+        background: #f8f9fa;
+        border: none;
+        border-radius: 4px 4px 0 0;
+        cursor: pointer;
+      }
+
+      .tab-btn.active {
+        background: #007bff;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Missions Tab -->
+    <div id="missions" class="tab-content active">
+      <div class="missions-header">
+        <h3>Group Missions</h3>
+      </div>
+
+      <div class="missions-container">
+        <div class="missions-stats">
+          <div class="stat-card">
+            <h5>Active Missions</h5>
+            <span id="activeMissions">0</span>
           </div>
-        `
-        )
-        .join("");
-    }
-  }
+          <div class="stat-card">
+            <h5>Completed</h5>
+            <span id="completedMissions">0</span>
+          </div>
+          <div class="stat-card">
+            <h5>Members Participating</h5>
+            <span id="participatingMembers">0</span>
+          </div>
+        </div>
 
-  function formatDeadline(deadline) {
-    const deadlineDate = new Date(deadline);
-    const now = new Date();
-    const diffTime = deadlineDate - now;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        <div id="missionsList" class="missions-list">
+          <!-- Missions will be loaded here -->
+        </div>
+      </div>
+    </div>
 
-    if (diffDays < 0) {
-      return "Expired";
-    } else if (diffDays === 0) {
-      return "Today";
-    } else if (diffDays === 1) {
-      return "Tomorrow";
-    } else if (diffDays <= 7) {
-      return `${diffDays} days left`;
-    } else {
-      return deadlineDate.toLocaleDateString();
-    }
-  }
+    <script>
+      // Global variables - make sure these don't conflict with other scripts
+      let currentMissionId = null;
+      let currentQuestions = [];
+      let currentQuestionIndex = 0;
 
-  function createNewMission() {
-    alert("Create new mission functionality - would open a modal");
-  }
+      // Get user and group IDs from server-side rendering
+      const missionUserId = '<%= user ? user._id : "current_user" %>';
+      const missionGroupId = '<%= group ? group._id : "group_id" %>';
 
-  function joinMission(missionId) {
-    console.log("Joining mission:", missionId);
-    // Implement join mission logic
-  }
+      // Tab navigation function
+      function showTab(tabName) {
+        // Hide all tab contents
+        const tabContents = document.querySelectorAll(".tab-content");
+        tabContents.forEach((tab) => {
+          tab.classList.remove("active");
+        });
 
-  function viewMissionDetails(missionId) {
-    console.log("Viewing mission details:", missionId);
-    // Implement view mission details logic
-  }
+        // Remove active class from all tab buttons
+        const tabButtons = document.querySelectorAll(".tab-btn");
+        tabButtons.forEach((button) => {
+          button.classList.remove("active");
+        });
 
-  // Helper function to get element
-  function getElement(id) {
-    return document.getElementById(id);
-  }
-</script>
+        // Show the selected tab
+        const selectedTab = document.getElementById(tabName);
+        if (selectedTab) {
+          selectedTab.classList.add("active");
+        }
+
+        // Activate the clicked button
+        event.currentTarget.classList.add("active");
+
+        // Load missions if missions tab is shown
+        if (tabName === "missions") {
+          loadMissions();
+        }
+      }
+
+      // Missions-specific JavaScript
+      async function loadMissions() {
+        try {
+          const response = await fetch(`/groups/${missionGroupId}/missions`);
+          const missions = await response.json();
+          renderMissions(missions);
+          updateMissionStats(missions);
+        } catch (error) {
+          console.error("Error loading missions:", error);
+          showError("Failed to load missions");
+        }
+      }
+
+      function updateMissionStats(missions) {
+        const activeMissions = missions.filter(
+          (mission) => mission.status === "active"
+        ).length;
+        const completedMissions = missions.filter(
+          (mission) => mission.status === "completed"
+        ).length;
+
+        // Calculate participating members
+        const participatingMembers = missions.reduce((total, mission) => {
+          return (
+            total + (mission.participants ? mission.participants.length : 0)
+          );
+        }, 0);
+
+        getElement("activeMissions").textContent = activeMissions;
+        getElement("completedMissions").textContent = completedMissions;
+        getElement("participatingMembers").textContent = participatingMembers;
+      }
+
+      function renderMissions(missions) {
+        const container = getElement("missionsList");
+        if (container && missions) {
+          if (missions.length === 0) {
+            container.innerHTML = `
+                        <div class="empty-state">
+                            <i>🎯</i>
+                            <p>No missions yet. Create your first mission!</p>
+                        </div>
+                    `;
+            return;
+          }
+
+          container.innerHTML = missions
+            .map((mission) => {
+              const hasJoined =
+                mission.participants &&
+                mission.participants.some(
+                  (p) =>
+                    p.user._id === missionUserId || p.user === missionUserId
+                );
+              const isCompleted =
+                mission.participants &&
+                mission.participants.some(
+                  (p) =>
+                    (p.user._id === missionUserId ||
+                      p.user === missionUserId) &&
+                    p.completed
+                );
+              const participant =
+                mission.participants &&
+                mission.participants.find(
+                  (p) =>
+                    p.user._id === missionUserId || p.user === missionUserId
+                );
+
+              return `
+                            <div class="mission-card" data-mission-id="${
+                              mission._id
+                            }">
+                                <div class="mission-header">
+                                    <h4>${mission.title}</h4>
+                                    <div class="mission-status-container">
+                                        ${
+                                          hasJoined
+                                            ? `
+                                            <span class="mission-participant-badge ${
+                                              isCompleted
+                                                ? "completed"
+                                                : "in-progress"
+                                            }">
+                                                ${
+                                                  isCompleted
+                                                    ? "✅ Completed"
+                                                    : "🟡 In Progress"
+                                                }
+                                            </span>
+                                        `
+                                            : ""
+                                        }
+                                        <span class="mission-status ${
+                                          mission.status
+                                        }">${mission.status}</span>
+                                    </div>
+                                </div>
+                                <div class="mission-content">
+                                    <p>${
+                                      mission.description ||
+                                      "No description provided."
+                                    }</p>
+                                    <div class="mission-meta">
+                                        <div class="mission-info">
+                                            <span class="info-item">
+                                                <i>⭐</i>
+                                                ${mission.points} Points
+                                            </span>
+                                            <span class="info-item">
+                                                <i>❓</i>
+                                                ${
+                                                  mission.type === "custom"
+                                                    ? mission.questions.length
+                                                    : mission.duration * 5
+                                                } Questions
+                                            </span>
+                                            ${
+                                              mission.deadline
+                                                ? `
+                                                <span class="info-item">
+                                                    <i>⏰</i>
+                                                    ${formatDeadline(
+                                                      mission.deadline
+                                                    )}
+                                                </span>
+                                            `
+                                                : ""
+                                            }
+                                            <span class="info-item">
+                                                <i>👥</i>
+                                                ${
+                                                  mission.participants
+                                                    ? mission.participants
+                                                        .length
+                                                    : 0
+                                                } Participants
+                                            </span>
+                                            ${
+                                              participant &&
+                                              participant.score !== undefined
+                                                ? `
+                                                <span class="info-item">
+                                                    <i>🏆</i>
+                                                    Your Score: ${participant.score}/${mission.points}
+                                                </span>
+                                            `
+                                                : ""
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mission-actions">
+                                    ${
+                                      hasJoined
+                                        ? `
+                                        ${
+                                          isCompleted
+                                            ? `
+                                            <button class="btn btn-success" onclick="viewMissionResults('${mission._id}')">
+                                                View Results
+                                            </button>
+                                        `
+                                            : `
+                                            <button class="btn btn-primary" onclick="continueMission('${
+                                              mission._id
+                                            }')">
+                                                ${
+                                                  participant &&
+                                                  participant.currentQuestion >
+                                                    0
+                                                    ? "Continue"
+                                                    : "Start"
+                                                } Mission
+                                            </button>
+                                        `
+                                        }
+                                    `
+                                        : `
+                                        <button class="btn btn-primary" onclick="joinMission('${mission._id}')">
+                                            Join Mission
+                                        </button>
+                                    `
+                                    }
+                                    <button class="btn btn-secondary" onclick="viewMissionDetails('${
+                                      mission._id
+                                    }')">
+                                        Details
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+            })
+            .join("");
+        }
+      }
+
+      async function joinMission(missionId) {
+        try {
+          showLoading("Joining mission...");
+
+          const response = await fetch(
+            `/groups/${missionGroupId}/missions/${missionId}/join`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          if (response.ok) {
+            const result = await response.json();
+            showSuccess("Successfully joined the mission!");
+            loadMissions(); // Reload missions to update UI
+            setTimeout(() => startMission(missionId), 1000); // Start the mission after a brief delay
+          } else {
+            const error = await response.json();
+            showError(error.error);
+          }
+        } catch (error) {
+          console.error("Error joining mission:", error);
+          showError("Error joining mission");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      async function continueMission(missionId) {
+        await startMission(missionId);
+      }
+
+      async function startMission(missionId) {
+        try {
+          showLoading("Loading mission questions...");
+
+          const response = await fetch(
+            `/groups/${missionGroupId}/missions/${missionId}/questions`
+          );
+
+          if (!response.ok) {
+            const error = await response.json();
+            showError(error.error);
+            return;
+          }
+
+          const data = await response.json();
+          currentMissionId = missionId;
+          currentQuestions = data.questions;
+          currentQuestionIndex = data.currentQuestion;
+
+          showMissionInterface();
+          displayCurrentQuestion();
+        } catch (error) {
+          console.error("Error starting mission:", error);
+          showError("Error starting mission");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      function showMissionInterface() {
+        // Hide missions list and show mission interface
+        getElement("missionsList").style.display = "none";
+        getElement("missions").querySelector(".missions-header").style.display =
+          "none";
+        getElement("missions").querySelector(".missions-stats").style.display =
+          "none";
+
+        // Create mission interface if it doesn't exist
+        if (!getElement("missionInterface")) {
+          const missionInterface = document.createElement("div");
+          missionInterface.id = "missionInterface";
+          missionInterface.className = "mission-interface";
+          missionInterface.innerHTML = `
+                    <div class="mission-quiz-container">
+                        <div class="quiz-header">
+                            <button class="btn btn-back" onclick="hideMissionInterface()">← Back to Missions</button>
+                            <h3 id="missionQuizTitle">Mission Quiz</h3>
+                            <div class="quiz-progress">
+                                Question <span id="currentQuestionNum">1</span> of <span id="totalQuestions">0</span>
+                            </div>
+                        </div>
+                        <div class="quiz-content">
+                            <div id="scoreDisplay" class="score-display" style="display: none;">
+                                Current Score: <span id="currentScore">0</span> points
+                            </div>
+                            <div class="question-card">
+                                <h4 id="questionText">Question text will appear here</h4>
+                                <div id="choicesContainer" class="choices-container">
+                                    <!-- Choices will be populated here -->
+                                </div>
+                            </div>
+                            <div class="quiz-actions">
+                                <button id="nextButton" class="btn btn-primary" onclick="nextQuestion()" style="display: none;">
+                                    Next Question
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+          getElement("missions").appendChild(missionInterface);
+        }
+
+        getElement("missionInterface").style.display = "block";
+      }
+
+      function hideMissionInterface() {
+        if (getElement("missionInterface")) {
+          getElement("missionInterface").style.display = "none";
+        }
+        getElement("missionsList").style.display = "block";
+        getElement("missions").querySelector(".missions-header").style.display =
+          "flex";
+        getElement("missions").querySelector(".missions-stats").style.display =
+          "grid";
+        currentMissionId = null;
+        currentQuestions = [];
+        currentQuestionIndex = 0;
+      }
+
+      function displayCurrentQuestion() {
+        if (currentQuestionIndex >= currentQuestions.length) {
+          // Mission completed
+          showMissionCompleted();
+          return;
+        }
+
+        const question = currentQuestions[currentQuestionIndex];
+
+        getElement(
+          "missionQuizTitle"
+        ).textContent = `Mission: ${currentMissionId}`;
+        getElement("currentQuestionNum").textContent = currentQuestionIndex + 1;
+        getElement("totalQuestions").textContent = currentQuestions.length;
+        getElement("questionText").textContent = question.text;
+
+        const choicesContainer = getElement("choicesContainer");
+        choicesContainer.innerHTML = "";
+
+        question.choices.forEach((choice, index) => {
+          const choiceElement = document.createElement("button");
+          choiceElement.className = "choice-btn";
+          choiceElement.innerHTML = `
+                    <span class="choice-letter">${String.fromCharCode(
+                      65 + index
+                    )}</span>
+                    <span class="choice-text">${choice}</span>
+                `;
+          choiceElement.onclick = () => selectAnswer(index);
+          choicesContainer.appendChild(choiceElement);
+        });
+
+        getElement("nextButton").style.display = "none";
+
+        // Load current score
+        loadCurrentScore();
+      }
+
+      async function loadCurrentScore() {
+        try {
+          const response = await fetch(
+            `/groups/${missionGroupId}/missions/${currentMissionId}/progress`
+          );
+          if (response.ok) {
+            const data = await response.json();
+            getElement("currentScore").textContent = data.progress.score;
+            getElement("scoreDisplay").style.display = "block";
+          }
+        } catch (error) {
+          console.error("Error loading score:", error);
+        }
+      }
+
+      async function selectAnswer(selectedIndex) {
+        try {
+          // Disable all choice buttons
+          const choiceButtons = document.querySelectorAll(".choice-btn");
+          choiceButtons.forEach((button) => {
+            button.disabled = true;
+          });
+
+          const response = await fetch(
+            `/groups/${missionGroupId}/missions/${currentMissionId}/answer`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                questionIndex: currentQuestionIndex,
+                selectedAnswer: selectedIndex,
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            const error = await response.json();
+            showError(error.error);
+            return;
+          }
+
+          const result = await response.json();
+
+          // Show feedback
+          choiceButtons.forEach((button, index) => {
+            if (index === result.correctAnswer) {
+              button.classList.add("correct");
+            } else if (index === selectedIndex && !result.isCorrect) {
+              button.classList.add("incorrect");
+            }
+          });
+
+          // Show explanation if available
+          if (result.explanation) {
+            const explanationDiv = document.createElement("div");
+            explanationDiv.className = "explanation";
+            explanationDiv.innerHTML = `<strong>Explanation:</strong> ${result.explanation}`;
+            getElement("choicesContainer").appendChild(explanationDiv);
+          }
+
+          // Update score display
+          getElement("currentScore").textContent = result.currentScore;
+
+          getElement("nextButton").style.display = "block";
+
+          if (result.completed) {
+            getElement("nextButton").textContent = "View Results";
+            getElement("nextButton").onclick = showMissionCompleted;
+          } else {
+            currentQuestionIndex = result.nextQuestion;
+          }
+        } catch (error) {
+          console.error("Error submitting answer:", error);
+          showError("Error submitting answer");
+        }
+      }
+
+      function nextQuestion() {
+        displayCurrentQuestion();
+      }
+
+      function showMissionCompleted() {
+        showSuccess("Mission completed! Congratulations!");
+        hideMissionInterface();
+        loadMissions(); // Reload to update status
+      }
+
+      function viewMissionResults(missionId) {
+        // Implement view mission results
+        alert("Showing mission results for " + missionId);
+        // You can implement a detailed results view here
+      }
+
+      function formatDeadline(deadline) {
+        const deadlineDate = new Date(deadline);
+        const now = new Date();
+        const diffTime = deadlineDate - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) {
+          return "Expired";
+        } else if (diffDays === 0) {
+          return "Today";
+        } else if (diffDays === 1) {
+          return "Tomorrow";
+        } else if (diffDays <= 7) {
+          return `${diffDays} days left`;
+        } else {
+          return deadlineDate.toLocaleDateString();
+        }
+      }
+
+      function createNewMission() {
+        alert("Create new mission functionality - would open a modal");
+        // You can implement a modal for creating new missions here
+      }
+
+      function viewMissionDetails(missionId) {
+        console.log("Viewing mission details:", missionId);
+        // Implement view mission details logic
+        // This could show a modal with detailed mission information
+        alert(`Mission details for ${missionId} - would open a detailed view`);
+      }
+
+      // Utility functions
+      function getElement(id) {
+        return document.getElementById(id);
+      }
+
+      function showLoading(message = "Loading...") {
+        // Implement your loading indicator
+        console.log("Loading:", message);
+        // You can use a proper loading library or create a simple overlay
+      }
+
+      function hideLoading() {
+        // Implement hide loading indicator
+      }
+
+      function showSuccess(message) {
+        alert("Success: " + message);
+        // You can replace with a toast notification
+      }
+
+      function showError(message) {
+        alert("Error: " + message);
+        // You can replace with a toast notification
+      }
+
+      // Socket initialization (if needed)
+      function initializeSocket() {
+        // Only initialize if socket.io is available
+        if (typeof io !== "undefined") {
+          const socket = io();
+          // Add socket event listeners here if needed
+          socket.on("new-mission", (mission) => {
+            loadMissions(); // Reload missions when new one is created
+          });
+
+          socket.on("mission-deleted", (data) => {
+            loadMissions(); // Reload missions when one is deleted
+          });
+        }
+      }
+
+      // Initialize when DOM is loaded
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("DOM loaded, initializing missions...");
+        initializeSocket();
+        // Load missions initially if we're on the missions tab
+        if (document.getElementById("missions").classList.contains("active")) {
+          loadMissions();
+        }
+      });
+    </script>
+  </body>
+</html>
