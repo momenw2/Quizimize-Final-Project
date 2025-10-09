@@ -4,464 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Group Missions</title>
-    <style>
-      /* Mission Styles */
-      .missions-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid #e9ecef;
-      }
-
-      .missions-header h3 {
-        margin: 0;
-        color: #333;
-        font-size: 1.5rem;
-      }
-
-      .missions-stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 16px;
-        margin-bottom: 24px;
-      }
-
-      .stat-card {
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        text-align: center;
-      }
-
-      .stat-card h5 {
-        margin: 0 0 8px 0;
-        color: #666;
-        font-size: 0.9rem;
-        font-weight: 600;
-      }
-
-      .stat-card span {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #007bff;
-      }
-
-      .missions-list {
-        display: grid;
-        gap: 20px;
-      }
-
-      .mission-card {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        padding: 24px;
-        transition: transform 0.2s, box-shadow 0.2s;
-      }
-
-      .mission-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      }
-
-      .mission-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 16px;
-      }
-
-      .mission-header h4 {
-        margin: 0;
-        color: #333;
-        font-size: 1.25rem;
-        flex: 1;
-      }
-
-      .mission-status-container {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-      }
-
-      .mission-status {
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-      }
-
-      .mission-status.active {
-        background-color: #e8f5e8;
-        color: #2e7d32;
-      }
-
-      .mission-status.completed {
-        background-color: #e3f2fd;
-        color: #1565c0;
-      }
-
-      .mission-status.pending {
-        background-color: #fff3e0;
-        color: #ef6c00;
-      }
-
-      .mission-participant-badge {
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-      }
-
-      .mission-participant-badge.completed {
-        background-color: #e8f5e8;
-        color: #2e7d32;
-      }
-
-      .mission-participant-badge.in-progress {
-        background-color: #fff3e0;
-        color: #ef6c00;
-      }
-
-      .mission-content p {
-        margin: 0 0 16px 0;
-        color: #666;
-        line-height: 1.5;
-      }
-
-      .mission-meta {
-        margin-top: 16px;
-        padding-top: 16px;
-        border-top: 1px solid #eee;
-      }
-
-      .mission-info {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
-        font-size: 0.85rem;
-        color: #666;
-      }
-
-      .info-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      .info-item i {
-        font-style: normal;
-        font-size: 1rem;
-      }
-
-      .mission-actions {
-        display: flex;
-        gap: 12px;
-        margin-top: 20px;
-      }
-
-      .btn {
-        padding: 10px 20px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        font-weight: 600;
-        transition: all 0.2s;
-        text-decoration: none;
-        display: inline-block;
-        text-align: center;
-      }
-
-      .btn-primary {
-        background: #007bff;
-        color: white;
-      }
-
-      .btn-primary:hover {
-        background: #0056b3;
-      }
-
-      .btn-secondary {
-        background: #6c757d;
-        color: white;
-      }
-
-      .btn-secondary:hover {
-        background: #545b62;
-      }
-
-      .btn-success {
-        background: #28a745;
-        color: white;
-      }
-
-      .btn-success:hover {
-        background: #1e7e34;
-      }
-
-      .empty-state {
-        text-align: center;
-        padding: 60px 20px;
-        color: #666;
-      }
-
-      .empty-state i {
-        font-size: 3rem;
-        margin-bottom: 16px;
-        display: block;
-      }
-
-      .empty-state p {
-        margin: 0;
-        font-size: 1.1rem;
-      }
-
-      /* Mission Interface Styles */
-      .mission-interface {
-        display: none;
-      }
-
-      .mission-quiz-container {
-        max-width: 800px;
-        margin: 0 auto;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-      }
-
-      .quiz-header {
-        background: #f8f9fa;
-        padding: 20px;
-        border-bottom: 1px solid #dee2e6;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 16px;
-      }
-
-      .quiz-header h3 {
-        margin: 0;
-        color: #333;
-        flex: 1;
-      }
-
-      .quiz-progress {
-        font-weight: 600;
-        color: #666;
-        background: white;
-        padding: 8px 16px;
-        border-radius: 20px;
-        border: 1px solid #dee2e6;
-      }
-
-      .quiz-content {
-        padding: 30px;
-      }
-
-      .question-card {
-        margin-bottom: 30px;
-      }
-
-      .question-card h4 {
-        margin-bottom: 24px;
-        color: #333;
-        line-height: 1.5;
-        font-size: 1.25rem;
-      }
-
-      .choices-container {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-
-      .choice-btn {
-        display: flex;
-        align-items: center;
-        padding: 16px 20px;
-        border: 2px solid #e9ecef;
-        border-radius: 8px;
-        background: white;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-align: left;
-        width: 100%;
-      }
-
-      .choice-btn:hover {
-        border-color: #007bff;
-        background: #f8f9fa;
-      }
-
-      .choice-btn.correct {
-        border-color: #28a745;
-        background: #d4edda;
-        color: #155724;
-      }
-
-      .choice-btn.incorrect {
-        border-color: #dc3545;
-        background: #f8d7da;
-        color: #721c24;
-      }
-
-      .choice-btn:disabled {
-        cursor: not-allowed;
-        opacity: 0.8;
-      }
-
-      .choice-letter {
-        font-weight: bold;
-        margin-right: 16px;
-        color: #666;
-        min-width: 24px;
-        text-align: center;
-      }
-
-      .choice-btn.correct .choice-letter,
-      .choice-btn.incorrect .choice-letter {
-        color: inherit;
-      }
-
-      .choice-text {
-        flex: 1;
-        font-size: 1rem;
-      }
-
-      .explanation {
-        margin-top: 20px;
-        padding: 16px;
-        background: #e7f3ff;
-        border-radius: 8px;
-        border-left: 4px solid #007bff;
-        color: #004085;
-      }
-
-      .explanation strong {
-        color: #002752;
-      }
-
-      .quiz-actions {
-        display: flex;
-        justify-content: flex-end;
-        margin-top: 30px;
-      }
-
-      .btn-back {
-        background: #6c757d;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        font-weight: 600;
-      }
-
-      .btn-back:hover {
-        background: #5a6268;
-      }
-
-      /* Score Display */
-      .score-display {
-        background: #fff3cd;
-        border: 1px solid #ffeaa7;
-        border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 20px;
-        text-align: center;
-        font-weight: 600;
-        color: #856404;
-      }
-
-      /* Responsive Design */
-      @media (max-width: 768px) {
-        .missions-header {
-          flex-direction: column;
-          gap: 16px;
-          align-items: stretch;
-        }
-
-        .missions-stats {
-          grid-template-columns: 1fr;
-        }
-
-        .mission-header {
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .mission-status-container {
-          align-self: flex-start;
-        }
-
-        .mission-actions {
-          flex-direction: column;
-        }
-
-        .mission-info {
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .quiz-header {
-          flex-direction: column;
-          text-align: center;
-        }
-
-        .quiz-header h3 {
-          order: 2;
-        }
-
-        .btn-back {
-          order: 1;
-          align-self: flex-start;
-        }
-
-        .quiz-progress {
-          order: 3;
-        }
-      }
-
-      /* Tab Styles */
-      .tab-content {
-        display: none;
-        padding: 20px;
-      }
-
-      .tab-content.active {
-        display: block;
-      }
-
-      .tab-buttons {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-        border-bottom: 1px solid #ddd;
-      }
-
-      .tab-btn {
-        padding: 10px 20px;
-        background: #f8f9fa;
-        border: none;
-        border-radius: 4px 4px 0 0;
-        cursor: pointer;
-      }
-
-      .tab-btn.active {
-        background: #007bff;
-        color: white;
-      }
-    </style>
   </head>
   <body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-spinner">
+        <span id="loadingMessage">Loading...</span>
+      </div>
+    </div>
+
     <!-- Missions Tab -->
     <div id="missions" class="tab-content active">
       <div class="missions-header">
@@ -500,33 +54,42 @@
       const missionUserId = '<%= user ? user._id : "current_user" %>';
       const missionGroupId = '<%= group ? group._id : "group_id" %>';
 
-      // Tab navigation function
-      function showTab(tabName) {
-        // Hide all tab contents
-        const tabContents = document.querySelectorAll(".tab-content");
-        tabContents.forEach((tab) => {
-          tab.classList.remove("active");
-        });
+      // Toast Notification System
+      function showToast(message, type = "info", duration = 4000) {
+        const toastContainer = getElement("toastContainer");
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `
+          <div class="toast-message">${message}</div>
+          <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+        `;
 
-        // Remove active class from all tab buttons
-        const tabButtons = document.querySelectorAll(".tab-btn");
-        tabButtons.forEach((button) => {
-          button.classList.remove("active");
-        });
+        toastContainer.appendChild(toast);
 
-        // Show the selected tab
-        const selectedTab = document.getElementById(tabName);
-        if (selectedTab) {
-          selectedTab.classList.add("active");
-        }
+        // Auto remove after duration
+        setTimeout(() => {
+          if (toast.parentElement) {
+            toast.style.animation = "slideOut 0.3s ease-out";
+            setTimeout(() => {
+              if (toast.parentElement) {
+                toast.remove();
+              }
+            }, 300);
+          }
+        }, duration);
+      }
 
-        // Activate the clicked button
-        event.currentTarget.classList.add("active");
+      // Loading Overlay System
+      function showLoading(message = "Loading...") {
+        const overlay = getElement("loadingOverlay");
+        const messageEl = getElement("loadingMessage");
+        messageEl.textContent = message;
+        overlay.style.display = "flex";
+      }
 
-        // Load missions if missions tab is shown
-        if (tabName === "missions") {
-          loadMissions();
-        }
+      function hideLoading() {
+        const overlay = getElement("loadingOverlay");
+        overlay.style.display = "none";
       }
 
       // Missions-specific JavaScript
@@ -538,7 +101,7 @@
           updateMissionStats(missions);
         } catch (error) {
           console.error("Error loading missions:", error);
-          showError("Failed to load missions");
+          showToast("Failed to load missions", "error");
         }
       }
 
@@ -742,16 +305,16 @@
 
           if (response.ok) {
             const result = await response.json();
-            showSuccess("Successfully joined the mission!");
+            showToast("Successfully joined the mission!", "success");
             loadMissions(); // Reload missions to update UI
             setTimeout(() => startMission(missionId), 1000); // Start the mission after a brief delay
           } else {
             const error = await response.json();
-            showError(error.error);
+            showToast(error.error, "error");
           }
         } catch (error) {
           console.error("Error joining mission:", error);
-          showError("Error joining mission");
+          showToast("Error joining mission", "error");
         } finally {
           hideLoading();
         }
@@ -771,7 +334,7 @@
 
           if (!response.ok) {
             const error = await response.json();
-            showError(error.error);
+            showToast(error.error, "error");
             return;
           }
 
@@ -784,7 +347,7 @@
           displayCurrentQuestion();
         } catch (error) {
           console.error("Error starting mission:", error);
-          showError("Error starting mission");
+          showToast("Error starting mission", "error");
         } finally {
           hideLoading();
         }
@@ -927,7 +490,7 @@
 
           if (!response.ok) {
             const error = await response.json();
-            showError(error.error);
+            showToast(error.error, "error");
             return;
           }
 
@@ -963,7 +526,7 @@
           }
         } catch (error) {
           console.error("Error submitting answer:", error);
-          showError("Error submitting answer");
+          showToast("Error submitting answer", "error");
         }
       }
 
@@ -972,14 +535,14 @@
       }
 
       function showMissionCompleted() {
-        showSuccess("Mission completed! Congratulations!");
+        showToast("Mission completed! Congratulations!", "success");
         hideMissionInterface();
         loadMissions(); // Reload to update status
       }
 
       function viewMissionResults(missionId) {
         // Implement view mission results
-        alert("Showing mission results for " + missionId);
+        showToast("Loading mission results...", "info");
         // You can implement a detailed results view here
       }
 
@@ -1003,40 +566,23 @@
       }
 
       function createNewMission() {
-        alert("Create new mission functionality - would open a modal");
+        showToast(
+          "Create new mission functionality - would open a modal",
+          "info"
+        );
         // You can implement a modal for creating new missions here
       }
 
       function viewMissionDetails(missionId) {
         console.log("Viewing mission details:", missionId);
+        showToast("Loading mission details...", "info");
         // Implement view mission details logic
         // This could show a modal with detailed mission information
-        alert(`Mission details for ${missionId} - would open a detailed view`);
       }
 
       // Utility functions
       function getElement(id) {
         return document.getElementById(id);
-      }
-
-      function showLoading(message = "Loading...") {
-        // Implement your loading indicator
-        console.log("Loading:", message);
-        // You can use a proper loading library or create a simple overlay
-      }
-
-      function hideLoading() {
-        // Implement hide loading indicator
-      }
-
-      function showSuccess(message) {
-        alert("Success: " + message);
-        // You can replace with a toast notification
-      }
-
-      function showError(message) {
-        alert("Error: " + message);
-        // You can replace with a toast notification
       }
 
       // Socket initialization (if needed)
@@ -1046,10 +592,12 @@
           const socket = io();
           // Add socket event listeners here if needed
           socket.on("new-mission", (mission) => {
+            showToast("New mission created!", "info");
             loadMissions(); // Reload missions when new one is created
           });
 
           socket.on("mission-deleted", (data) => {
+            showToast("Mission deleted", "info");
             loadMissions(); // Reload missions when one is deleted
           });
         }
