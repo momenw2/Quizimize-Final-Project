@@ -519,10 +519,19 @@
           getElement("nextButton").style.display = "block";
 
           if (result.completed) {
-            getElement("nextButton").textContent = "View Results";
+            getElement("nextButton").textContent = "Complete Mission";
             getElement("nextButton").onclick = showMissionCompleted;
+
+            // Auto-complete after 3 seconds
+            setTimeout(() => {
+              if (getElement("nextButton").textContent === "Complete Mission") {
+                showMissionCompleted();
+              }
+            }, 3000);
           } else {
             currentQuestionIndex = result.nextQuestion;
+            getElement("nextButton").textContent = "Next Question";
+            getElement("nextButton").onclick = nextQuestion;
           }
         } catch (error) {
           console.error("Error submitting answer:", error);
@@ -534,10 +543,61 @@
         displayCurrentQuestion();
       }
 
-      function showMissionCompleted() {
-        showToast("Mission completed! Congratulations!", "success");
-        hideMissionInterface();
-        loadMissions(); // Reload to update status
+      async function showMissionCompleted() {
+        try {
+          showLoading("Calculating your rewards...");
+
+          // Get the final mission progress to calculate XP
+          const progressResponse = await fetch(
+            `/groups/${missionGroupId}/missions/${currentMissionId}/progress`
+          );
+
+          if (progressResponse.ok) {
+            const progressData = await progressResponse.json();
+
+            // Calculate total points earned (mission points based on score percentage)
+            const scorePercentage =
+              (progressData.progress.score / progressData.mission.points) * 100;
+            const pointsEarned = Math.floor(
+              (scorePercentage / 100) * progressData.mission.points
+            );
+
+            // Add XP reward to group (50% of mission points)
+            const xpResponse = await fetch(
+              `/groups/${missionGroupId}/missions/${currentMissionId}/complete`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  score: progressData.progress.score,
+                  totalPoints: pointsEarned,
+                }),
+              }
+            );
+
+            if (xpResponse.ok) {
+              const xpResult = await xpResponse.json();
+              showToast(
+                `Mission completed! You earned ${pointsEarned} points and ${xpResult.xpReward} XP for the group!`,
+                "success"
+              );
+            } else {
+              showToast(
+                "Mission completed! Could not add XP reward.",
+                "warning"
+              );
+            }
+          }
+        } catch (error) {
+          console.error("Error completing mission:", error);
+          showToast("Mission completed! Error calculating rewards.", "warning");
+        } finally {
+          hideLoading();
+          hideMissionInterface();
+          loadMissions(); // Reload to update status
+        }
       }
 
       function viewMissionResults(missionId) {

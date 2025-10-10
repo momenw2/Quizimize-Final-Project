@@ -191,7 +191,7 @@ router.get("/:id/posts", requireAuth, async (req, res) => {
   }
 });
 
-// POST create a new post
+// POST create a new post (with XP reward)
 router.post("/:id/posts", requireAuth, async (req, res) => {
   try {
     console.log("=== POST CREATION STARTED ===");
@@ -234,12 +234,40 @@ router.post("/:id/posts", requireAuth, async (req, res) => {
     await post.populate("author", "fullName level");
     console.log("Post populated:", post);
 
+    // Add XP reward for post creation (15 XP)
+    const xpResult = await group.addXp(15, "post_creation", {
+      postId: post._id,
+      author: res.locals.user._id,
+      authorName: res.locals.user.fullName,
+    });
+
+    console.log("XP added for post creation:", xpResult);
+
     // Emit to all group members
     if (io) {
       io.to(req.params.id).emit("new-post", post);
-      console.log("Socket event emitted");
-    } else {
-      console.log("Socket.io not available");
+
+      // Emit XP update
+      io.to(req.params.id).emit("group-xp-updated", {
+        level: group.level,
+        xp: group.xp,
+        totalXp: group.totalXp,
+        requiredXp: group.requiredXp,
+        recentXp: {
+          amount: 15,
+          source: "Post Created",
+          user: res.locals.user.fullName,
+        },
+      });
+
+      if (xpResult.leveledUp) {
+        io.to(req.params.id).emit("group-level-up", {
+          level: group.level,
+          xp: group.xp,
+          totalXp: group.totalXp,
+          requiredXp: group.requiredXp,
+        });
+      }
     }
 
     console.log("=== POST CREATION COMPLETED ===");
@@ -254,7 +282,7 @@ router.post("/:id/posts", requireAuth, async (req, res) => {
   }
 });
 
-// POST add comment to a post
+// POST add comment to a post (with XP reward)
 router.post("/posts/:postId/comments", requireAuth, async (req, res) => {
   try {
     console.log("=== COMMENT CREATION STARTED ===");
@@ -303,6 +331,43 @@ router.post("/posts/:postId/comments", requireAuth, async (req, res) => {
     });
     console.log("Comment added to post");
 
+    // Add XP reward for comment creation (10 XP)
+    const group = await Group.findById(post.groupId);
+    if (group) {
+      const xpResult = await group.addXp(10, "comment_creation", {
+        commentId: comment._id,
+        postId: post._id,
+        author: res.locals.user._id,
+        authorName: res.locals.user.fullName,
+      });
+
+      console.log("XP added for comment creation:", xpResult);
+
+      // Emit XP update
+      if (io) {
+        io.to(post.groupId.toString()).emit("group-xp-updated", {
+          level: group.level,
+          xp: group.xp,
+          totalXp: group.totalXp,
+          requiredXp: group.requiredXp,
+          recentXp: {
+            amount: 10,
+            source: "Comment Created",
+            user: res.locals.user.fullName,
+          },
+        });
+
+        if (xpResult.leveledUp) {
+          io.to(post.groupId.toString()).emit("group-level-up", {
+            level: group.level,
+            xp: group.xp,
+            totalXp: group.totalXp,
+            requiredXp: group.requiredXp,
+          });
+        }
+      }
+    }
+
     // Emit to all group members
     if (io) {
       io.to(post.groupId.toString()).emit("new-comment", {
@@ -310,8 +375,6 @@ router.post("/posts/:postId/comments", requireAuth, async (req, res) => {
         postId: req.params.postId,
       });
       console.log("Socket event emitted for new comment");
-    } else {
-      console.log("Socket.io not available for comment");
     }
 
     console.log("=== COMMENT CREATION COMPLETED ===");
@@ -326,7 +389,7 @@ router.post("/posts/:postId/comments", requireAuth, async (req, res) => {
   }
 });
 
-// POST vote on a post
+// POST vote on a post (with XP reward)
 router.post("/posts/:postId/vote", requireAuth, async (req, res) => {
   try {
     console.log("=== VOTE PROCESSING STARTED ===");
@@ -367,6 +430,7 @@ router.post("/posts/:postId/vote", requireAuth, async (req, res) => {
     );
 
     let voteChange = 0;
+    let xpToAdd = 0;
 
     if (existingVoteIndex !== -1) {
       const existingVote = post.voters[existingVoteIndex];
@@ -386,6 +450,11 @@ router.post("/posts/:postId/vote", requireAuth, async (req, res) => {
       post.voters.push({ userId, voteType });
       voteChange += voteType === "up" ? 1 : -1;
       console.log("Added new vote, vote change:", voteChange);
+
+      // Add XP only for new upvotes
+      if (voteType === "up") {
+        xpToAdd = 5;
+      }
     }
 
     post.votes += voteChange;
@@ -393,6 +462,44 @@ router.post("/posts/:postId/vote", requireAuth, async (req, res) => {
 
     await post.save();
     console.log("Post saved with updated votes");
+
+    // Add XP reward for upvote (5 XP)
+    if (xpToAdd > 0) {
+      const group = await Group.findById(post.groupId);
+      if (group) {
+        const xpResult = await group.addXp(xpToAdd, "upvote", {
+          postId: post._id,
+          voter: res.locals.user._id,
+          voterName: res.locals.user.fullName,
+        });
+
+        console.log("XP added for upvote:", xpResult);
+
+        // Emit XP update
+        if (io) {
+          io.to(post.groupId.toString()).emit("group-xp-updated", {
+            level: group.level,
+            xp: group.xp,
+            totalXp: group.totalXp,
+            requiredXp: group.requiredXp,
+            recentXp: {
+              amount: xpToAdd,
+              source: "Upvote Given",
+              user: res.locals.user.fullName,
+            },
+          });
+
+          if (xpResult.leveledUp) {
+            io.to(post.groupId.toString()).emit("group-level-up", {
+              level: group.level,
+              xp: group.xp,
+              totalXp: group.totalXp,
+              requiredXp: group.requiredXp,
+            });
+          }
+        }
+      }
+    }
 
     // Emit vote update
     if (io) {
@@ -418,7 +525,7 @@ router.post("/posts/:postId/vote", requireAuth, async (req, res) => {
   }
 });
 
-// POST join a group
+// POST join a group (with XP reward)
 router.post("/:id/join", requireAuth, async (req, res) => {
   try {
     console.log("=== JOIN GROUP REQUEST ===");
@@ -460,7 +567,15 @@ router.post("/:id/join", requireAuth, async (req, res) => {
     // Populate the updated members list
     await group.populate("members.user", "fullName level email");
 
-    // Emit socket event for real-time update (if needed)
+    // Add XP reward for new member (25 XP)
+    const xpResult = await group.addXp(25, "new_member", {
+      newMemberId: userId,
+      newMemberName: res.locals.user.fullName,
+    });
+
+    console.log("XP added for new member:", xpResult);
+
+    // Emit socket event for real-time update
     if (io) {
       io.to(groupId).emit("member-joined", {
         groupId: groupId,
@@ -470,6 +585,28 @@ router.post("/:id/join", requireAuth, async (req, res) => {
         },
         totalMembers: group.members.length,
       });
+
+      // Emit XP update
+      io.to(groupId).emit("group-xp-updated", {
+        level: group.level,
+        xp: group.xp,
+        totalXp: group.totalXp,
+        requiredXp: group.requiredXp,
+        recentXp: {
+          amount: 25,
+          source: "New Member Joined",
+          user: res.locals.user.fullName,
+        },
+      });
+
+      if (xpResult.leveledUp) {
+        io.to(groupId).emit("group-level-up", {
+          level: group.level,
+          xp: group.xp,
+          totalXp: group.totalXp,
+          requiredXp: group.requiredXp,
+        });
+      }
     }
 
     console.log("User joined group successfully");
@@ -1233,6 +1370,72 @@ router.post(
   }
 );
 
+// Mission completion with XP reward (50% of mission points)
+router.post(
+  "/:groupId/missions/:missionId/complete",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const { groupId, missionId } = req.params;
+      const userId = res.locals.user._id;
+      const { score, totalPoints } = req.body;
+
+      const group = await Group.findById(groupId);
+      if (!group) {
+        return res.status(404).json({ error: "Group not found" });
+      }
+
+      // Calculate XP reward (50% of mission points)
+      const xpReward = Math.floor(totalPoints * 0.5);
+
+      // Add XP reward for mission completion
+      const xpResult = await group.addXp(xpReward, "mission_completion", {
+        missionId: missionId,
+        userId: userId,
+        userName: res.locals.user.fullName,
+        missionScore: score,
+        missionPoints: totalPoints,
+        xpReward: xpReward,
+      });
+
+      console.log("XP added for mission completion:", xpResult);
+
+      // Emit XP update
+      if (io) {
+        io.to(groupId).emit("group-xp-updated", {
+          level: group.level,
+          xp: group.xp,
+          totalXp: group.totalXp,
+          requiredXp: group.requiredXp,
+          recentXp: {
+            amount: xpReward,
+            source: "Mission Completed",
+            user: res.locals.user.fullName,
+            missionPoints: totalPoints,
+          },
+        });
+
+        if (xpResult.leveledUp) {
+          io.to(groupId).emit("group-level-up", {
+            level: group.level,
+            xp: group.xp,
+            totalXp: group.totalXp,
+            requiredXp: group.requiredXp,
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        xpReward: xpReward,
+        missionCompleted: true,
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
 // Get mission progress
 router.get(
   "/:groupId/missions/:missionId/progress",
@@ -1305,5 +1508,83 @@ async function updateUserPoints(userId, points) {
   // Example: await User.findByIdAndUpdate(userId, { $inc: { points: points } });
   console.log(`Adding ${points} points to user ${userId}`);
 }
+
+// Add XP to group
+router.post("/:id/add-xp", requireAuth, async (req, res) => {
+  try {
+    const groupId = req.params.id;
+    const { amount } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: "Valid XP amount is required" });
+    }
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    // Check if user is member of the group
+    const isMember = group.members.some(
+      (member) => member.user.toString() === res.locals.user._id.toString()
+    );
+
+    if (!isMember) {
+      return res
+        .status(403)
+        .json({ error: "Access denied. Group members only." });
+    }
+
+    const result = await group.addXp(amount);
+
+    // Emit socket event for real-time update
+    if (io) {
+      io.to(groupId).emit("group-xp-updated", {
+        level: group.level,
+        xp: group.xp,
+        totalXp: group.totalXp,
+        requiredXp: group.requiredXp,
+      });
+
+      if (result.leveledUp) {
+        io.to(groupId).emit("group-level-up", {
+          level: group.level,
+          xp: group.xp,
+          totalXp: group.totalXp,
+          requiredXp: group.requiredXp,
+        });
+      }
+    }
+
+    res.json({
+      level: group.level,
+      xp: group.xp,
+      totalXp: group.totalXp,
+      requiredXp: group.requiredXp,
+      leveledUp: result.leveledUp,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get group XP info
+router.get("/:id/xp", requireAuth, async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    res.json({
+      level: group.level,
+      xp: group.xp,
+      totalXp: group.totalXp,
+      requiredXp: group.requiredXp,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 module.exports = router;
