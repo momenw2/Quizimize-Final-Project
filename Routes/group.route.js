@@ -1327,6 +1327,9 @@ router.post(
       const question = questions[questionIndex];
       const isCorrect = selectedAnswer === question.correctAnswer;
 
+      // Calculate points per question - each correct answer gives points
+      const pointsPerQuestion = Math.floor(mission.points / questions.length);
+
       // Record answer
       participant.answers.push({
         questionIndex,
@@ -1335,9 +1338,9 @@ router.post(
         answeredAt: new Date(),
       });
 
-      // Update score
+      // Update score - user earns points for each correct answer
       if (isCorrect) {
-        participant.score += Math.floor(mission.points / questions.length);
+        participant.score += pointsPerQuestion;
       }
 
       // Move to next question
@@ -1347,8 +1350,8 @@ router.post(
       if (participant.currentQuestion >= questions.length) {
         participant.completed = true;
 
-        // Update user points (you'll need to implement this in your User model)
-        await updateUserPoints(userId, participant.score);
+        // Update user mission completion status
+        // The actual XP will be added in the complete endpoint
       }
 
       await mission.save();
@@ -1358,6 +1361,7 @@ router.post(
         correctAnswer: question.correctAnswer,
         explanation: question.explanation,
         currentScore: participant.score,
+        pointsEarned: isCorrect ? pointsPerQuestion : 0,
         completed: participant.completed,
         nextQuestion:
           participant.currentQuestion < questions.length
@@ -1370,7 +1374,7 @@ router.post(
   }
 );
 
-// Mission completion with XP reward (50% of mission points)
+// Mission completion with XP reward (User: 100% of earned points, Group: 50% of earned points)
 router.post(
   "/:groupId/missions/:missionId/complete",
   requireAuth,
@@ -1380,42 +1384,127 @@ router.post(
       const userId = res.locals.user._id;
       const { score, totalPoints } = req.body;
 
+      console.log(`🎯 Mission completion started:`);
+      console.log(
+        `User: ${userId}, Score: ${score}, Total Points: ${totalPoints}`
+      );
+
       const group = await Group.findById(groupId);
       if (!group) {
         return res.status(404).json({ error: "Group not found" });
       }
 
-      // Calculate XP reward (50% of mission points)
-      const xpReward = Math.floor(totalPoints * 0.5);
+      // Get the mission details
+      const mission = await Mission.findById(missionId);
+      if (!mission) {
+        return res.status(404).json({ error: "Mission not found" });
+      }
 
-      // Add XP reward for mission completion
-      const xpResult = await group.addXp(xpReward, "mission_completion", {
-        missionId: missionId,
-        userId: userId,
-        userName: res.locals.user.fullName,
-        missionScore: score,
-        missionPoints: totalPoints,
-        xpReward: xpReward,
-      });
+      // Calculate XP rewards - USER GETS 100%, GROUP GETS 50% OF EARNED POINTS
+      const userXpReward = totalPoints; // User gets 100% of what they earned
+      const groupXpReward = Math.floor(totalPoints * 0.5); // Group gets 50% of what user earned
 
-      console.log("XP added for mission completion:", xpResult);
+      console.log(`💰 XP Distribution:`);
+      console.log(`User gets: ${userXpReward} XP (100%)`);
+      console.log(`Group gets: ${groupXpReward} XP (50%)`);
 
-      // Emit XP update
-      if (io) {
+      // Add XP reward to USER for mission completion (100% of earned points)
+      const User = require("../Models/User.model");
+      const user = await User.findById(userId);
+
+      let userXpResult = null;
+      if (user) {
+        console.log(
+          `👤 User before XP: ${user.fullName}, Level: ${user.level}, XP: ${
+            user.xp
+          }/${user.getRequiredXp()}, Total XP: ${user.totalXp}`
+        );
+
+        userXpResult = await user.addXp(userXpReward, "mission_completion", {
+          missionId: missionId,
+          missionTitle: mission.title,
+          groupId: groupId,
+          score: score,
+          totalPoints: totalPoints,
+        });
+
+        console.log(
+          `✅ User after XP: Level: ${user.level}, XP: ${
+            user.xp
+          }/${user.getRequiredXp()}, Total XP: ${user.totalXp}`
+        );
+      } else {
+        console.log("❌ User not found!");
+      }
+
+      // Add XP reward to GROUP for mission completion (50% of user's earnings)
+      let groupXpResult = null;
+      if (group) {
+        console.log(
+          `👥 Group before XP: ${group.name}, Level: ${group.level}, XP: ${group.xp}`
+        );
+
+        groupXpResult = await group.addXp(groupXpReward, "mission_completion", {
+          missionId: missionId,
+          userId: userId,
+          userName: res.locals.user.fullName,
+          missionScore: score,
+          userPointsEarned: totalPoints,
+          groupXpReward: groupXpReward,
+        });
+
+        console.log(
+          `✅ Group after XP: Level: ${group.level}, XP: ${group.xp}`
+        );
+      }
+
+      // Get user level progress for response
+      const userProgress = user ? user.getLevelProgress() : null;
+
+      // Emit USER XP update
+      if (io && user) {
+        io.to(userId.toString()).emit("user-xp-updated", {
+          level: user.level,
+          xp: user.xp,
+          totalXp: user.totalXp,
+          requiredXp: user.getRequiredXp(),
+          progress: userProgress ? userProgress.progress : 0,
+          recentXp: {
+            amount: userXpReward,
+            source: "Mission Completed",
+            missionTitle: mission.title,
+            missionScore: score,
+          },
+        });
+
+        if (userXpResult && userXpResult.leveledUp) {
+          io.to(userId.toString()).emit("user-level-up", {
+            level: user.level,
+            xp: user.xp,
+            totalXp: user.totalXp,
+            requiredXp: user.getRequiredXp(),
+            levelsGained: userXpResult.levelsGained,
+            progress: userProgress ? userProgress.progress : 0,
+          });
+        }
+      }
+
+      // Emit GROUP XP update
+      if (io && group) {
         io.to(groupId).emit("group-xp-updated", {
           level: group.level,
           xp: group.xp,
           totalXp: group.totalXp,
           requiredXp: group.requiredXp,
           recentXp: {
-            amount: xpReward,
+            amount: groupXpReward,
             source: "Mission Completed",
             user: res.locals.user.fullName,
-            missionPoints: totalPoints,
+            userPoints: totalPoints,
           },
         });
 
-        if (xpResult.leveledUp) {
+        if (groupXpResult && groupXpResult.leveledUp) {
           io.to(groupId).emit("group-level-up", {
             level: group.level,
             xp: group.xp,
@@ -1427,10 +1516,23 @@ router.post(
 
       res.json({
         success: true,
-        xpReward: xpReward,
+        userXpReward: userXpReward,
+        groupXpReward: groupXpReward,
         missionCompleted: true,
+        userLevel: user ? user.level : null,
+        userXp: user ? user.xp : null,
+        userTotalXp: user ? user.totalXp : null,
+        userRequiredXp: user ? user.getRequiredXp() : null,
+        userProgress: userProgress ? userProgress.progress : null,
+        groupLevel: group ? group.level : null,
+        groupXp: group ? group.xp : null,
+        pointsEarned: totalPoints,
+        missionScore: score,
+        leveledUp: userXpResult ? userXpResult.leveledUp : false,
+        levelsGained: userXpResult ? userXpResult.levelsGained : 0,
       });
     } catch (error) {
+      console.error("❌ Error in mission completion:", error);
       res.status(500).json({ error: error.message });
     }
   }

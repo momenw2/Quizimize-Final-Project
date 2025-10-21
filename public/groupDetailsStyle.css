@@ -2147,3 +2147,49 @@
   font-weight: 600;
   color: #856404;
 }
+
+.points-earned {
+  background: linear-gradient(135deg, #4caf50, #45a049);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 25px;
+  font-weight: bold;
+  text-align: center;
+  margin: 10px 0;
+  animation: bounce 0.5s ease-in-out;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+@keyframes bounce {
+  0%,
+  20%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  80% {
+    transform: translateY(-5px);
+  }
+}
+
+.user-xp-display {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 10px;
+  border-radius: 10px;
+  margin-left: 20px;
+}
+
+.user-stats h5 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  font-size: 0.9em;
+}

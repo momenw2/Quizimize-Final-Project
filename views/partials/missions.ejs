@@ -505,6 +505,14 @@
             }
           });
 
+          // Show points earned for this question
+          if (result.isCorrect && result.pointsEarned > 0) {
+            const pointsDisplay = document.createElement("div");
+            pointsDisplay.className = "points-earned";
+            pointsDisplay.innerHTML = `+${result.pointsEarned} XP!`;
+            getElement("choicesContainer").appendChild(pointsDisplay);
+          }
+
           // Show explanation if available
           if (result.explanation) {
             const explanationDiv = document.createElement("div");
@@ -555,14 +563,11 @@
           if (progressResponse.ok) {
             const progressData = await progressResponse.json();
 
-            // Calculate total points earned (mission points based on score percentage)
-            const scorePercentage =
-              (progressData.progress.score / progressData.mission.points) * 100;
-            const pointsEarned = Math.floor(
-              (scorePercentage / 100) * progressData.mission.points
-            );
+            // The score already represents the total points earned
+            const pointsEarned = progressData.progress.score;
+            console.log(`🎯 Mission completed! Points earned: ${pointsEarned}`);
 
-            // Add XP reward to group (50% of mission points)
+            // Add XP reward to user (100% of earned points) and group (50% of earned points)
             const xpResponse = await fetch(
               `/groups/${missionGroupId}/missions/${currentMissionId}/complete`,
               {
@@ -579,19 +584,79 @@
 
             if (xpResponse.ok) {
               const xpResult = await xpResponse.json();
-              showToast(
-                `Mission completed! You earned ${pointsEarned} points and ${xpResult.xpReward} XP for the group!`,
-                "success"
+              console.log("📊 XP Result:", xpResult);
+
+              // Show user rewards
+              let rewardMessage = `🎉 Mission Completed! You earned ${pointsEarned} XP!`;
+
+              if (xpResult.groupXpReward > 0) {
+                rewardMessage += ` Your group earned ${xpResult.groupXpReward} XP!`;
+              }
+
+              showToast(rewardMessage, "success", 5000);
+
+              // If user leveled up, show level up message
+              if (xpResult.leveledUp) {
+                setTimeout(() => {
+                  if (xpResult.levelsGained > 1) {
+                    showToast(
+                      `🚀 Amazing! You jumped ${xpResult.levelsGained} levels to Level ${xpResult.userLevel}!`,
+                      "success",
+                      7000
+                    );
+                  } else {
+                    showToast(
+                      `⭐ Level Up! You reached Level ${xpResult.userLevel}!`,
+                      "success",
+                      6000
+                    );
+                  }
+
+                  // Show progress info
+                  setTimeout(() => {
+                    showToast(
+                      `📊 Progress: ${xpResult.userXp}/${
+                        xpResult.userRequiredXp
+                      } XP to Level ${xpResult.userLevel + 1}`,
+                      "info",
+                      5000
+                    );
+                  }, 2000);
+                }, 2000);
+              } else {
+                // Show progress toward next level
+                setTimeout(() => {
+                  showToast(
+                    `📊 Progress to Level ${xpResult.userLevel + 1}: ${
+                      xpResult.userXp
+                    }/${xpResult.userRequiredXp} XP`,
+                    "info",
+                    5000
+                  );
+                }, 2000);
+              }
+
+              // Log the results for debugging
+              console.log("👤 User Level:", xpResult.userLevel);
+              console.log("👤 User XP:", xpResult.userXp);
+              console.log("👤 User Total XP:", xpResult.userTotalXp);
+              console.log(
+                "👤 Required XP for next level:",
+                xpResult.userRequiredXp
               );
+              console.log("👥 Group Level:", xpResult.groupLevel);
+              console.log("👥 Group XP:", xpResult.groupXp);
             } else {
+              const error = await xpResponse.json();
+              console.error("❌ XP Error:", error);
               showToast(
-                "Mission completed! Could not add XP reward.",
+                "Mission completed! Could not process rewards.",
                 "warning"
               );
             }
           }
         } catch (error) {
-          console.error("Error completing mission:", error);
+          console.error("❌ Error completing mission:", error);
           showToast("Mission completed! Error calculating rewards.", "warning");
         } finally {
           hideLoading();
