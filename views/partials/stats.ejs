@@ -2,121 +2,316 @@
 <div id="stats" class="tab-content" style="display: none">
   <div class="stats-header">
     <h3>Group Statistics</h3>
-    <div class="time-filter">
-      <select id="statsTimeRange" onchange="loadStats()">
-        <option value="7days">Last 7 Days</option>
-        <option value="30days">Last 30 Days</option>
-        <option value="90days">Last 90 Days</option>
-        <option value="alltime">All Time</option>
-      </select>
-    </div>
   </div>
 
   <div class="stats-container">
-    <div class="stats-grid">
-      <div class="stat-card large">
-        <h5>Activity Overview</h5>
-        <div class="stat-value" id="totalActivity">0</div>
-        <div class="stat-trend" id="activityTrend">+0% from last period</div>
-      </div>
+    <!-- Personal Stats Section -->
+    <div class="stats-section">
+      <h4>Your Personal Stats</h4>
+      <div class="stats-grid">
+        <div class="stat-card-statsPage personal">
+          <h5>Missions Joined</h5>
+          <div class="stat-value" id="userMissionsJoined">0</div>
+          <div class="stat-subtitle">Total missions participated</div>
+        </div>
 
-      <div class="stat-card">
-        <h5>Posts Created</h5>
-        <div class="stat-value" id="postsCount">0</div>
-      </div>
-
-      <div class="stat-card">
-        <h5>Comments</h5>
-        <div class="stat-value" id="commentsCount">0</div>
-      </div>
-
-      <div class="stat-card">
-        <h5>Active Members</h5>
-        <div class="stat-value" id="activeMembers">0</div>
+        <div class="stat-card-statsPage personal">
+          <h5>Success Rate</h5>
+          <div class="stat-value" id="userSuccessRate">0%</div>
+          <div class="stat-subtitle">Average correct answers</div>
+        </div>
       </div>
     </div>
 
-    <div class="charts-section">
-      <div class="chart-container">
-        <h5>Activity Over Time</h5>
-        <canvas id="activityChart"></canvas>
-      </div>
+    <!-- Group Stats Section -->
+    <div class="stats-section">
+      <h4>Group Overview</h4>
+      <div class="stats-grid">
+        <div class="stat-card-statsPage">
+          <h5>Group Level</h5>
+          <div class="stat-value" id="groupLevel">1</div>
+          <div class="stat-subtitle">Current level</div>
+        </div>
 
-      <div class="chart-container">
-        <h5>Member Participation</h5>
-        <canvas id="participationChart"></canvas>
+        <div class="stat-card-statsPage">
+          <h5>Group XP</h5>
+          <div class="stat-value" id="groupXp">0</div>
+          <div class="stat-subtitle">Total experience</div>
+        </div>
+
+        <div class="stat-card-statsPage">
+          <h5>Total Posts</h5>
+          <div class="stat-value" id="totalPosts">0</div>
+          <div class="stat-subtitle">All discussions</div>
+        </div>
+
+        <div class="stat-card-statsPage">
+          <h5>Total Missions</h5>
+          <div class="stat-value" id="totalMissions">0</div>
+          <div class="stat-subtitle">Created missions</div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
+<style>
+  .stats-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(46, 125, 50, 0.1);
+    border: 1px solid #e8f5e8;
+  }
+
+  .stats-section h4 {
+    margin: 0 0 1.5rem 0;
+    color: #2e7d32;
+    font-size: 1.25rem;
+    font-weight: 600;
+    border-bottom: 2px solid #e8f5e8;
+    padding-bottom: 0.5rem;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .stat-card-statsPage {
+    background: linear-gradient(135deg, #2e7d32, #4caf50);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(46, 125, 50, 0.2);
+    border: 1px solid #4caf50;
+  }
+
+  .stat-card-statsPage:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(46, 125, 50, 0.3);
+  }
+
+  .stat-card-statsPage.personal {
+    background: linear-gradient(135deg, #1b5e20, #2e7d32);
+    border: 1px solid #1b5e20;
+  }
+
+  .stat-card-statsPage h5 {
+    margin: 0 0 1rem 0;
+    font-size: 0.9rem;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+  }
+
+  .stat-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 0.5rem 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .stat-subtitle {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin-top: 0.5rem;
+    font-weight: 400;
+  }
+
+  .stats-header {
+    margin-bottom: 2rem;
+  }
+
+  .stats-header h3 {
+    color: #2e7d32;
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin: 0;
+    text-align: center;
+  }
+
+  @media (max-width: 768px) {
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .stats-section {
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card-statsPage {
+      padding: 1.25rem;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+    }
+  }
+</style>
+
 <script>
   // Stats-specific JavaScript
   async function loadStats() {
-    const timeRange =
-      document.getElementById("statsTimeRange")?.value || "7days";
+    const groupId = '<%= group ? group._id : "group_id" %>';
+    const userId = '<%= user ? user._id : "user_id" %>';
 
     try {
-      const response = await fetch(
-        `/groups/${groupId}/stats?range=${timeRange}`
-      );
-      const stats = await response.json();
-      renderStats(stats);
+      showLoading("Loading statistics...");
+
+      // Load all data using existing routes
+      const [groupData, missionsData, postsData] = await Promise.all([
+        fetchGroupData(groupId),
+        fetchMissionsData(groupId),
+        fetchPostsData(groupId),
+      ]);
+
+      // Calculate user stats from missions data
+      const userStats = calculateUserStats(missionsData, userId);
+
+      // Render all stats
+      renderStats(groupData, userStats, postsData, missionsData);
     } catch (error) {
       console.error("Error loading stats:", error);
+      showToast("Failed to load statistics", "error");
+    } finally {
+      hideLoading();
     }
   }
 
-  function renderStats(stats) {
-    // Update stat cards
-    const totalActivity = getElement("totalActivity");
-    const postsCount = getElement("postsCount");
-    const commentsCount = getElement("commentsCount");
-    const activeMembers = getElement("activeMembers");
-    const activityTrend = getElement("activityTrend");
+  // Fetch group data using existing /:id/xp route
+  async function fetchGroupData(groupId) {
+    const response = await fetch(`/groups/${groupId}/xp`);
+    if (!response.ok) throw new Error("Failed to fetch group data");
+    return await response.json();
+  }
 
-    if (totalActivity && stats)
-      totalActivity.textContent = stats.totalActivity || 0;
-    if (postsCount && stats) postsCount.textContent = stats.postsCount || 0;
-    if (commentsCount && stats)
-      commentsCount.textContent = stats.commentsCount || 0;
-    if (activeMembers && stats)
-      activeMembers.textContent = stats.activeMembers || 0;
-    if (activityTrend && stats) {
-      const trend = stats.activityTrend || 0;
-      activityTrend.textContent = `${
-        trend >= 0 ? "+" : ""
-      }${trend}% from last period`;
-      activityTrend.className = `stat-trend ${
-        trend >= 0 ? "positive" : "negative"
-      }`;
+  // Fetch missions data using existing /:id/missions route
+  async function fetchMissionsData(groupId) {
+    const response = await fetch(`/groups/${groupId}/missions`);
+    if (!response.ok) throw new Error("Failed to fetch missions data");
+    return await response.json();
+  }
+
+  // Fetch posts data using existing /:id/posts route
+  async function fetchPostsData(groupId) {
+    const response = await fetch(`/groups/${groupId}/posts`);
+    if (!response.ok) throw new Error("Failed to fetch posts data");
+    return await response.json();
+  }
+
+  // Calculate user statistics from missions data
+  function calculateUserStats(missionsData, userId) {
+    let missionsJoined = 0;
+    let totalQuestions = 0;
+    let correctAnswers = 0;
+
+    missionsData.forEach((mission) => {
+      // Find if user participated in this mission
+      const participant = mission.participants.find(
+        (p) => p.user._id === userId || p.user === userId
+      );
+
+      if (participant) {
+        missionsJoined++;
+
+        // Calculate correct answers for this mission
+        if (participant.answers && participant.answers.length > 0) {
+          totalQuestions += participant.answers.length;
+          correctAnswers += participant.answers.filter(
+            (answer) => answer.isCorrect
+          ).length;
+        }
+      }
+    });
+
+    // Calculate success rate
+    const successRate =
+      totalQuestions > 0
+        ? Math.round((correctAnswers / totalQuestions) * 100)
+        : 0;
+
+    return {
+      missionsJoined,
+      successRate,
+      totalQuestions,
+      correctAnswers,
+    };
+  }
+
+  function renderStats(groupData, userStats, postsData, missionsData) {
+    // Render personal stats
+    renderPersonalStats(userStats);
+
+    // Render group stats
+    renderGroupStats(groupData, postsData, missionsData);
+  }
+
+  function renderPersonalStats(userStats) {
+    if (!userStats) return;
+
+    // Update personal stats
+    if (getElement("userMissionsJoined")) {
+      getElement("userMissionsJoined").textContent =
+        userStats.missionsJoined || 0;
     }
 
-    // Render charts if data available
-    if (stats.charts) {
-      renderActivityChart(stats.charts.activity);
-      renderParticipationChart(stats.charts.participation);
+    if (getElement("userSuccessRate")) {
+      getElement("userSuccessRate").textContent = `${
+        userStats.successRate || 0
+      }%`;
     }
   }
 
-  function renderActivityChart(activityData) {
-    const ctx = document.getElementById("activityChart")?.getContext("2d");
-    if (!ctx || !activityData) return;
+  function renderGroupStats(groupData, postsData, missionsData) {
+    // Update group stats
+    if (getElement("groupLevel")) {
+      getElement("groupLevel").textContent = groupData.level || 1;
+    }
 
-    // Simple chart implementation - you might want to use a chart library
-    console.log("Rendering activity chart with data:", activityData);
-  }
+    if (getElement("groupXp")) {
+      getElement("groupXp").textContent = groupData.xp || 0;
+    }
 
-  function renderParticipationChart(participationData) {
-    const ctx = document.getElementById("participationChart")?.getContext("2d");
-    if (!ctx || !participationData) return;
+    if (getElement("totalPosts")) {
+      getElement("totalPosts").textContent = postsData ? postsData.length : 0;
+    }
 
-    // Simple chart implementation
-    console.log("Rendering participation chart with data:", participationData);
+    if (getElement("totalMissions")) {
+      getElement("totalMissions").textContent = missionsData
+        ? missionsData.length
+        : 0;
+    }
   }
 
   // Load stats when tab is shown
   document.addEventListener("DOMContentLoaded", function () {
     // Stats will be loaded when the tab is shown via showTab function
   });
+
+  // If you have a tab switching function, add this:
+  function showTab(tabName) {
+    // Hide all tab contents
+    const tabContents = document.getElementsByClassName("tab-content");
+    for (let tab of tabContents) {
+      tab.style.display = "none";
+    }
+
+    // Show selected tab
+    const selectedTab = document.getElementById(tabName);
+    if (selectedTab) {
+      selectedTab.style.display = "block";
+
+      // Load stats if stats tab is selected
+      if (tabName === "stats") {
+        loadStats();
+      }
+    }
+  }
 </script>
