@@ -1,0 +1,488 @@
+/* University Styles - Following Group Page Patterns */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+  color: #333;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.header {
+  background: linear-gradient(135deg, #4a90e2, #357abd);
+  color: white;
+  padding: 30px;
+  text-align: center;
+  font-size: 2.5em;
+  font-weight: 300;
+  letter-spacing: 1px;
+}
+
+.controls {
+  padding: 25px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.controls h3 {
+  color: #4a90e2;
+  font-size: 1.4em;
+  margin-bottom: 15px;
+  width: 100%;
+  border-bottom: 2px solid #4a90e2;
+  padding-bottom: 8px;
+}
+
+.controls:not(:has(h3)) {
+  border-bottom: none;
+}
+
+/* Form Controls */
+input,
+select,
+textarea {
+  padding: 12px 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+input[type="text"],
+input[type="url"] {
+  flex: 1;
+  min-width: 200px;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+select {
+  cursor: pointer;
+  min-width: 150px;
+}
+
+/* Buttons */
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  min-width: 120px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #4a90e2, #357abd);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #357abd, #2c6aa8);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(74, 144, 226, 0.3);
+}
+
+.btn-outline {
+  background: transparent;
+  color: #4a90e2;
+  border: 2px solid #4a90e2;
+}
+
+.btn-outline:hover {
+  background: #4a90e2;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(74, 144, 226, 0.3);
+}
+
+.btn-block {
+  display: block;
+  width: 100%;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* University Grid */
+.university-grid {
+  padding: 25px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 25px;
+}
+
+/* University Card */
+.university-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 25px;
+  transition: all 0.3s ease;
+  position: relative;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.university-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border-color: #4a90e2;
+}
+
+.university-logo {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.university-logo img {
+  max-height: 80px;
+  max-width: 200px;
+  object-fit: contain;
+}
+
+.university-card h2 {
+  color: #2c3e50;
+  font-size: 1.4em;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.university-card p {
+  margin-bottom: 10px;
+  line-height: 1.5;
+  color: #555;
+}
+
+.university-card strong {
+  color: #333;
+}
+
+.university-description {
+  font-style: italic;
+  color: #666 !important;
+  border-left: 3px solid #4a90e2;
+  padding-left: 12px;
+  margin: 15px 0 !important;
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 0 8px 8px 0;
+}
+
+.university-actions {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Member Badge */
+.member-badge {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: linear-gradient(135deg, #00b894, #00a085);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Loading State */
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-size: 1.1em;
+  grid-column: 1 / -1;
+}
+
+/* Messages */
+.success-message,
+.error-message {
+  padding: 15px 20px;
+  margin: 20px 25px;
+  border-radius: 8px;
+  font-weight: 500;
+  display: none;
+  animation: slideIn 0.3s ease;
+}
+
+.success-message {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.error-message {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Modal Styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  background-color: white;
+  margin: 5% auto;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+  overflow: hidden;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  background: linear-gradient(135deg, #4a90e2, #357abd);
+  color: white;
+  padding: 20px 25px;
+  display: flex;
+  justify-content: between;
+  align-items: center;
+}
+
+.modal-title {
+  font-size: 1.4em;
+  font-weight: 600;
+  flex: 1;
+}
+
+.close {
+  color: white;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.3s ease;
+}
+
+.close:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Form Groups */
+.form-group {
+  margin-bottom: 20px;
+  padding: 0 25px;
+}
+
+.form-group:first-of-type {
+  padding-top: 25px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+}
+
+.form-group small {
+  display: block;
+  margin-top: 5px;
+  color: #666;
+  font-size: 0.85em;
+}
+
+.modal-actions {
+  padding: 20px 25px;
+  background: #f8f9fa;
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+  border-top: 1px solid #e9ecef;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+
+  .header {
+    font-size: 2em;
+    padding: 20px;
+  }
+
+  .controls {
+    padding: 20px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .controls > * {
+    width: 100%;
+  }
+
+  .university-grid {
+    grid-template-columns: 1fr;
+    padding: 20px;
+    gap: 20px;
+  }
+
+  .modal-content {
+    margin: 10% auto;
+    width: 95%;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .btn {
+    min-width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    font-size: 1.6em;
+  }
+
+  .university-card {
+    padding: 20px;
+  }
+
+  .form-group {
+    padding: 0 20px;
+  }
+
+  .modal-header {
+    padding: 15px 20px;
+  }
+
+  .modal-actions {
+    padding: 15px 20px;
+  }
+}
+
+/* Empty State */
+.university-grid:empty::before {
+  content: "No universities found. Create the first one!";
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-size: 1.1em;
+  grid-column: 1 / -1;
+}
+
+/* Filter and Search Focus States */
+#searchInput:focus,
+#filterSelect:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+/* Custom Scrollbar for Modals */
+.modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 0 0 12px 0;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

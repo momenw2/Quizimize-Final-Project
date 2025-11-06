@@ -48,6 +48,9 @@ app.get("/aboutUs", (req, res) => res.render("aboutUs"));
 app.get("/groups", (req, res) => res.render("groups"));
 app.get("/group-detailed", (req, res) => res.render("group-detailed"));
 
+// ####### univeristy Pages #######
+app.get("/universities", (req, res) => res.render("universities"));
+
 // ##### Admin Pages #####
 app.get("/adminDashboard", (req, res) => res.render("adminDashboardPage"));
 app.get("/adminSubject", (req, res) => res.render("adminSubjectPage"));
