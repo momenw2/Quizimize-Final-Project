@@ -49,7 +49,7 @@ app.get("/groups", (req, res) => res.render("groups"));
 app.get("/group-detailed", (req, res) => res.render("group-detailed"));
 
 // ####### univeristy Pages #######
-app.get("/universities", (req, res) => res.render("universities"));
+app.get("/university", (req, res) => res.render("university"));
 
 // ##### Admin Pages #####
 app.get("/adminDashboard", (req, res) => res.render("adminDashboardPage"));
@@ -88,6 +88,10 @@ app.use("/user", authRoutes);
 // Group Router
 const groupRoute = require("./Routes/group.route");
 app.use("/groups", groupRoute);
+
+// Univeristy Router
+const universityRoute = require("./Routes/university.route");
+app.use("/universities", universityRoute);
 
 // Post Router
 const postRoute = require("./Routes/post.route");
