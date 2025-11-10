@@ -156,7 +156,7 @@ const universitySchema = new mongoose.Schema(
       {
         user: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
+          // Remove ref: 'User' for now since User model might not exist
           required: true,
         },
         role: {
@@ -168,49 +168,21 @@ const universitySchema = new mongoose.Schema(
           type: Date,
           default: Date.now,
         },
-        // Student-specific fields
-        studentInfo: {
-          studentId: String,
-          major: String,
-          enrollmentDate: Date,
-          graduationDate: Date,
-          currentLevel: {
-            type: Number,
-            min: 1,
-            max: 5,
-            default: 1,
-          },
-        },
-        // Teacher-specific fields
-        teacherInfo: {
-          employeeId: String,
-          department: String,
-          position: String, // Professor, Lecturer, etc.
-          hireDate: Date,
-        },
-        // XP and Level system
         xp: {
           type: Number,
           default: 0,
-          min: 0,
         },
         level: {
           type: Number,
           default: 1,
-          min: 1,
-          max: 100,
         },
-        badges: [
-          {
-            name: String,
-            description: String,
-            earnedAt: {
-              type: Date,
-              default: Date.now,
-            },
-            icon: String,
+        studentInfo: {
+          enrollmentDate: Date,
+          currentLevel: {
+            type: Number,
+            default: 1,
           },
-        ],
+        },
       },
     ],
 

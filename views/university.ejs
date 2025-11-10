@@ -174,8 +174,9 @@
     </div>
 
     <script>
-      // Use the same pattern as your groups page - fetch data from API
-      const url = "http://localhost:3000/universities/api";
+      // Use relative URLs to avoid CORS issues
+      const baseUrl = "/universities";
+      const apiUrl = `${baseUrl}/api`;
       let universities = [];
       let currentUser = null;
 
@@ -333,7 +334,7 @@
                     <div class="university-logo">
                         <img src="${
                           university.logoUrl ||
-                          "/assets/default-university-logo.png"
+                          "../public/default-university-logo.png"
                         }" alt="${university.name} Logo">
                     </div>
                     <h2>${university.name}</h2>
@@ -373,7 +374,7 @@
           joinBtn.textContent = "Joining...";
           joinBtn.disabled = true;
 
-          const response = await fetch(`/universities/${universityId}/join`, {
+          const response = await fetch(`${baseUrl}/${universityId}/join`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -406,13 +407,13 @@
       // View university function
       function viewUniversity(universityId) {
         console.log("Navigating to university:", universityId);
-        window.location.href = "/universities/" + universityId;
+        window.location.href = `${baseUrl}/${universityId}`;
       }
 
       // Join with code function
       async function joinUniversityWithCode(universityCode) {
         try {
-          const response = await fetch(`/universities/join/${universityCode}`, {
+          const response = await fetch(`${baseUrl}/join/${universityCode}`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -516,7 +517,7 @@
           return;
         }
 
-        fetch(url)
+        fetch(apiUrl)
           .then((res) => {
             if (!res.ok) {
               throw new Error(`Failed to fetch: ${res.status}`);
@@ -565,7 +566,7 @@
           submitBtn.textContent = "Registering...";
           submitBtn.disabled = true;
 
-          fetch("/universities", {
+          fetch(baseUrl, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
