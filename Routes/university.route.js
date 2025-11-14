@@ -165,4 +165,30 @@ router.post("/join/:code", async (req, res) => {
   }
 });
 
+// GET university details page
+router.get("/:id", async (req, res) => {
+  try {
+    const university = await University.findById(req.params.id);
+
+    if (!university) {
+      return res.status(404).render("error", {
+        error: "University not found",
+        user: req.user,
+      });
+    }
+
+    res.render("universityDetail", {
+      university: university,
+      user: req.user || { _id: "67d9733be64bed89238cb710", fullName: "Moemen" },
+      title: `${university.name} - Quizmize`,
+    });
+  } catch (error) {
+    console.error("Error fetching university:", error);
+    res.status(500).render("error", {
+      error: "Failed to load university",
+      user: req.user,
+    });
+  }
+});
+
 module.exports = router;

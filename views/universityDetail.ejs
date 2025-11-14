@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title><%= university.name %> - Quizmize</title>
+    <!-- <link rel="stylesheet" href="/universityStyle.css" /> -->
+    <style>
+      .university-detail-header {
+        background: linear-gradient(135deg, #4a90e2, #357abd);
+        color: white;
+        padding: 40px;
+        text-align: center;
+      }
+
+      .university-detail-content {
+        padding: 30px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .university-info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-bottom: 30px;
+      }
+
+      .info-card {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .members-section {
+        margin-top: 30px;
+      }
+
+      .member-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+
+      .stat-card {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+      }
+
+      .stat-number {
+        font-size: 2em;
+        font-weight: bold;
+        color: #4a90e2;
+      }
+
+      .back-button {
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Add hidden element with user data -->
+    <div id="currentUserData" style="display: none">
+      <%- JSON.stringify(user) %>
+    </div>
+
+
+
+      <!-- University Header -->
+      <div class="university-detail-header">
+        <div class="university-logo-large">
+          <img
+            src="<%= university.logoUrl || '/assets/default-university-logo.png' %>"
+            alt="<%= university.name %> Logo"
+            style="height: 100px; margin-bottom: 20px"
+          />
+        </div>
+        <h1><%= university.name %></h1>
+        <p class="university-location" style="font-size: 1.2em; opacity: 0.9">
+          <%= university.location %>
+        </p>
+        <% if (university.website) { %>
+        <a
+          href="<%= university.website %>"
+          target="_blank"
+          style="color: white; text-decoration: underline"
+        >
+          Visit Official Website
+        </a>
+        <% } %>
+      </div>
+
+      <!-- University Content -->
+      <div class="university-detail-content">
+        <!-- Basic Information -->
+        <div class="info-card">
+          <h2>About</h2>
+          <p
+            class="university-description"
+            style="font-size: 1.1em; line-height: 1.6"
+          >
+            <%= university.description || 'No description available.' %>
+          </p>
+        </div>
+
+        <!-- Statistics Grid -->
+        <div class="university-info-grid">
+          <!-- Basic Stats -->
+          <div class="info-card">
+            <h3>University Statistics</h3>
+            <div class="member-stats">
+              <div class="stat-card">
+                <div class="stat-number">
+                  <%= university.members ? university.members.length : 0 %>
+                </div>
+                <div>Total Members</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-number"><%= university.totalXP || 0 %></div>
+                <div>Total XP</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-number">
+                  <%= university.averageLevel || 1 %>
+                </div>
+                <div>Average Level</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- University Details -->
+          <div class="info-card">
+            <h3>University Details</h3>
+            <p><strong>Location:</strong> <%= university.location %></p>
+            <p>
+              <strong>Join Code:</strong>
+              <code
+                ><%= university.settings?.joinCode || 'Not available' %></code
+              >
+            </p>
+            <p>
+              <strong>Status:</strong> <%= university.settings?.isPublic ?
+              'Public' : 'Private' %>
+            </p>
+            <p>
+              <strong>Founded:</strong> <%= university.createdAt ? new
+              Date(university.createdAt).toLocaleDateString() : 'Unknown' %>
+            </p>
+            <% if (university.website) { %>
+            <p>
+              <strong>Website:</strong>
+              <a href="<%= university.website %>" target="_blank"
+                ><%= university.website %></a
+              >
+            </p>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- Member Breakdown -->
+        <div class="info-card members-section">
+          <h3>Community</h3>
+          <% if (university.members && university.members.length > 0) { %>
+          <div class="member-stats">
+            <div class="stat-card">
+              <div class="stat-number">
+                <%= university.members.filter(m => m.role === 'student').length
+                %>
+              </div>
+              <div>Students</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">
+                <%= university.members.filter(m => m.role === 'teacher').length
+                %>
+              </div>
+              <div>Teachers</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">
+                <%= university.members.filter(m => m.role === 'admin').length %>
+              </div>
+              <div>Admins</div>
+            </div>
+          </div>
+          <% } else { %>
+          <p>No members yet. Be the first to join!</p>
+          <% } %>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="info-card" style="text-align: center">
+          <h3>Join This University</h3>
+          <p>
+            Become part of the <%= university.name %> community on Quizmize!
+          </p>
+          <div
+            style="
+              display: flex;
+              gap: 15px;
+              justify-content: center;
+              margin-top: 20px;
+            "
+          >
+            <button
+              class="btn btn-primary"
+              onclick="joinUniversity('<%= university._id %>')"
+            >
+              Join University
+            </button>
+            <button class="btn btn-outline" onclick="joinWithCode()">
+              Join with Code
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function joinUniversity(universityId) {
+        fetch(`/universities/${universityId}/join`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+          .then((response) => response.json())
+          .then((result) => {
+            if (result.message) {
+              alert(result.message);
+              // Redirect to dashboard or refresh page
+              window.location.reload();
+            } else {
+              alert(result.error || "Failed to join university");
+            }
+          })
+          .catch((error) => {
+            console.error("Error joining university:", error);
+            alert("Error joining university. Please try again.");
+          });
+      }
+
+      function joinWithCode() {
+        const code = prompt("Enter the 8-character university code:");
+        if (code && code.length === 8) {
+          fetch(`/universities/join/${code.toUpperCase()}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          })
+            .then((response) => response.json())
+            .then((result) => {
+              if (result.message) {
+                alert(result.message);
+                window.location.reload();
+              } else {
+                alert(result.error || "Invalid university code");
+              }
+            })
+            .catch((error) => {
+              console.error("Error joining university:", error);
+              alert("Error joining university. Please try again.");
+            });
+        } else if (code) {
+          alert("University code must be exactly 8 characters long.");
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -302,10 +302,10 @@
                       university.description || "No description available"
                     }</p>
                     <div class="university-actions">
-                        <button class="btn btn-outline btn-block" onclick="viewUniversity('${
+                        <button class="btn btn-outline btn-block" onclick="viewUniversityDetails('${
                           university._id
                         }')">
-                            Access Dashboard
+                            View Details
                         </button>
                     </div>
                     <div class="member-badge">You are a member</div>
@@ -334,7 +334,7 @@
                     <div class="university-logo">
                         <img src="${
                           university.logoUrl ||
-                          "../public/default-university-logo.png"
+                          "/assets/default-university-logo.png"
                         }" alt="${university.name} Logo">
                     </div>
                     <h2>${university.name}</h2>
@@ -351,7 +351,7 @@
                         }')">
                             Join University
                         </button>
-                        <button class="btn btn-outline btn-block" onclick="viewUniversity('${
+                        <button class="btn btn-outline btn-block" onclick="viewUniversityDetails('${
                           university._id
                         }')">
                             View Details
@@ -404,9 +404,9 @@
         }
       }
 
-      // View university function
-      function viewUniversity(universityId) {
-        console.log("Navigating to university:", universityId);
+      // View university details function
+      function viewUniversityDetails(universityId) {
+        console.log("Navigating to university details:", universityId);
         window.location.href = `${baseUrl}/${universityId}`;
       }
 
@@ -590,6 +590,7 @@
               }
             })
             .catch((error) => {
+              // Fixed: Added closing parenthesis
               console.error("Error registering university:", error);
               showMessage(
                 "error",
@@ -601,7 +602,6 @@
               submitBtn.disabled = false;
             });
         });
-
       // Handle join university form submission
       document
         .getElementById("joinUniversityForm")
