@@ -1,4 +1,3 @@
-// models/University.js
 const mongoose = require("mongoose");
 
 const universitySchema = new mongoose.Schema(
@@ -37,6 +36,68 @@ const universitySchema = new mongoose.Schema(
       type: String,
       default: "/assets/default-university-logo.png",
     },
+
+    // Posts System
+    posts: [
+      {
+        content: {
+          type: String,
+          required: [true, "Post content is required"],
+          trim: true,
+          maxlength: [1000, "Post cannot exceed 1000 characters"],
+        },
+        author: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: true,
+        },
+        authorName: {
+          type: String,
+          required: true,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+        updatedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        likes: [
+          {
+            user: {
+              type: mongoose.Schema.Types.ObjectId,
+              required: true,
+            },
+            likedAt: {
+              type: Date,
+              default: Date.now,
+            },
+          },
+        ],
+        comments: [
+          {
+            content: {
+              type: String,
+              required: true,
+              trim: true,
+              maxlength: [500, "Comment cannot exceed 500 characters"],
+            },
+            author: {
+              type: mongoose.Schema.Types.ObjectId,
+              required: true,
+            },
+            authorName: {
+              type: String,
+              required: true,
+            },
+            createdAt: {
+              type: Date,
+              default: Date.now,
+            },
+          },
+        ],
+      },
+    ],
 
     // Institutional Structure
     faculties: [
@@ -156,7 +217,6 @@ const universitySchema = new mongoose.Schema(
       {
         user: {
           type: mongoose.Schema.Types.ObjectId,
-          // Remove ref: 'User' for now since User model might not exist
           required: true,
         },
         role: {
@@ -280,6 +340,7 @@ universitySchema.index({ location: 1 });
 universitySchema.index({ "settings.joinCode": 1 }, { sparse: true });
 universitySchema.index({ "members.user": 1 });
 universitySchema.index({ "members.role": 1 });
+universitySchema.index({ "posts.createdAt": -1 });
 
 // Pre-save middleware to generate join code if not exists
 universitySchema.pre("save", function (next) {
@@ -364,6 +425,22 @@ universitySchema.methods.addXP = function (userId, xpAmount) {
   }
 
   return Promise.reject(new Error("User not found in university"));
+};
+
+// Instance method to create a post
+universitySchema.methods.createPost = function (authorId, authorName, content) {
+  const post = {
+    content: content,
+    author: authorId,
+    authorName: authorName,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    likes: [],
+    comments: [],
+  };
+
+  this.posts.unshift(post); // Add to beginning of array (newest first)
+  return this.save();
 };
 
 // Static method to find by join code

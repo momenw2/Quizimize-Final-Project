@@ -177,6 +177,11 @@ router.get("/:id", async (req, res) => {
       });
     }
 
+    // Sort posts by creation date (newest first)
+    university.posts.sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+
     res.render("universityDetail", {
       university: university,
       user: req.user || { _id: "67d9733be64bed89238cb710", fullName: "Moemen" },
@@ -187,6 +192,69 @@ router.get("/:id", async (req, res) => {
     res.status(500).render("error", {
       error: "Failed to load university",
       user: req.user,
+    });
+  }
+});
+
+// POST create a new post in university timeline
+router.post("/:id/posts", async (req, res) => {
+  try {
+    const university = await University.findById(req.params.id);
+
+    if (!university) {
+      return res.status(404).json({ error: "University not found" });
+    }
+
+    const { content } = req.body;
+    const userId = "67d9733be64bed89238cb710"; // Your actual user ID
+    const userName = "Moemen"; // Replace with actual user name
+
+    // Check if user is admin of this university
+    const userRole = university.getUserRole(userId);
+    if (userRole !== "admin") {
+      return res.status(403).json({
+        error: "Only university admins can create posts",
+      });
+    }
+
+    if (!content || content.trim().length === 0) {
+      return res.status(400).json({
+        error: "Post content cannot be empty",
+      });
+    }
+
+    await university.createPost(userId, userName, content.trim());
+
+    res.status(201).json({
+      message: "Post created successfully!",
+      post: university.posts[0], // Return the newest post
+    });
+  } catch (error) {
+    console.error("Error creating post:", error);
+    res.status(500).json({
+      error: "Failed to create post",
+      details: error.message,
+    });
+  }
+});
+
+// GET university posts
+router.get("/:id/posts", async (req, res) => {
+  try {
+    const university = await University.findById(req.params.id);
+
+    if (!university) {
+      return res.status(404).json({ error: "University not found" });
+    }
+
+    res.json({
+      posts: university.posts || [],
+    });
+  } catch (error) {
+    console.error("Error fetching posts:", error);
+    res.status(500).json({
+      error: "Failed to fetch posts",
+      details: error.message,
     });
   }
 });

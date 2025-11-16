@@ -63,6 +63,15 @@
         background: #357abd;
       }
 
+      .btn-success {
+        background: #28a745;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: #218838;
+      }
+
       .university-detail-header {
         background: linear-gradient(135deg, #4a90e2, #357abd);
         color: white;
@@ -229,6 +238,13 @@
         margin-right: 15px;
       }
 
+      .create-post-form {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+
       .mission-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -263,6 +279,19 @@
         border: 1px solid #e0e0e0;
         border-radius: 8px;
         padding: 20px;
+      }
+
+      .comments-section {
+        border-top: 1px solid #f0f0f0;
+        padding-top: 15px;
+        margin-top: 15px;
+      }
+
+      .comment {
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 10px;
       }
     </style>
   </head>
@@ -321,35 +350,195 @@
           <div class="info-card">
             <h2>University Timeline</h2>
             <p>Recent activities and posts from the community</p>
+
+            <!-- Create Post Form (Only for Admins) -->
+            <% const userRole = university.getUserRole ?
+            university.getUserRole(user._id) : null; %> <% if (userRole ===
+            'admin') { %>
+            <div class="create-post-form">
+              <h3>Create New Post</h3>
+              <form id="createPostForm">
+                <textarea
+                  id="postContent"
+                  placeholder="Share something with the university community..."
+                  rows="4"
+                  style="
+                    width: 100%;
+                    padding: 15px;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 8px;
+                    font-family: inherit;
+                    resize: vertical;
+                  "
+                  maxlength="1000"
+                ></textarea>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-top: 10px;
+                  "
+                >
+                  <span id="charCount" style="color: #666; font-size: 0.9em"
+                    >0/1000 characters</span
+                  >
+                  <button
+                    type="submit"
+                    class="btn btn-success"
+                    style="margin-top: 10px"
+                  >
+                    Post to Timeline
+                  </button>
+                </div>
+              </form>
+            </div>
+            <% } %>
           </div>
 
-          <!-- Sample Posts -->
-          <div class="post-card">
-            <div class="post-header">
-              <div class="post-avatar">A</div>
-              <div>
-                <strong>University Admin</strong>
-                <div style="font-size: 0.9em; color: #666">2 hours ago</div>
+          <!-- Posts Container -->
+          <div id="postsContainer">
+            <% if (university.posts && university.posts.length > 0) { %> <%
+            university.posts.forEach(post => { %>
+            <div class="post-card" data-post-id="<%= post._id %>">
+              <div class="post-header">
+                <div class="post-avatar">
+                  <%= post.authorName ? post.authorName.charAt(0).toUpperCase()
+                  : 'A' %>
+                </div>
+                <div>
+                  <strong><%= post.authorName || 'Admin' %></strong>
+                  <div style="font-size: 0.9em; color: #666">
+                    <%= new Date(post.createdAt).toLocaleDateString() + ' ' +
+                    new Date(post.createdAt).toLocaleTimeString() %>
+                  </div>
+                </div>
               </div>
-            </div>
-            <p>
-              Welcome to our new university platform! We're excited to have you
-              join our academic community.
-            </p>
-          </div>
+              <p style="white-space: pre-wrap; line-height: 1.6">
+                <%= post.content %>
+              </p>
 
-          <div class="post-card">
-            <div class="post-header">
-              <div class="post-avatar">P</div>
-              <div>
-                <strong>Professor Smith</strong>
-                <div style="font-size: 0.9em; color: #666">1 day ago</div>
+              <!-- Post Actions -->
+              <div
+                style="
+                  display: flex;
+                  gap: 20px;
+                  margin-top: 15px;
+                  padding-top: 15px;
+                  border-top: 1px solid #f0f0f0;
+                "
+              >
+                <button
+                  class="like-btn"
+                  onclick="likePost('<%= university._id %>', '<%= post._id %>')"
+                  style="
+                    background: none;
+                    border: none;
+                    color: #666;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                  "
+                >
+                  👍
+                  <span class="like-count"
+                    ><%= post.likes ? post.likes.length : 0 %></span
+                  >
+                </button>
+                <button
+                  class="comment-btn"
+                  onclick="toggleComments('<%= post._id %>')"
+                  style="
+                    background: none;
+                    border: none;
+                    color: #666;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                  "
+                >
+                  💬
+                  <span class="comment-count"
+                    ><%= post.comments ? post.comments.length : 0 %></span
+                  >
+                </button>
+              </div>
+
+              <!-- Comments Section -->
+              <div
+                class="comments-section"
+                id="comments-<%= post._id %>"
+                style="display: none"
+              >
+                <% if (post.comments && post.comments.length > 0) { %> <%
+                post.comments.forEach(comment => { %>
+                <div class="comment">
+                  <div
+                    style="
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
+                    "
+                  >
+                    <strong style="font-size: 0.9em"
+                      ><%= comment.authorName %></strong
+                    >
+                    <span style="font-size: 0.8em; color: #666">
+                      <%= new Date(comment.createdAt).toLocaleDateString() %>
+                    </span>
+                  </div>
+                  <p style="margin: 5px 0 0 0; font-size: 0.9em">
+                    <%= comment.content %>
+                  </p>
+                </div>
+                <% }) %> <% } else { %>
+                <p style="color: #666; font-style: italic; text-align: center">
+                  No comments yet
+                </p>
+                <% } %>
+
+                <!-- Add Comment Form -->
+                <form
+                  class="add-comment-form"
+                  onsubmit="addComment(event, '<%= university._id %>', '<%= post._id %>')"
+                  style="margin-top: 10px"
+                >
+                  <div style="display: flex; gap: 10px">
+                    <input
+                      type="text"
+                      placeholder="Write a comment..."
+                      class="comment-input"
+                      style="
+                        flex: 1;
+                        padding: 10px;
+                        border: 1px solid #e0e0e0;
+                        border-radius: 20px;
+                        font-size: 0.9em;
+                      "
+                      required
+                    />
+                    <button
+                      type="submit"
+                      class="btn btn-primary"
+                      style="padding: 10px 20px; font-size: 0.9em"
+                    >
+                      Post
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
-            <p>
-              New programming challenge is live! Test your skills in our weekly
-              coding competition.
-            </p>
+            <% }) %> <% } else { %>
+            <div class="info-card" style="text-align: center">
+              <h3>No Posts Yet</h3>
+              <p>Be the first to share something with the community!</p>
+              <% if (userRole === 'admin') { %>
+              <p>As an admin, you can create posts using the form above.</p>
+              <% } %>
+            </div>
+            <% } %>
           </div>
         </div>
 
@@ -553,6 +742,81 @@
             document.getElementById(tabId).classList.add("active");
           });
         });
+
+        // Post creation functionality
+        const postContent = document.getElementById("postContent");
+        const charCount = document.getElementById("charCount");
+        const createPostForm = document.getElementById("createPostForm");
+
+        // Character count for post content
+        if (postContent && charCount) {
+          postContent.addEventListener("input", function () {
+            const length = this.value.length;
+            charCount.textContent = `${length}/1000 characters`;
+
+            if (length > 1000) {
+              charCount.style.color = "#e74c3c";
+            } else {
+              charCount.style.color = "#666";
+            }
+          });
+        }
+
+        // Create post form submission
+        if (createPostForm) {
+          createPostForm.addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const content = postContent.value.trim();
+            if (!content) {
+              alert("Please enter some content for your post.");
+              return;
+            }
+
+            if (content.length > 1000) {
+              alert("Post content cannot exceed 1000 characters.");
+              return;
+            }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+
+            try {
+              submitBtn.textContent = "Posting...";
+              submitBtn.disabled = true;
+
+              const response = await fetch(
+                `/universities/<%= university._id %>/posts`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({ content: content }),
+                }
+              );
+
+              const result = await response.json();
+
+              if (response.ok) {
+                // Clear form
+                postContent.value = "";
+                charCount.textContent = "0/1000 characters";
+
+                // Reload the page to show the new post
+                window.location.reload();
+              } else {
+                alert(result.error || "Failed to create post");
+              }
+            } catch (error) {
+              console.error("Error creating post:", error);
+              alert("Error creating post. Please try again.");
+            } finally {
+              submitBtn.textContent = originalText;
+              submitBtn.disabled = false;
+            }
+          });
+        }
       });
 
       function joinUniversity(universityId) {
@@ -602,6 +866,41 @@
         } else if (code) {
           alert("University code must be exactly 8 characters long.");
         }
+      }
+
+      // Like post function
+      async function likePost(universityId, postId) {
+        // You can implement like functionality here
+        alert("Like functionality to be implemented");
+      }
+
+      // Toggle comments visibility
+      function toggleComments(postId) {
+        const commentsSection = document.getElementById(`comments-${postId}`);
+        if (commentsSection) {
+          commentsSection.style.display =
+            commentsSection.style.display === "none" ? "block" : "none";
+        }
+      }
+
+      // Add comment function
+      async function addComment(event, universityId, postId) {
+        event.preventDefault();
+
+        const form = event.target;
+        const input = form.querySelector(".comment-input");
+        const content = input.value.trim();
+
+        if (!content) {
+          alert("Please enter a comment.");
+          return;
+        }
+
+        // You can implement comment functionality here
+        alert("Comment functionality to be implemented");
+
+        // For now, just clear the input
+        input.value = "";
       }
     </script>
   </body>
