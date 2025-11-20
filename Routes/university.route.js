@@ -259,4 +259,98 @@ router.get("/:id/posts", async (req, res) => {
   }
 });
 
+// POST add comment to a post
+router.post("/:id/posts/:postId/comments", async (req, res) => {
+  try {
+    const university = await University.findById(req.params.id);
+
+    if (!university) {
+      return res.status(404).json({ error: "University not found" });
+    }
+
+    const { content } = req.body;
+    const userId = "67d9733be64bed89238cb710"; // Your actual user ID
+    const userName = "Moemen"; // Replace with actual user name
+
+    // Check if user is a member of this university
+    if (!university.isMember(userId)) {
+      return res.status(403).json({
+        error: "You must be a member of this university to comment",
+      });
+    }
+
+    if (!content || content.trim().length === 0) {
+      return res.status(400).json({
+        error: "Comment content cannot be empty",
+      });
+    }
+
+    if (content.length > 500) {
+      return res.status(400).json({
+        error: "Comment cannot exceed 500 characters",
+      });
+    }
+
+    await university.addCommentToPost(
+      req.params.postId,
+      userId,
+      userName,
+      content
+    );
+
+    // Get the updated post with the new comment
+    const updatedPost = university.posts.id(req.params.postId);
+
+    res.status(201).json({
+      message: "Comment added successfully!",
+      comment: updatedPost.comments[updatedPost.comments.length - 1],
+    });
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    res.status(500).json({
+      error: "Failed to add comment",
+      details: error.message,
+    });
+  }
+});
+
+// POST like/unlike a post
+router.post("/:id/posts/:postId/like", async (req, res) => {
+  try {
+    const university = await University.findById(req.params.id);
+
+    if (!university) {
+      return res.status(404).json({ error: "University not found" });
+    }
+
+    const userId = "67d9733be64bed89238cb710"; // Your actual user ID
+
+    // Check if user is a member of this university
+    if (!university.isMember(userId)) {
+      return res.status(403).json({
+        error: "You must be a member of this university to like posts",
+      });
+    }
+
+    await university.likePost(req.params.postId, userId);
+
+    const updatedPost = university.posts.id(req.params.postId);
+    const isLiked = updatedPost.likes.some(
+      (like) => like.user.toString() === userId.toString()
+    );
+
+    res.json({
+      message: isLiked ? "Post liked!" : "Post unliked!",
+      likesCount: updatedPost.likes.length,
+      isLiked: isLiked,
+    });
+  } catch (error) {
+    console.error("Error liking post:", error);
+    res.status(500).json({
+      error: "Failed to like post",
+      details: error.message,
+    });
+  }
+});
+
 module.exports = router;

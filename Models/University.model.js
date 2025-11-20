@@ -443,6 +443,56 @@ universitySchema.methods.createPost = function (authorId, authorName, content) {
   return this.save();
 };
 
+// Instance method to add a comment to a post
+universitySchema.methods.addCommentToPost = function (
+  postId,
+  authorId,
+  authorName,
+  content
+) {
+  const post = this.posts.id(postId);
+  if (!post) {
+    throw new Error("Post not found");
+  }
+
+  const comment = {
+    content: content.trim(),
+    author: authorId,
+    authorName: authorName,
+    createdAt: new Date(),
+  };
+
+  post.comments.push(comment);
+  return this.save();
+};
+
+// Instance method to like a post
+universitySchema.methods.likePost = function (postId, userId) {
+  const post = this.posts.id(postId);
+  if (!post) {
+    throw new Error("Post not found");
+  }
+
+  // Check if user already liked the post
+  const alreadyLiked = post.likes.some(
+    (like) => like.user.toString() === userId.toString()
+  );
+  if (alreadyLiked) {
+    // Unlike the post
+    post.likes = post.likes.filter(
+      (like) => like.user.toString() !== userId.toString()
+    );
+  } else {
+    // Like the post
+    post.likes.push({
+      user: userId,
+      likedAt: new Date(),
+    });
+  }
+
+  return this.save();
+};
+
 // Static method to find by join code
 universitySchema.statics.findByJoinCode = function (joinCode) {
   return this.findOne({ "settings.joinCode": joinCode.toUpperCase() });
