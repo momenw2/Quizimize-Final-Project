@@ -1,0 +1,64 @@
+<div id="institute" class="tab-content">
+  <div class="info-card">
+    <h2>University Institute</h2>
+    <p>Academic structure and faculties</p>
+  </div>
+
+  <div class="institute-grid">
+    <div class="faculty-card">
+      <h3>Faculty of Engineering</h3>
+      <p>
+        Leading engineering and technology programs with world-class research
+        facilities.
+      </p>
+      <div style="margin-top: 15px">
+        <strong>Courses: 12</strong><br />
+        <strong>Students: 450</strong>
+      </div>
+    </div>
+
+    <div class="faculty-card">
+      <h3>Faculty of Science</h3>
+      <p>
+        Comprehensive science programs with strong research focus and modern
+        laboratories.
+      </p>
+      <div style="margin-top: 15px">
+        <strong>Courses: 8</strong><br />
+        <strong>Students: 320</strong>
+      </div>
+    </div>
+
+    <div class="faculty-card">
+      <h3>Business School</h3>
+      <p>
+        Premier business education with focus on entrepreneurship and leadership
+        development.
+      </p>
+      <div style="margin-top: 15px">
+        <strong>Courses: 6</strong><br />
+        <strong>Students: 280</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-card">
+    <h3>University Statistics</h3>
+    <div class="member-stats">
+      <div class="stat-card">
+        <div class="stat-number">
+          <%= university.members ? university.members.length : 0 %>
+        </div>
+        <div>Total Members</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number"><%= university.totalXP || 0 %></div>
+        <div>Total XP</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number"><%= university.averageLevel || 1 %></div>
+        <div>Average Level</div>
+      </div>
+    </div>
+  </div>
+</div>

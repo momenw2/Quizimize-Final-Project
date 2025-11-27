@@ -1,0 +1,56 @@
+<div id="members" class="tab-content">
+  <div class="info-card">
+    <h2>University Members</h2>
+    <p>Meet the community of <%= university.name %></p>
+
+    <div class="member-stats">
+      <div class="stat-card">
+        <div class="stat-number">
+          <%= university.members.filter(m => m.role === 'student').length %>
+        </div>
+        <div>Students</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">
+          <%= university.members.filter(m => m.role === 'teacher').length %>
+        </div>
+        <div>Teachers</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">
+          <%= university.members.filter(m => m.role === 'admin').length %>
+        </div>
+        <div>Admins</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="members-grid">
+    <% if (university.members && university.members.length > 0) { %> <%
+    university.members.forEach(member => { %>
+    <div class="member-card">
+      <div style="font-size: 2em; margin-bottom: 10px">👤</div>
+      <strong>Member</strong>
+      <div class="role-badge <%= `role-${member.role}` %>">
+        <%= member.role.charAt(0).toUpperCase() + member.role.slice(1) %>
+      </div>
+      <div style="margin-top: 10px; font-size: 0.9em">
+        Level: <%= member.level || 1 %><br />
+        XP: <%= member.xp || 0 %>
+      </div>
+    </div>
+    <% }) %> <% } else { %>
+    <div class="info-card" style="text-align: center; grid-column: 1 / -1">
+      <h3>No Members Yet</h3>
+      <p>Be the first to join this university!</p>
+      <button
+        class="btn btn-primary"
+        onclick="joinUniversity('<%= university._id %>')"
+        style="margin-top: 15px"
+      >
+        Join University
+      </button>
+    </div>
+    <% } %>
+  </div>
+</div>

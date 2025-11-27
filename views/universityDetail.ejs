@@ -43,10 +43,11 @@
         <% } %>
       </div>
 
-      <!-- Define userRole and isMember at the top so they're available everywhere -->
-      <% const userRole = university.getUserRole ?
-      university.getUserRole(user._id) : null; const isMember =
-      university.isMember ? university.isMember(user._id) : false; %>
+      <!-- Defined userRole and isMember at the top so they're available everywhere -->
+      <% 
+        const userRole = university.getUserRole ? university.getUserRole(user._id) : null; 
+        const isMember = university.isMember ? university.isMember(user._id) : false; 
+      %>
 
       <!-- Tabs Navigation -->
       <div class="tabs-container">
@@ -63,443 +64,35 @@
 
       <!-- Tab Contents -->
       <div class="university-detail-content">
-        <!-- Timeline Tab -->
-        <div id="timeline" class="tab-content active">
-          <div class="info-card">
-            <h2>University Timeline</h2>
-            <p>Recent activities and posts from the community</p>
-
-            <!-- Create Post Form (Only for Admins) -->
-            <% if (userRole === 'admin') { %>
-            <div class="create-post-form">
-              <h3>Create New Post</h3>
-              <form id="createPostForm">
-                <textarea
-                  id="postContent"
-                  placeholder="Share something with the university community..."
-                  rows="4"
-                  style="
-                    width: 100%;
-                    padding: 15px;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 8px;
-                    font-family: inherit;
-                    resize: vertical;
-                  "
-                  maxlength="1000"
-                ></textarea>
-                <div
-                  style="
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-top: 10px;
-                  "
-                >
-                  <span id="charCount" style="color: #666; font-size: 0.9em"
-                    >0/1000 characters</span
-                  >
-                  <button
-                    type="submit"
-                    class="btn btn-success"
-                    style="margin-top: 10px"
-                  >
-                    Post to Timeline
-                  </button>
-                </div>
-              </form>
-            </div>
-            <% } %>
-          </div>
-
-          <!-- Posts Container -->
-          <div id="postsContainer">
-            <% if (university.posts && university.posts.length > 0) { %> <%
-            university.posts.forEach(post => { %>
-            <div class="post-card" data-post-id="<%= post._id %>">
-              <div class="post-header">
-                <div class="post-avatar">
-                  <%= post.authorName ? post.authorName.charAt(0).toUpperCase()
-                  : 'A' %>
-                </div>
-                <div>
-                  <strong><%= post.authorName || 'Admin' %></strong>
-                  <div style="font-size: 0.9em; color: #666">
-                    <%= new Date(post.createdAt).toLocaleDateString() + ' ' +
-                    new Date(post.createdAt).toLocaleTimeString() %>
-                  </div>
-                </div>
-              </div>
-              <p style="white-space: pre-wrap; line-height: 1.6">
-                <%= post.content %>
-              </p>
-
-              <!-- Post Actions -->
-              <div class="post-actions">
-                <button
-                  class="action-btn like-btn <%= post.likes && post.likes.some(like => like.user.toString() === user._id.toString()) ? 'active' : '' %>"
-                  onclick="likePost('<%= university._id %>', '<%= post._id %>', this)"
-                >
-                  👍
-                  <span class="like-count"
-                    ><%= post.likes ? post.likes.length : 0 %></span
-                  >
-                </button>
-                <button
-                  class="action-btn comment-btn"
-                  onclick="toggleComments('<%= post._id %>')"
-                >
-                  💬
-                  <span class="comment-count"
-                    ><%= post.comments ? post.comments.length : 0 %></span
-                  >
-                </button>
-              </div>
-
-              <!-- Comments Section -->
-              <div
-                class="comments-section"
-                id="comments-<%= post._id %>"
-                style="display: none"
-              >
-                <% if (post.comments && post.comments.length > 0) { %> <%
-                post.comments.forEach(comment => { %>
-                <div class="comment">
-                  <div
-                    style="
-                      display: flex;
-                      justify-content: space-between;
-                      align-items: center;
-                    "
-                  >
-                    <strong style="font-size: 0.9em"
-                      ><%= comment.authorName %></strong
-                    >
-                    <span style="font-size: 0.8em; color: #666">
-                      <%= new Date(comment.createdAt).toLocaleDateString() %>
-                    </span>
-                  </div>
-                  <p style="margin: 5px 0 0 0; font-size: 0.9em">
-                    <%= comment.content %>
-                  </p>
-                </div>
-                <% }) %> <% } else { %>
-                <p style="color: #666; font-style: italic; text-align: center">
-                  No comments yet
-                </p>
-                <% } %>
-
-                <!-- Add Comment Form (Only for Members) -->
-                <% if (isMember) { %>
-                <form
-                  class="comment-form"
-                  onsubmit="addComment(event, '<%= university._id %>', '<%= post._id %>')"
-                >
-                  <div class="comment-input-group">
-                    <input
-                      type="text"
-                      placeholder="Write a comment..."
-                      class="comment-input"
-                      maxlength="500"
-                      required
-                    />
-                    <button type="submit" class="btn btn-primary btn-sm">
-                      Post
-                    </button>
-                  </div>
-                </form>
-                <% } else { %>
-                <p style="color: #666; text-align: center; font-size: 0.9em">
-                  Join the university to comment on posts
-                </p>
-                <% } %>
-              </div>
-            </div>
-            <% }) %> <% } else { %>
-            <div class="info-card" style="text-align: center">
-              <h3>No Posts Yet</h3>
-              <p>Be the first to share something with the community!</p>
-              <% if (userRole === 'admin') { %>
-              <p>As an admin, you can create posts using the form above.</p>
-              <% } %>
-            </div>
-            <% } %>
-          </div>
-        </div>
-
-        <!-- Institute Tab -->
-        <div id="institute" class="tab-content">
-          <div class="info-card">
-            <h2>University Institute</h2>
-            <p>Academic structure and faculties</p>
-          </div>
-
-          <div class="institute-grid">
-            <div class="faculty-card">
-              <h3>Faculty of Engineering</h3>
-              <p>
-                Leading engineering and technology programs with world-class
-                research facilities.
-              </p>
-              <div style="margin-top: 15px">
-                <strong>Courses: 12</strong><br />
-                <strong>Students: 450</strong>
-              </div>
-            </div>
-
-            <div class="faculty-card">
-              <h3>Faculty of Science</h3>
-              <p>
-                Comprehensive science programs with strong research focus and
-                modern laboratories.
-              </p>
-              <div style="margin-top: 15px">
-                <strong>Courses: 8</strong><br />
-                <strong>Students: 320</strong>
-              </div>
-            </div>
-
-            <div class="faculty-card">
-              <h3>Business School</h3>
-              <p>
-                Premier business education with focus on entrepreneurship and
-                leadership development.
-              </p>
-              <div style="margin-top: 15px">
-                <strong>Courses: 6</strong><br />
-                <strong>Students: 280</strong>
-              </div>
-            </div>
-          </div>
-
-          <div class="info-card">
-            <h3>University Statistics</h3>
-            <div class="member-stats">
-              <div class="stat-card">
-                <div class="stat-number">
-                  <%= university.members ? university.members.length : 0 %>
-                </div>
-                <div>Total Members</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-number"><%= university.totalXP || 0 %></div>
-                <div>Total XP</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-number">
-                  <%= university.averageLevel || 1 %>
-                </div>
-                <div>Average Level</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Missions Tab -->
-        <div id="missions" class="tab-content">
-          <div class="info-card">
-            <h2>University Missions</h2>
-            <p>Complete missions to earn XP and level up!</p>
-          </div>
-
-          <div class="mission-card">
-            <h3>Welcome Mission</h3>
-            <p>Complete your profile and join your first class</p>
-            <div class="mission-progress">
-              <div class="mission-progress-bar" style="width: 75%"></div>
-            </div>
-            <div style="display: flex; justify-content: space-between">
-              <span>750/1000 XP</span>
-              <strong>75% Complete</strong>
-            </div>
-          </div>
-
-          <div class="mission-card">
-            <h3>Quiz Master</h3>
-            <p>Complete 10 quizzes with 80% or higher score</p>
-            <div class="mission-progress">
-              <div class="mission-progress-bar" style="width: 40%"></div>
-            </div>
-            <div style="display: flex; justify-content: space-between">
-              <span>4/10 Quizzes</span>
-              <strong>40% Complete</strong>
-            </div>
-          </div>
-
-          <div class="mission-card">
-            <h3>Community Builder</h3>
-            <p>Participate in 5 group discussions</p>
-            <div class="mission-progress">
-              <div class="mission-progress-bar" style="width: 20%"></div>
-            </div>
-            <div style="display: flex; justify-content: space-between">
-              <span>1/5 Discussions</span>
-              <strong>20% Complete</strong>
-            </div>
-          </div>
-        </div>
-
-        <!-- Members Tab -->
-        <div id="members" class="tab-content">
-          <div class="info-card">
-            <h2>University Members</h2>
-            <p>Meet the community of <%= university.name %></p>
-
-            <div class="member-stats">
-              <div class="stat-card">
-                <div class="stat-number">
-                  <%= university.members.filter(m => m.role ===
-                  'student').length %>
-                </div>
-                <div>Students</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-number">
-                  <%= university.members.filter(m => m.role ===
-                  'teacher').length %>
-                </div>
-                <div>Teachers</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-number">
-                  <%= university.members.filter(m => m.role === 'admin').length
-                  %>
-                </div>
-                <div>Admins</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="members-grid">
-            <% if (university.members && university.members.length > 0) { %> <%
-            university.members.forEach(member => { %>
-            <div class="member-card">
-              <div style="font-size: 2em; margin-bottom: 10px">👤</div>
-              <strong>Member</strong>
-              <div class="role-badge <%= `role-${member.role}` %>">
-                <%= member.role.charAt(0).toUpperCase() + member.role.slice(1)
-                %>
-              </div>
-              <div style="margin-top: 10px; font-size: 0.9em">
-                Level: <%= member.level || 1 %><br />
-                XP: <%= member.xp || 0 %>
-              </div>
-            </div>
-            <% }) %> <% } else { %>
-            <div
-              class="info-card"
-              style="text-align: center; grid-column: 1 / -1"
-            >
-              <h3>No Members Yet</h3>
-              <p>Be the first to join this university!</p>
-              <button
-                class="btn btn-primary"
-                onclick="joinUniversity('<%= university._id %>')"
-                style="margin-top: 15px"
-              >
-                Join University
-              </button>
-            </div>
-            <% } %>
-          </div>
-        </div>
-
-        <!-- Dashboard Tab (Admin Only) -->
+        <!-- Added all tab partials with required variables -->
+        <%- include('partials/universityDetails/timelineUniversityDetails', {
+          university: university,
+          user: user,
+          userRole: userRole,
+          isMember: isMember
+        }) %>
+        
+        <%- include('partials/universityDetails/instituteUniversityDetails', {
+          university: university,
+          user: user
+        }) %>
+        
+        <%- include('partials/universityDetails/missionsUniversityDetails', {
+          university: university,
+          user: user
+        }) %>
+        
+        <%- include('partials/universityDetails/membersUniversityDetails', {
+          university: university,
+          user: user
+        }) %>
+        
         <% if (userRole === 'admin') { %>
-        <div id="dashboard" class="tab-content">
-          <div class="info-card">
-            <h2>Admin Dashboard</h2>
-            <p>Manage your university and view analytics</p>
-          </div>
-
-          <!-- Quick Stats -->
-          <div class="info-card">
-            <h3>Quick Statistics</h3>
-            <div class="member-stats">
-              <div class="stat-card">
-                <div class="stat-number">
-                  <%= university.members ? university.members.length : 0 %>
-                </div>
-                <div>Total Members</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-number">
-                  <%= university.posts ? university.posts.length : 0 %>
-                </div>
-                <div>Total Posts</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-number"><%= university.totalXP || 0 %></div>
-                <div>Total XP</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-number">
-                  <%= university.averageLevel || 1 %>
-                </div>
-                <div>Avg Level</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Member Management -->
-          <div class="info-card">
-            <h3>Member Management</h3>
-            <div class="admin-actions">
-              <button class="btn btn-primary" onclick="showMemberManagement()">
-                Manage Members
-              </button>
-              <button class="btn btn-secondary" onclick="showInviteModal()">
-                Invite New Members
-              </button>
-              <button class="btn btn-info" onclick="exportMemberData()">
-                Export Data
-              </button>
-            </div>
-          </div>
-
-          <!-- Recent Activity -->
-          <div class="info-card">
-            <h3>Recent Activity</h3>
-            <% if (university.posts && university.posts.length > 0) { %>
-            <div class="recent-activity">
-              <% university.posts.slice(0, 5).forEach(post => { %>
-              <div class="activity-item">
-                <div class="activity-content">
-                  <strong><%= post.authorName || 'Admin' %></strong>
-                  posted: "<%= post.content.length > 100 ?
-                  post.content.substring(0, 100) + '...' : post.content %>"
-                </div>
-                <div class="activity-meta">
-                  <%= new Date(post.createdAt).toLocaleDateString() %> • <%=
-                  post.likes ? post.likes.length : 0 %> likes • <%=
-                  post.comments ? post.comments.length : 0 %> comments
-                </div>
-              </div>
-              <% }) %>
-            </div>
-            <% } else { %>
-            <p style="text-align: center; color: #666; font-style: italic">
-              No recent activity
-            </p>
-            <% } %>
-          </div>
-
-          <!-- University Settings -->
-          <div class="info-card">
-            <h3>University Settings</h3>
-            <div class="admin-actions">
-              <button
-                class="btn btn-warning"
-                onclick="showUniversitySettings()"
-              >
-                Edit University Info
-              </button>
-              <button class="btn btn-danger" onclick="showDeleteModal()">
-                Delete University
-              </button>
-            </div>
-          </div>
-        </div>
+          <%- include('partials/universityDetails/dashboardUniversityDetails', {
+            university: university,
+            user: user,
+            userRole: userRole
+          }) %>
         <% } %>
       </div>
     </div>
@@ -759,9 +352,7 @@
 
       function showInviteModal() {
         const inviteCode = "<%= university.inviteCode || 'N/A' %>";
-        alert(
-          `Invite Code: ${inviteCode}\n\nShare this code with others to join your university!`
-        );
+        alert(`Invite Code: ${inviteCode}\n\nShare this code with others to join your university!`);
         // This would open a modal with invite options
       }
 
@@ -776,9 +367,7 @@
       }
 
       function showDeleteModal() {
-        const confirmed = confirm(
-          "WARNING: This will permanently delete the university and all its data. This action cannot be undone. Are you sure?"
-        );
+        const confirmed = confirm("WARNING: This will permanently delete the university and all its data. This action cannot be undone. Are you sure?");
         if (confirmed) {
           alert("Delete university feature coming soon!");
           // This would call an API to delete the university

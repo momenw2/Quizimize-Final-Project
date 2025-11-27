@@ -1,0 +1,89 @@
+<div id="dashboard" class="tab-content">
+  <div class="info-card">
+    <h2>Admin Dashboard</h2>
+    <p>Manage your university and view analytics</p>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="info-card">
+    <h3>Quick Statistics</h3>
+    <div class="member-stats">
+      <div class="stat-card">
+        <div class="stat-number">
+          <%= university.members ? university.members.length : 0 %>
+        </div>
+        <div>Total Members</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">
+          <%= university.posts ? university.posts.length : 0 %>
+        </div>
+        <div>Total Posts</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number"><%= university.totalXP || 0 %></div>
+        <div>Total XP</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number"><%= university.averageLevel || 1 %></div>
+        <div>Avg Level</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Member Management -->
+  <div class="info-card">
+    <h3>Member Management</h3>
+    <div class="admin-actions">
+      <button class="btn btn-primary" onclick="showMemberManagement()">
+        Manage Members
+      </button>
+      <button class="btn btn-secondary" onclick="showInviteModal()">
+        Invite New Members
+      </button>
+      <button class="btn btn-info" onclick="exportMemberData()">
+        Export Data
+      </button>
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="info-card">
+    <h3>Recent Activity</h3>
+    <% if (university.posts && university.posts.length > 0) { %>
+    <div class="recent-activity">
+      <% university.posts.slice(0, 5).forEach(post => { %>
+      <div class="activity-item">
+        <div class="activity-content">
+          <strong><%= post.authorName || 'Admin' %></strong>
+          posted: "<%= post.content.length > 100 ? post.content.substring(0,
+          100) + '...' : post.content %>"
+        </div>
+        <div class="activity-meta">
+          <%= new Date(post.createdAt).toLocaleDateString() %> • <%= post.likes
+          ? post.likes.length : 0 %> likes • <%= post.comments ?
+          post.comments.length : 0 %> comments
+        </div>
+      </div>
+      <% }) %>
+    </div>
+    <% } else { %>
+    <p style="text-align: center; color: #666; font-style: italic">
+      No recent activity
+    </p>
+    <% } %>
+  </div>
+
+  <!-- University Settings -->
+  <div class="info-card">
+    <h3>University Settings</h3>
+    <div class="admin-actions">
+      <button class="btn btn-warning" onclick="showUniversitySettings()">
+        Edit University Info
+      </button>
+      <button class="btn btn-danger" onclick="showDeleteModal()">
+        Delete University
+      </button>
+    </div>
+  </div>
+</div>

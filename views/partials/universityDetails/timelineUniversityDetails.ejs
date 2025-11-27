@@ -1,0 +1,155 @@
+<div id="timeline" class="tab-content active">
+  <div class="info-card">
+    <h2>University Timeline</h2>
+    <p>Recent activities and posts from the community</p>
+
+    <!-- Create Post Form (Only for Admins) -->
+    <% if (userRole === 'admin') { %>
+    <div class="create-post-form">
+      <h3>Create New Post</h3>
+      <form id="createPostForm">
+        <textarea
+          id="postContent"
+          placeholder="Share something with the university community..."
+          rows="4"
+          style="
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: inherit;
+            resize: vertical;
+          "
+          maxlength="1000"
+        ></textarea>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+          "
+        >
+          <span id="charCount" style="color: #666; font-size: 0.9em"
+            >0/1000 characters</span
+          >
+          <button
+            type="submit"
+            class="btn btn-success"
+            style="margin-top: 10px"
+          >
+            Post to Timeline
+          </button>
+        </div>
+      </form>
+    </div>
+    <% } %>
+  </div>
+
+  <!-- Posts Container -->
+  <div id="postsContainer">
+    <% if (university.posts && university.posts.length > 0) { %> <%
+    university.posts.forEach(post => { %>
+    <div class="post-card" data-post-id="<%= post._id %>">
+      <div class="post-header">
+        <div class="post-avatar">
+          <%= post.authorName ? post.authorName.charAt(0).toUpperCase() : 'A' %>
+        </div>
+        <div>
+          <strong><%= post.authorName || 'Admin' %></strong>
+          <div style="font-size: 0.9em; color: #666">
+            <%= new Date(post.createdAt).toLocaleDateString() + ' ' + new
+            Date(post.createdAt).toLocaleTimeString() %>
+          </div>
+        </div>
+      </div>
+      <p style="white-space: pre-wrap; line-height: 1.6"><%= post.content %></p>
+
+      <!-- Post Actions -->
+      <div class="post-actions">
+        <button
+          class="action-btn like-btn <%= post.likes && post.likes.some(like => like.user.toString() === user._id.toString()) ? 'active' : '' %>"
+          onclick="likePost('<%= university._id %>', '<%= post._id %>', this)"
+        >
+          👍
+          <span class="like-count"
+            ><%= post.likes ? post.likes.length : 0 %></span
+          >
+        </button>
+        <button
+          class="action-btn comment-btn"
+          onclick="toggleComments('<%= post._id %>')"
+        >
+          💬
+          <span class="comment-count"
+            ><%= post.comments ? post.comments.length : 0 %></span
+          >
+        </button>
+      </div>
+
+      <!-- Comments Section -->
+      <div
+        class="comments-section"
+        id="comments-<%= post._id %>"
+        style="display: none"
+      >
+        <% if (post.comments && post.comments.length > 0) { %> <%
+        post.comments.forEach(comment => { %>
+        <div class="comment">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            "
+          >
+            <strong style="font-size: 0.9em"><%= comment.authorName %></strong>
+            <span style="font-size: 0.8em; color: #666">
+              <%= new Date(comment.createdAt).toLocaleDateString() %>
+            </span>
+          </div>
+          <p style="margin: 5px 0 0 0; font-size: 0.9em">
+            <%= comment.content %>
+          </p>
+        </div>
+        <% }) %> <% } else { %>
+        <p style="color: #666; font-style: italic; text-align: center">
+          No comments yet
+        </p>
+        <% } %>
+
+        <!-- Add Comment Form (Only for Members) -->
+        <% if (isMember) { %>
+        <form
+          class="comment-form"
+          onsubmit="addComment(event, '<%= university._id %>', '<%= post._id %>')"
+        >
+          <div class="comment-input-group">
+            <input
+              type="text"
+              placeholder="Write a comment..."
+              class="comment-input"
+              maxlength="500"
+              required
+            />
+            <button type="submit" class="btn btn-primary btn-sm">Post</button>
+          </div>
+        </form>
+        <% } else { %>
+        <p style="color: #666; text-align: center; font-size: 0.9em">
+          Join the university to comment on posts
+        </p>
+        <% } %>
+      </div>
+    </div>
+    <% }) %> <% } else { %>
+    <div class="info-card" style="text-align: center">
+      <h3>No Posts Yet</h3>
+      <p>Be the first to share something with the community!</p>
+      <% if (userRole === 'admin') { %>
+      <p>As an admin, you can create posts using the form above.</p>
+      <% } %>
+    </div>
+    <% } %>
+  </div>
+</div>
