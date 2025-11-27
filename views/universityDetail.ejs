@@ -44,10 +44,9 @@
       </div>
 
       <!-- Defined userRole and isMember at the top so they're available everywhere -->
-      <% 
-        const userRole = university.getUserRole ? university.getUserRole(user._id) : null; 
-        const isMember = university.isMember ? university.isMember(user._id) : false; 
-      %>
+      <% const userRole = university.getUserRole ?
+      university.getUserRole(user._id) : null; const isMember =
+      university.isMember ? university.isMember(user._id) : false; %>
 
       <!-- Tabs Navigation -->
       <div class="tabs-container">
@@ -66,34 +65,16 @@
       <div class="university-detail-content">
         <!-- Added all tab partials with required variables -->
         <%- include('partials/universityDetails/timelineUniversityDetails', {
-          university: university,
-          user: user,
-          userRole: userRole,
-          isMember: isMember
-        }) %>
-        
-        <%- include('partials/universityDetails/instituteUniversityDetails', {
-          university: university,
-          user: user
-        }) %>
-        
-        <%- include('partials/universityDetails/missionsUniversityDetails', {
-          university: university,
-          user: user
-        }) %>
-        
-        <%- include('partials/universityDetails/membersUniversityDetails', {
-          university: university,
-          user: user
-        }) %>
-        
-        <% if (userRole === 'admin') { %>
-          <%- include('partials/universityDetails/dashboardUniversityDetails', {
-            university: university,
-            user: user,
-            userRole: userRole
-          }) %>
-        <% } %>
+        university: university, user: user, userRole: userRole, isMember:
+        isMember }) %> <%-
+        include('partials/universityDetails/instituteUniversityDetails', {
+        university: university, user: user }) %> <%-
+        include('partials/universityDetails/missionsUniversityDetails', {
+        university: university, user: user }) %> <%-
+        include('partials/universityDetails/membersUniversityDetails', {
+        university: university, user: user }) %> <% if (userRole === 'admin') {
+        %> <%- include('partials/universityDetails/dashboardUniversityDetails',
+        { university: university, user: user, userRole: userRole }) %> <% } %>
       </div>
     </div>
 
@@ -116,6 +97,30 @@
             // Add active class to clicked tab and corresponding content
             tab.classList.add("active");
             document.getElementById(tabId).classList.add("active");
+          });
+        });
+
+        // Dashboard tabs functionality (new)
+        const dashboardTabs = document.querySelectorAll(".dashboard-tab");
+        const dashboardTabContents = document.querySelectorAll(
+          ".dashboard-tab-content"
+        );
+
+        dashboardTabs.forEach((tab) => {
+          tab.addEventListener("click", () => {
+            const tabId = tab.getAttribute("data-dashboard-tab");
+
+            // Remove active class from all dashboard tabs and contents
+            dashboardTabs.forEach((t) => t.classList.remove("active"));
+            dashboardTabContents.forEach((content) =>
+              content.classList.remove("active")
+            );
+
+            // Add active class to clicked dashboard tab and corresponding content
+            tab.classList.add("active");
+            document
+              .getElementById(`dashboard-${tabId}`)
+              .classList.add("active");
           });
         });
 
@@ -352,7 +357,9 @@
 
       function showInviteModal() {
         const inviteCode = "<%= university.inviteCode || 'N/A' %>";
-        alert(`Invite Code: ${inviteCode}\n\nShare this code with others to join your university!`);
+        alert(
+          `Invite Code: ${inviteCode}\n\nShare this code with others to join your university!`
+        );
         // This would open a modal with invite options
       }
 
@@ -367,11 +374,44 @@
       }
 
       function showDeleteModal() {
-        const confirmed = confirm("WARNING: This will permanently delete the university and all its data. This action cannot be undone. Are you sure?");
+        const confirmed = confirm(
+          "WARNING: This will permanently delete the university and all its data. This action cannot be undone. Are you sure?"
+        );
         if (confirmed) {
           alert("Delete university feature coming soon!");
           // This would call an API to delete the university
         }
+      }
+
+      // New dashboard functions for Institute and Courses tabs
+      function createNewInstitute() {
+        alert("Create new institute feature coming soon!");
+        // This would open a modal or form to create a new institute
+      }
+
+      function manageInstitutes() {
+        alert("Manage institutes feature coming soon!");
+        // This would show a list of institutes with edit/delete options
+      }
+
+      function viewInstituteAnalytics() {
+        alert("Institute analytics feature coming soon!");
+        // This would show detailed analytics for institutes
+      }
+
+      function createNewCourse() {
+        alert("Create new course feature coming soon!");
+        // This would open a modal or form to create a new course
+      }
+
+      function manageCourses() {
+        alert("Manage courses feature coming soon!");
+        // This would show a list of courses with edit/delete options
+      }
+
+      function viewCourseAnalytics() {
+        alert("Course analytics feature coming soon!");
+        // This would show detailed analytics for courses
       }
     </script>
   </body>

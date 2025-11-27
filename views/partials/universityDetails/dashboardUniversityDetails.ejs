@@ -4,86 +4,205 @@
     <p>Manage your university and view analytics</p>
   </div>
 
-  <!-- Quick Stats -->
+  <!-- Dashboard Tabs Navigation -->
   <div class="info-card">
-    <h3>Quick Statistics</h3>
-    <div class="member-stats">
-      <div class="stat-card">
-        <div class="stat-number">
-          <%= university.members ? university.members.length : 0 %>
-        </div>
-        <div>Total Members</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">
-          <%= university.posts ? university.posts.length : 0 %>
-        </div>
-        <div>Total Posts</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number"><%= university.totalXP || 0 %></div>
-        <div>Total XP</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number"><%= university.averageLevel || 1 %></div>
-        <div>Avg Level</div>
-      </div>
+    <div class="dashboard-tabs-container">
+      <ul class="dashboard-tabs">
+        <li class="dashboard-tab active" data-dashboard-tab="university">
+          University
+        </li>
+        <li class="dashboard-tab" data-dashboard-tab="institute">Institute</li>
+        <li class="dashboard-tab" data-dashboard-tab="courses">Courses</li>
+      </ul>
     </div>
   </div>
 
-  <!-- Member Management -->
-  <div class="info-card">
-    <h3>Member Management</h3>
-    <div class="admin-actions">
-      <button class="btn btn-primary" onclick="showMemberManagement()">
-        Manage Members
-      </button>
-      <button class="btn btn-secondary" onclick="showInviteModal()">
-        Invite New Members
-      </button>
-      <button class="btn btn-info" onclick="exportMemberData()">
-        Export Data
-      </button>
-    </div>
-  </div>
-
-  <!-- Recent Activity -->
-  <div class="info-card">
-    <h3>Recent Activity</h3>
-    <% if (university.posts && university.posts.length > 0) { %>
-    <div class="recent-activity">
-      <% university.posts.slice(0, 5).forEach(post => { %>
-      <div class="activity-item">
-        <div class="activity-content">
-          <strong><%= post.authorName || 'Admin' %></strong>
-          posted: "<%= post.content.length > 100 ? post.content.substring(0,
-          100) + '...' : post.content %>"
-        </div>
-        <div class="activity-meta">
-          <%= new Date(post.createdAt).toLocaleDateString() %> • <%= post.likes
-          ? post.likes.length : 0 %> likes • <%= post.comments ?
-          post.comments.length : 0 %> comments
+  <!-- Dashboard Tab Contents -->
+  <div class="dashboard-tab-contents">
+    <!-- University Tab -->
+    <div id="dashboard-university" class="dashboard-tab-content active">
+      <!-- Quick Stats -->
+      <div class="info-card">
+        <h3>Quick Statistics</h3>
+        <div class="member-stats">
+          <div class="stat-card">
+            <div class="stat-number">
+              <%= university.members ? university.members.length : 0 %>
+            </div>
+            <div>Total Members</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">
+              <%= university.posts ? university.posts.length : 0 %>
+            </div>
+            <div>Total Posts</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number"><%= university.totalXP || 0 %></div>
+            <div>Total XP</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number"><%= university.averageLevel || 1 %></div>
+            <div>Avg Level</div>
+          </div>
         </div>
       </div>
-      <% }) %>
-    </div>
-    <% } else { %>
-    <p style="text-align: center; color: #666; font-style: italic">
-      No recent activity
-    </p>
-    <% } %>
-  </div>
 
-  <!-- University Settings -->
-  <div class="info-card">
-    <h3>University Settings</h3>
-    <div class="admin-actions">
-      <button class="btn btn-warning" onclick="showUniversitySettings()">
-        Edit University Info
-      </button>
-      <button class="btn btn-danger" onclick="showDeleteModal()">
-        Delete University
-      </button>
+      <!-- Member Management -->
+      <div class="info-card">
+        <h3>Member Management</h3>
+        <div class="admin-actions">
+          <button class="btn btn-primary" onclick="showMemberManagement()">
+            Manage Members
+          </button>
+          <button class="btn btn-secondary" onclick="showInviteModal()">
+            Invite New Members
+          </button>
+          <button class="btn btn-info" onclick="exportMemberData()">
+            Export Data
+          </button>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="info-card">
+        <h3>Recent Activity</h3>
+        <% if (university.posts && university.posts.length > 0) { %>
+        <div class="recent-activity">
+          <% university.posts.slice(0, 5).forEach(post => { %>
+          <div class="activity-item">
+            <div class="activity-content">
+              <strong><%= post.authorName || 'Admin' %></strong>
+              posted: "<%= post.content.length > 100 ? post.content.substring(0,
+              100) + '...' : post.content %>"
+            </div>
+            <div class="activity-meta">
+              <%= new Date(post.createdAt).toLocaleDateString() %> • <%=
+              post.likes ? post.likes.length : 0 %> likes • <%= post.comments ?
+              post.comments.length : 0 %> comments
+            </div>
+          </div>
+          <% }) %>
+        </div>
+        <% } else { %>
+        <p style="text-align: center; color: #666; font-style: italic">
+          No recent activity
+        </p>
+        <% } %>
+      </div>
+
+      <!-- University Settings -->
+      <div class="info-card">
+        <h3>University Settings</h3>
+        <div class="admin-actions">
+          <button class="btn btn-warning" onclick="showUniversitySettings()">
+            Edit University Info
+          </button>
+          <button class="btn btn-danger" onclick="showDeleteModal()">
+            Delete University
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Institute Tab -->
+    <div id="dashboard-institute" class="dashboard-tab-content">
+      <div class="info-card">
+        <h3>Institute Management</h3>
+        <p>Manage institutes within your university</p>
+        <div class="admin-actions">
+          <button class="btn btn-primary" onclick="createNewInstitute()">
+            Create New Institute
+          </button>
+          <button class="btn btn-secondary" onclick="manageInstitutes()">
+            Manage Existing Institutes
+          </button>
+          <button class="btn btn-info" onclick="viewInstituteAnalytics()">
+            View Institute Analytics
+          </button>
+        </div>
+      </div>
+
+      <!-- Institute Statistics -->
+      <div class="info-card">
+        <h3>Institute Statistics</h3>
+        <div class="member-stats">
+          <div class="stat-card">
+            <div class="stat-number">0</div>
+            <div>Total Institutes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">0</div>
+            <div>Active Institutes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">0</div>
+            <div>Institute Members</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">0</div>
+            <div>Institute Courses</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Institute Activity -->
+      <div class="info-card">
+        <h3>Institute Overview</h3>
+        <p style="text-align: center; color: #666; font-style: italic">
+          No institutes created yet. Create your first institute to get started.
+        </p>
+      </div>
+    </div>
+
+    <!-- Courses Tab -->
+    <div id="dashboard-courses" class="dashboard-tab-content">
+      <div class="info-card">
+        <h3>Course Management</h3>
+        <p>Create and manage courses for your university</p>
+        <div class="admin-actions">
+          <button class="btn btn-primary" onclick="createNewCourse()">
+            Create New Course
+          </button>
+          <button class="btn btn-secondary" onclick="manageCourses()">
+            Manage Existing Courses
+          </button>
+          <button class="btn btn-info" onclick="viewCourseAnalytics()">
+            View Course Analytics
+          </button>
+        </div>
+      </div>
+
+      <!-- Course Statistics -->
+      <div class="info-card">
+        <h3>Course Statistics</h3>
+        <div class="member-stats">
+          <div class="stat-card">
+            <div class="stat-number">0</div>
+            <div>Total Courses</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">0</div>
+            <div>Active Courses</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">0</div>
+            <div>Enrolled Students</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">0</div>
+            <div>Course Completions</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Course Overview -->
+      <div class="info-card">
+        <h3>Course Overview</h3>
+        <p style="text-align: center; color: #666; font-style: italic">
+          No courses created yet. Create your first course to get started.
+        </p>
+      </div>
     </div>
   </div>
 </div>
