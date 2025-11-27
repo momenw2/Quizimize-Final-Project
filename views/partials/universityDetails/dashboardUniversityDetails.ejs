@@ -206,3 +206,278 @@
     </div>
   </div>
 </div>
+
+<!-- Create Institute Modal -->
+<div id="createInstituteModal" class="modal" style="display: none">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Create New Institute</h3>
+      <span class="close" onclick="closeCreateInstituteModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="createInstituteForm">
+        <div class="form-group">
+          <label for="instituteName">Institute Name *</label>
+          <input
+            type="text"
+            id="instituteName"
+            name="name"
+            required
+            maxlength="100"
+            placeholder="Enter institute name"
+          />
+          <div class="char-count" id="instituteNameCount">0/100 characters</div>
+        </div>
+
+        <div class="form-group">
+          <label for="instituteDescription">Description</label>
+          <textarea
+            id="instituteDescription"
+            name="description"
+            rows="3"
+            maxlength="500"
+            placeholder="Enter institute description (optional)"
+          ></textarea>
+          <div class="char-count" id="instituteDescriptionCount">
+            0/500 characters
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="instituteDirector">Director Name</label>
+          <input
+            type="text"
+            id="instituteDirector"
+            name="director"
+            maxlength="50"
+            placeholder="Enter director name (optional)"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="instituteContactEmail">Contact Email</label>
+          <input
+            type="email"
+            id="instituteContactEmail"
+            name="contactEmail"
+            maxlength="100"
+            placeholder="Enter contact email (optional)"
+          />
+        </div>
+
+        <div class="form-actions">
+          <button
+            type="button"
+            class="btn btn-outline"
+            onclick="closeCreateInstituteModal()"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            Create Institute
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Dashboard-specific JavaScript
+  document.addEventListener("DOMContentLoaded", function () {
+    // Dashboard tabs functionality
+    const dashboardTabs = document.querySelectorAll(".dashboard-tab");
+    const dashboardTabContents = document.querySelectorAll(
+      ".dashboard-tab-content"
+    );
+
+    dashboardTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const tabId = tab.getAttribute("data-dashboard-tab");
+
+        // Remove active class from all dashboard tabs and contents
+        dashboardTabs.forEach((t) => t.classList.remove("active"));
+        dashboardTabContents.forEach((content) =>
+          content.classList.remove("active")
+        );
+
+        // Add active class to clicked dashboard tab and corresponding content
+        tab.classList.add("active");
+        document.getElementById(`dashboard-${tabId}`).classList.add("active");
+      });
+    });
+
+    // Institute creation functionality
+    const createInstituteForm = document.getElementById("createInstituteForm");
+    if (createInstituteForm) {
+      createInstituteForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const instituteData = {
+          name: formData.get("name"),
+          description: formData.get("description"),
+          director: formData.get("director"),
+          contactEmail: formData.get("contactEmail"),
+        };
+
+        // Validate required fields
+        if (!instituteData.name.trim()) {
+          alert("Institute name is required");
+          return;
+        }
+
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+
+        try {
+          submitBtn.textContent = "Creating...";
+          submitBtn.disabled = true;
+
+          const response = await fetch(
+            `/universities/<%= university._id %>/institutes`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(instituteData),
+            }
+          );
+
+          const result = await response.json();
+
+          if (response.ok) {
+            alert("Institute created successfully!");
+            closeCreateInstituteModal();
+            // Refresh the page to show the new institute
+            window.location.reload();
+          } else {
+            alert(result.error || "Failed to create institute");
+          }
+        } catch (error) {
+          console.error("Error creating institute:", error);
+          alert("Error creating institute. Please try again.");
+        } finally {
+          submitBtn.textContent = originalText;
+          submitBtn.disabled = false;
+        }
+      });
+
+      // Character count for institute name
+      const instituteName = document.getElementById("instituteName");
+      const nameCount = document.getElementById("instituteNameCount");
+      if (instituteName && nameCount) {
+        instituteName.addEventListener("input", function () {
+          const length = this.value.length;
+          nameCount.textContent = `${length}/100 characters`;
+          nameCount.style.color = length > 100 ? "#e74c3c" : "#666";
+        });
+      }
+
+      // Character count for institute description
+      const instituteDescription = document.getElementById(
+        "instituteDescription"
+      );
+      const descCount = document.getElementById("instituteDescriptionCount");
+      if (instituteDescription && descCount) {
+        instituteDescription.addEventListener("input", function () {
+          const length = this.value.length;
+          descCount.textContent = `${length}/500 characters`;
+          descCount.style.color = length > 500 ? "#e74c3c" : "#666";
+        });
+      }
+    }
+
+    // Close modal when clicking outside
+    const modal = document.getElementById("createInstituteModal");
+    if (modal) {
+      window.addEventListener("click", function (e) {
+        if (e.target === modal) {
+          closeCreateInstituteModal();
+        }
+      });
+    }
+  });
+
+  // Dashboard functions
+  function showMemberManagement() {
+    alert("Member management feature coming soon!");
+    // This would open a modal or navigate to a member management page
+  }
+
+  function showInviteModal() {
+    const inviteCode = "<%= university.inviteCode || 'N/A' %>";
+    alert(
+      `Invite Code: ${inviteCode}\n\nShare this code with others to join your university!`
+    );
+    // This would open a modal with invite options
+  }
+
+  function exportMemberData() {
+    alert("Export feature coming soon!");
+    // This would generate and download a CSV of member data
+  }
+
+  function showUniversitySettings() {
+    alert("University settings feature coming soon!");
+    // This would open a modal with university settings
+  }
+
+  function showDeleteModal() {
+    const confirmed = confirm(
+      "WARNING: This will permanently delete the university and all its data. This action cannot be undone. Are you sure?"
+    );
+    if (confirmed) {
+      alert("Delete university feature coming soon!");
+      // This would call an API to delete the university
+    }
+  }
+
+  // Institute creation functions
+  function createNewInstitute() {
+    const modal = document.getElementById("createInstituteModal");
+    if (modal) {
+      modal.style.display = "block";
+      document.getElementById("createInstituteForm").reset();
+
+      // Reset character counts
+      document.getElementById("instituteNameCount").textContent =
+        "0/100 characters";
+      document.getElementById("instituteDescriptionCount").textContent =
+        "0/500 characters";
+    }
+  }
+
+  function closeCreateInstituteModal() {
+    const modal = document.getElementById("createInstituteModal");
+    if (modal) {
+      modal.style.display = "none";
+    }
+  }
+
+  function manageInstitutes() {
+    alert("Manage institutes feature coming soon!");
+    // This would show a list of institutes with edit/delete options
+  }
+
+  function viewInstituteAnalytics() {
+    alert("Institute analytics feature coming soon!");
+    // This would show detailed analytics for institutes
+  }
+
+  function createNewCourse() {
+    alert("Create new course feature coming soon!");
+    // This would open a modal or form to create a new course
+  }
+
+  function manageCourses() {
+    alert("Manage courses feature coming soon!");
+    // This would show a list of courses with edit/delete options
+  }
+
+  function viewCourseAnalytics() {
+    alert("Course analytics feature coming soon!");
+    // This would show detailed analytics for courses
+  }
+</script>
