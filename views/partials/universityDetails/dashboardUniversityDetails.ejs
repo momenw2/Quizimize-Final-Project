@@ -11,7 +11,7 @@
         <li class="dashboard-tab active" data-dashboard-tab="university">
           University
         </li>
-        <li class="dashboard-tab" data-dashboard-tab="institute">Faculty</li>
+        <li class="dashboard-tab" data-dashboard-tab="faculty">Faculty</li>
         <li class="dashboard-tab" data-dashboard-tab="courses">Courses</li>
       </ul>
     </div>
@@ -105,53 +105,75 @@
       </div>
     </div>
 
-    <!-- Institute Tab -->
-    <div id="dashboard-institute" class="dashboard-tab-content">
+    <!-- Faculty Tab -->
+    <div id="dashboard-faculty" class="dashboard-tab-content">
       <div class="info-card">
-        <h3>Institute Management</h3>
-        <p>Manage institutes within your university</p>
+        <h3>Faculty Management</h3>
+        <p>Manage faculties within your university</p>
         <div class="admin-actions">
-          <button class="btn btn-primary" onclick="createNewInstitute()">
-            Create New Institute
+          <button class="btn btn-primary" onclick="createNewFaculty()">
+            Create New Faculty
           </button>
-          <button class="btn btn-secondary" onclick="manageInstitutes()">
-            Manage Existing Institutes
+          <button class="btn btn-secondary" onclick="manageFaculties()">
+            Manage Existing Faculties
           </button>
-          <button class="btn btn-info" onclick="viewInstituteAnalytics()">
-            View Institute Analytics
+          <button class="btn btn-info" onclick="viewFacultyAnalytics()">
+            View Faculty Analytics
           </button>
         </div>
       </div>
 
-      <!-- Institute Statistics -->
+      <!-- Faculty Statistics -->
       <div class="info-card">
-        <h3>Institute Statistics</h3>
+        <h3>Faculty Statistics</h3>
         <div class="member-stats">
           <div class="stat-card">
-            <div class="stat-number">0</div>
-            <div>Total Institutes</div>
+            <div class="stat-number" id="totalFaculties">
+              <%= university.faculties ? university.faculties.length : 0 %>
+            </div>
+            <div>Total Faculties</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="activeFaculties">
+              <%= university.faculties ? university.faculties.length : 0 %>
+            </div>
+            <div>Active Faculties</div>
           </div>
           <div class="stat-card">
             <div class="stat-number">0</div>
-            <div>Active Institutes</div>
+            <div>Faculty Members</div>
           </div>
           <div class="stat-card">
             <div class="stat-number">0</div>
-            <div>Institute Members</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-number">0</div>
-            <div>Institute Courses</div>
+            <div>Faculty Courses</div>
           </div>
         </div>
       </div>
 
-      <!-- Recent Institute Activity -->
+      <!-- Recent Faculty Activity -->
       <div class="info-card">
-        <h3>Institute Overview</h3>
+        <h3>Faculty Overview</h3>
+        <% if (university.faculties && university.faculties.length > 0) { %>
+        <div class="faculties-list">
+          <% university.faculties.forEach(faculty => { %>
+          <div class="faculty-item">
+            <h4><%= faculty.name %></h4>
+            <% if (faculty.description) { %>
+            <p><%= faculty.description %></p>
+            <% } %>
+            <div class="faculty-meta">
+              Courses: <%= faculty.courses ? faculty.courses.length : 0 %> <% if
+              (faculty.contactEmail) { %> • Contact: <%= faculty.contactEmail %>
+              <% } %>
+            </div>
+          </div>
+          <% }) %>
+        </div>
+        <% } else { %>
         <p style="text-align: center; color: #666; font-style: italic">
-          No institutes created yet. Create your first institute to get started.
+          No faculties created yet. Create your first faculty to get started.
         </p>
+        <% } %>
       </div>
     </div>
 
@@ -207,58 +229,47 @@
   </div>
 </div>
 
-<!-- Create Institute Modal -->
-<div id="createInstituteModal" class="modal" style="display: none">
+<!-- Create Faculty Modal -->
+<div id="createFacultyModal" class="modal" style="display: none">
   <div class="modal-content">
     <div class="modal-header">
-      <h3>Create New Institute</h3>
-      <span class="close" onclick="closeCreateInstituteModal()">&times;</span>
+      <h3>Create New Faculty</h3>
+      <span class="close" onclick="closeCreateFacultyModal()">&times;</span>
     </div>
     <div class="modal-body">
-      <form id="createInstituteForm">
+      <form id="createFacultyForm">
         <div class="form-group">
-          <label for="instituteName">Institute Name *</label>
+          <label for="facultyName">Faculty Name *</label>
           <input
             type="text"
-            id="instituteName"
+            id="facultyName"
             name="name"
             required
             maxlength="100"
-            placeholder="Enter institute name"
+            placeholder="Enter faculty name"
           />
-          <div class="char-count" id="instituteNameCount">0/100 characters</div>
+          <div class="char-count" id="facultyNameCount">0/100 characters</div>
         </div>
 
         <div class="form-group">
-          <label for="instituteDescription">Description</label>
+          <label for="facultyDescription">Description</label>
           <textarea
-            id="instituteDescription"
+            id="facultyDescription"
             name="description"
             rows="3"
             maxlength="500"
-            placeholder="Enter institute description (optional)"
+            placeholder="Enter faculty description (optional)"
           ></textarea>
-          <div class="char-count" id="instituteDescriptionCount">
+          <div class="char-count" id="facultyDescriptionCount">
             0/500 characters
           </div>
         </div>
 
         <div class="form-group">
-          <label for="instituteDirector">Director Name</label>
-          <input
-            type="text"
-            id="instituteDirector"
-            name="director"
-            maxlength="50"
-            placeholder="Enter director name (optional)"
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="instituteContactEmail">Contact Email</label>
+          <label for="facultyContactEmail">Contact Email</label>
           <input
             type="email"
-            id="instituteContactEmail"
+            id="facultyContactEmail"
             name="contactEmail"
             maxlength="100"
             placeholder="Enter contact email (optional)"
@@ -269,18 +280,333 @@
           <button
             type="button"
             class="btn btn-outline"
-            onclick="closeCreateInstituteModal()"
+            onclick="closeCreateFacultyModal()"
           >
             Cancel
           </button>
-          <button type="submit" class="btn btn-primary">
-            Create Institute
-          </button>
+          <button type="submit" class="btn btn-primary">Create Faculty</button>
         </div>
       </form>
     </div>
   </div>
 </div>
+
+<style>
+  /* Dashboard Styles */
+  .dashboard-tabs-container {
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .dashboard-tabs {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 2rem;
+  }
+
+  .dashboard-tab {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+    font-weight: 500;
+  }
+
+  .dashboard-tab:hover {
+    color: #4a90e2;
+    border-bottom-color: #4a90e2;
+  }
+
+  .dashboard-tab.active {
+    color: #4a90e2;
+    border-bottom-color: #4a90e2;
+  }
+
+  .dashboard-tab-contents {
+    margin-top: 1.5rem;
+  }
+
+  .dashboard-tab-content {
+    display: none;
+  }
+
+  .dashboard-tab-content.active {
+    display: block;
+  }
+
+  .member-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .stat-card {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid #e9ecef;
+  }
+
+  .stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #4a90e2;
+    margin-bottom: 0.5rem;
+  }
+
+  .admin-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+
+  .recent-activity {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .activity-item {
+    padding: 1rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #f9f9f9;
+  }
+
+  .activity-content {
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+  }
+
+  .activity-meta {
+    font-size: 0.9rem;
+    color: #666;
+  }
+
+  .faculties-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .faculty-item {
+    padding: 1rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #f9f9f9;
+  }
+
+  .faculty-item h4 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+  }
+
+  .faculty-item p {
+    margin: 0 0 0.5rem 0;
+    color: #666;
+  }
+
+  .faculty-meta {
+    font-size: 0.9rem;
+    color: #888;
+  }
+
+  /* Modal Styles */
+  .modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-content {
+    background: white;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    color: #333;
+  }
+
+  .close {
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.3s ease;
+  }
+
+  .close:hover {
+    color: #333;
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #333;
+  }
+
+  .form-group input,
+  .form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: #4a90e2;
+  }
+
+  .char-count {
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 0.25rem;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+  }
+
+  /* Button Styles */
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+  }
+
+  .btn-primary {
+    background-color: #4a90e2;
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background-color: #357abd;
+  }
+
+  .btn-secondary {
+    background-color: #6c757d;
+    color: white;
+  }
+
+  .btn-secondary:hover {
+    background-color: #545b62;
+  }
+
+  .btn-info {
+    background-color: #17a2b8;
+    color: white;
+  }
+
+  .btn-info:hover {
+    background-color: #138496;
+  }
+
+  .btn-warning {
+    background-color: #ffc107;
+    color: #212529;
+  }
+
+  .btn-warning:hover {
+    background-color: #e0a800;
+  }
+
+  .btn-danger {
+    background-color: #dc3545;
+    color: white;
+  }
+
+  .btn-danger:hover {
+    background-color: #c82333;
+  }
+
+  .btn-outline {
+    background-color: transparent;
+    color: #6c757d;
+    border: 1px solid #6c757d;
+  }
+
+  .btn-outline:hover {
+    background-color: #6c757d;
+    color: white;
+  }
+
+  /* Info Card Styles */
+  .info-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e0e0;
+  }
+
+  .info-card h2 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+  }
+
+  .info-card h3 {
+    margin: 0 0 1rem 0;
+    color: #333;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 0.5rem;
+  }
+
+  .info-card p {
+    margin: 0;
+    color: #666;
+    line-height: 1.5;
+  }
+</style>
 
 <script>
   // Dashboard-specific JavaScript
@@ -307,23 +633,22 @@
       });
     });
 
-    // Institute creation functionality
-    const createInstituteForm = document.getElementById("createInstituteForm");
-    if (createInstituteForm) {
-      createInstituteForm.addEventListener("submit", async function (e) {
+    // Faculty creation functionality
+    const createFacultyForm = document.getElementById("createFacultyForm");
+    if (createFacultyForm) {
+      createFacultyForm.addEventListener("submit", async function (e) {
         e.preventDefault();
 
         const formData = new FormData(this);
-        const instituteData = {
+        const facultyData = {
           name: formData.get("name"),
           description: formData.get("description"),
-          director: formData.get("director"),
           contactEmail: formData.get("contactEmail"),
         };
 
         // Validate required fields
-        if (!instituteData.name.trim()) {
-          alert("Institute name is required");
+        if (!facultyData.name.trim()) {
+          alert("Faculty name is required");
           return;
         }
 
@@ -335,53 +660,51 @@
           submitBtn.disabled = true;
 
           const response = await fetch(
-            `/universities/<%= university._id %>/institutes`,
+            `/universities/<%= university._id %>/faculties`,
             {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify(instituteData),
+              body: JSON.stringify(facultyData),
             }
           );
 
           const result = await response.json();
 
           if (response.ok) {
-            alert("Institute created successfully!");
-            closeCreateInstituteModal();
-            // Refresh the page to show the new institute
+            alert("Faculty created successfully!");
+            closeCreateFacultyModal();
+            // Refresh the page to show the new faculty
             window.location.reload();
           } else {
-            alert(result.error || "Failed to create institute");
+            alert(result.error || "Failed to create faculty");
           }
         } catch (error) {
-          console.error("Error creating institute:", error);
-          alert("Error creating institute. Please try again.");
+          console.error("Error creating faculty:", error);
+          alert("Error creating faculty. Please try again.");
         } finally {
           submitBtn.textContent = originalText;
           submitBtn.disabled = false;
         }
       });
 
-      // Character count for institute name
-      const instituteName = document.getElementById("instituteName");
-      const nameCount = document.getElementById("instituteNameCount");
-      if (instituteName && nameCount) {
-        instituteName.addEventListener("input", function () {
+      // Character count for faculty name
+      const facultyName = document.getElementById("facultyName");
+      const nameCount = document.getElementById("facultyNameCount");
+      if (facultyName && nameCount) {
+        facultyName.addEventListener("input", function () {
           const length = this.value.length;
           nameCount.textContent = `${length}/100 characters`;
           nameCount.style.color = length > 100 ? "#e74c3c" : "#666";
         });
       }
 
-      // Character count for institute description
-      const instituteDescription = document.getElementById(
-        "instituteDescription"
-      );
-      const descCount = document.getElementById("instituteDescriptionCount");
-      if (instituteDescription && descCount) {
-        instituteDescription.addEventListener("input", function () {
+      // Character count for faculty description
+      const facultyDescription = document.getElementById("facultyDescription");
+      const descCount = document.getElementById("facultyDescriptionCount");
+      if (facultyDescription && descCount) {
+        facultyDescription.addEventListener("input", function () {
           const length = this.value.length;
           descCount.textContent = `${length}/500 characters`;
           descCount.style.color = length > 500 ? "#e74c3c" : "#666";
@@ -390,11 +713,11 @@
     }
 
     // Close modal when clicking outside
-    const modal = document.getElementById("createInstituteModal");
+    const modal = document.getElementById("createFacultyModal");
     if (modal) {
       window.addEventListener("click", function (e) {
         if (e.target === modal) {
-          closeCreateInstituteModal();
+          closeCreateFacultyModal();
         }
       });
     }
@@ -434,36 +757,36 @@
     }
   }
 
-  // Institute creation functions
-  function createNewInstitute() {
-    const modal = document.getElementById("createInstituteModal");
+  // Faculty creation functions
+  function createNewFaculty() {
+    const modal = document.getElementById("createFacultyModal");
     if (modal) {
       modal.style.display = "block";
-      document.getElementById("createInstituteForm").reset();
+      document.getElementById("createFacultyForm").reset();
 
       // Reset character counts
-      document.getElementById("instituteNameCount").textContent =
+      document.getElementById("facultyNameCount").textContent =
         "0/100 characters";
-      document.getElementById("instituteDescriptionCount").textContent =
+      document.getElementById("facultyDescriptionCount").textContent =
         "0/500 characters";
     }
   }
 
-  function closeCreateInstituteModal() {
-    const modal = document.getElementById("createInstituteModal");
+  function closeCreateFacultyModal() {
+    const modal = document.getElementById("createFacultyModal");
     if (modal) {
       modal.style.display = "none";
     }
   }
 
-  function manageInstitutes() {
-    alert("Manage institutes feature coming soon!");
-    // This would show a list of institutes with edit/delete options
+  function manageFaculties() {
+    alert("Manage faculties feature coming soon!");
+    // This would show a list of faculties with edit/delete options
   }
 
-  function viewInstituteAnalytics() {
-    alert("Institute analytics feature coming soon!");
-    // This would show detailed analytics for institutes
+  function viewFacultyAnalytics() {
+    alert("Faculty analytics feature coming soon!");
+    // This would show detailed analytics for faculties
   }
 
   function createNewCourse() {

@@ -353,4 +353,91 @@ router.post("/:id/posts/:postId/like", async (req, res) => {
   }
 });
 
+// POST create faculty
+router.post("/:id/faculties", async (req, res) => {
+  try {
+    const university = await University.findById(req.params.id);
+
+    if (!university) {
+      return res.status(404).json({ error: "University not found" });
+    }
+
+    const { name, description, contactEmail } = req.body;
+    const userId = "67d9733be64bed89238cb710"; // Your actual user ID
+
+    // Check if user is admin of this university
+    const userRole = university.getUserRole(userId);
+    if (userRole !== "admin") {
+      return res.status(403).json({
+        error: "Only university admins can create faculties",
+      });
+    }
+
+    // Validate required fields
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        error: "Faculty name is required",
+      });
+    }
+
+    // Check if faculty with same name already exists
+    const existingFaculty = university.faculties.find(
+      (faculty) => faculty.name.toLowerCase() === name.toLowerCase().trim()
+    );
+
+    if (existingFaculty) {
+      return res.status(400).json({
+        error: "Faculty with this name already exists",
+      });
+    }
+
+    // Create new faculty
+    const newFaculty = {
+      name: name.trim(),
+      description: description ? description.trim() : "",
+      courses: [],
+    };
+
+    // Add contact email if provided
+    if (contactEmail && contactEmail.trim()) {
+      newFaculty.contactEmail = contactEmail.trim().toLowerCase();
+    }
+
+    university.faculties.push(newFaculty);
+    await university.save();
+
+    res.status(201).json({
+      message: "Faculty created successfully!",
+      faculty: newFaculty,
+    });
+  } catch (error) {
+    console.error("Error creating faculty:", error);
+    res.status(500).json({
+      error: "Failed to create faculty",
+      details: error.message,
+    });
+  }
+});
+
+// GET faculties for a university
+router.get("/:id/faculties", async (req, res) => {
+  try {
+    const university = await University.findById(req.params.id);
+
+    if (!university) {
+      return res.status(404).json({ error: "University not found" });
+    }
+
+    res.json({
+      faculties: university.faculties || [],
+    });
+  } catch (error) {
+    console.error("Error fetching faculties:", error);
+    res.status(500).json({
+      error: "Failed to fetch faculties",
+      details: error.message,
+    });
+  }
+});
+
 module.exports = router;
