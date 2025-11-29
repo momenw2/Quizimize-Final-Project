@@ -440,4 +440,91 @@ router.get("/:id/faculties", async (req, res) => {
   }
 });
 
+// POST create course
+router.post("/:id/courses", async (req, res) => {
+  try {
+    const university = await University.findById(req.params.id);
+
+    if (!university) {
+      return res.status(404).json({ error: "University not found" });
+    }
+
+    const {
+      facultyIndex,
+      courseCode,
+      courseName,
+      description,
+      credits,
+      level,
+    } = req.body;
+    const userId = "67d9733be64bed89238cb710"; // Your actual user ID
+
+    // Check if user is admin of this university
+    const userRole = university.getUserRole(userId);
+    if (userRole !== "admin") {
+      return res.status(403).json({
+        error: "Only university admins can create courses",
+      });
+    }
+
+    // Validate required fields
+    if (!facultyIndex || facultyIndex === "") {
+      return res.status(400).json({ error: "Faculty selection is required" });
+    }
+
+    if (!courseCode || !courseCode.trim()) {
+      return res.status(400).json({ error: "Course code is required" });
+    }
+
+    if (!courseName || !courseName.trim()) {
+      return res.status(400).json({ error: "Course name is required" });
+    }
+
+    // Check if faculty exists
+    if (!university.faculties || university.faculties.length <= facultyIndex) {
+      return res.status(400).json({ error: "Selected faculty not found" });
+    }
+
+    const faculty = university.faculties[facultyIndex];
+
+    // Check if course with same code already exists in this faculty
+    const existingCourse = faculty.courses.find(
+      (course) =>
+        course.courseCode.toUpperCase() === courseCode.toUpperCase().trim()
+    );
+
+    if (existingCourse) {
+      return res.status(400).json({
+        error: "Course with this code already exists in the selected faculty",
+      });
+    }
+
+    // Create new course
+    const newCourse = {
+      courseCode: courseCode.trim().toUpperCase(),
+      courseName: courseName.trim(),
+      description: description ? description.trim() : "",
+      credits: credits || 3,
+      level: level || 1,
+      teacher: userId, // Using admin as teacher for now
+      classrooms: [],
+    };
+
+    faculty.courses.push(newCourse);
+    await university.save();
+
+    res.status(201).json({
+      message: "Course created successfully!",
+      course: newCourse,
+      facultyName: faculty.name,
+    });
+  } catch (error) {
+    console.error("Error creating course:", error);
+    res.status(500).json({
+      error: "Failed to create course",
+      details: error.message,
+    });
+  }
+});
+
 module.exports = router;
