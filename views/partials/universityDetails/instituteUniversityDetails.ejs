@@ -1,13 +1,16 @@
 <div id="institute" class="tab-content">
   <div class="info-card">
-    <h2>University faculties</h2>
+    <h2>University Institute</h2>
     <p>Academic structure and faculties</p>
   </div>
 
   <div class="institute-grid">
     <% if (university.faculties && university.faculties.length > 0) { %> <%
-    university.faculties.forEach(faculty => { %>
-    <div class="faculty-card">
+    university.faculties.forEach((faculty, index) => { %>
+    <div
+      class="faculty-card"
+      onclick="viewFacultyCourses('<%= university._id %>', '<%= index %>', '<%= faculty.name %>')"
+    >
       <h3><%= faculty.name %></h3>
       <% if (faculty.description) { %>
       <p><%= faculty.description %></p>
@@ -25,6 +28,9 @@
         Contact: <%= faculty.contactEmail %>
       </div>
       <% } %>
+      <div class="faculty-card-footer">
+        <span class="click-hint">Click to view courses →</span>
+      </div>
     </div>
     <% }) %> <% } else { %>
     <div class="no-faculties-message">
@@ -87,11 +93,14 @@
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     border: 1px solid #e0e0e0;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+    position: relative;
   }
 
   .faculty-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+    border-color: #4a90e2;
   }
 
   .faculty-card h3 {
@@ -111,6 +120,24 @@
 
   .faculty-card strong {
     color: #2c3e50;
+  }
+
+  .faculty-card-footer {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f0f0f0;
+    text-align: right;
+  }
+
+  .click-hint {
+    color: #4a90e2;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: color 0.3s ease;
+  }
+
+  .faculty-card:hover .click-hint {
+    color: #357abd;
   }
 
   .no-faculties-message {
@@ -205,6 +232,13 @@
 </style>
 
 <script>
+  function viewFacultyCourses(universityId, facultyIndex, facultyName) {
+    // Redirect to faculty courses page
+    window.location.href = `/universities/${universityId}/faculties/${facultyIndex}/courses?name=${encodeURIComponent(
+      facultyName
+    )}`;
+  }
+
   function switchToDashboard() {
     // Find and click the dashboard tab
     const dashboardTab = document.querySelector('[data-tab="dashboard"]');

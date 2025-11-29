@@ -527,4 +527,88 @@ router.post("/:id/courses", async (req, res) => {
   }
 });
 
+// GET faculty courses page
+router.get("/:id/faculties/:facultyIndex/courses", async (req, res) => {
+  try {
+    const university = await University.findById(req.params.id);
+    const facultyIndex = parseInt(req.params.facultyIndex);
+    const facultyName = req.query.name || "Faculty";
+
+    if (!university) {
+      return res.status(404).render("error", {
+        error: "University not found",
+        user: req.user,
+      });
+    }
+
+    // Check if faculty exists
+    if (!university.faculties || university.faculties.length <= facultyIndex) {
+      return res.status(404).render("error", {
+        error: "Faculty not found",
+        user: req.user,
+      });
+    }
+
+    const faculty = university.faculties[facultyIndex];
+
+    res.render("facultyCourses", {
+      university: university,
+      faculty: faculty,
+      facultyIndex: facultyIndex,
+      facultyName: facultyName,
+      user: req.user || { _id: "67d9733be64bed89238cb710", fullName: "Moemen" },
+      title: `${faculty.name} Courses - ${university.name} - Quizmize`,
+    });
+  } catch (error) {
+    console.error("Error fetching faculty courses:", error);
+    res.status(500).render("error", {
+      error: "Failed to load faculty courses",
+      user: req.user,
+    });
+  }
+});
+
+// GET course details (optional - for future implementation)
+router.get(
+  "/:id/faculties/:facultyIndex/courses/:courseCode",
+  async (req, res) => {
+    try {
+      const university = await University.findById(req.params.id);
+      const facultyIndex = parseInt(req.params.facultyIndex);
+      const courseCode = req.params.courseCode;
+
+      if (!university) {
+        return res.status(404).json({ error: "University not found" });
+      }
+
+      if (
+        !university.faculties ||
+        university.faculties.length <= facultyIndex
+      ) {
+        return res.status(404).json({ error: "Faculty not found" });
+      }
+
+      const faculty = university.faculties[facultyIndex];
+      const course = faculty.courses.find((c) => c.courseCode === courseCode);
+
+      if (!course) {
+        return res.status(404).json({ error: "Course not found" });
+      }
+
+      // You can render a course detail page here
+      res.json({
+        course: course,
+        faculty: faculty.name,
+        university: university.name,
+      });
+    } catch (error) {
+      console.error("Error fetching course details:", error);
+      res.status(500).json({
+        error: "Failed to fetch course details",
+        details: error.message,
+      });
+    }
+  }
+);
+
 module.exports = router;

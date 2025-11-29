@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .header {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+
+      .back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #4a90e2;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        margin-bottom: 1rem;
+      }
+
+      .back-button:hover {
+        background: #357abd;
+        transform: translateY(-2px);
+      }
+
+      .faculty-title {
+        color: #2c3e50;
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .faculty-description {
+        color: #666;
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .university-name {
+        color: #4a90e2;
+        font-weight: 600;
+      }
+
+      .stats-bar {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin: 2rem 0;
+      }
+
+      .stat-item {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 10px;
+        text-align: center;
+        border: 2px solid #e9ecef;
+      }
+
+      .stat-number {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #4a90e2;
+        display: block;
+      }
+
+      .stat-label {
+        color: #666;
+        font-size: 0.9rem;
+      }
+
+      .courses-section {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      }
+
+      .section-title {
+        color: #2c3e50;
+        font-size: 1.8rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 3px solid #4a90e2;
+        padding-bottom: 0.5rem;
+      }
+
+      .courses-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .course-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+
+      .course-card:hover {
+        transform: translateY(-5px);
+        border-color: #4a90e2;
+        box-shadow: 0 8px 20px rgba(74, 144, 226, 0.15);
+      }
+
+      .course-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+      }
+
+      .course-code {
+        background: #4a90e2;
+        color: white;
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
+        font-weight: bold;
+        font-size: 0.9rem;
+      }
+
+      .course-level {
+        background: #e9ecef;
+        color: #666;
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
+        font-size: 0.9rem;
+      }
+
+      .course-name {
+        color: #2c3e50;
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .course-description {
+        color: #666;
+        line-height: 1.5;
+        margin-bottom: 1rem;
+        min-height: 40px;
+      }
+
+      .course-meta {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .meta-item {
+        background: white;
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        border: 1px solid #dee2e6;
+      }
+
+      .classrooms-section {
+        border-top: 1px solid #dee2e6;
+        padding-top: 1rem;
+      }
+
+      .classrooms-title {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .classroom-item {
+        background: white;
+        padding: 0.75rem;
+        border-radius: 6px;
+        margin-bottom: 0.5rem;
+        border: 1px solid #dee2e6;
+      }
+
+      .classroom-name {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.25rem;
+      }
+
+      .classroom-schedule {
+        color: #666;
+        font-size: 0.85rem;
+      }
+
+      .no-courses {
+        text-align: center;
+        padding: 3rem;
+        color: #666;
+      }
+
+      .no-courses-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+      }
+
+      @media (max-width: 768px) {
+        .courses-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .faculty-title {
+          font-size: 2rem;
+        }
+
+        .stats-bar {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header Section -->
+      <div class="header">
+        <a href="/universities/<%= university._id %>" class="back-button">
+          ← Back to University
+        </a>
+        <h1 class="faculty-title"><%= faculty.name %></h1>
+        <% if (faculty.description) { %>
+        <p class="faculty-description"><%= faculty.description %></p>
+        <% } %>
+        <p class="university-name"><%= university.name %></p>
+
+        <!-- Statistics -->
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-number"
+              ><%= faculty.courses ? faculty.courses.length : 0 %></span
+            >
+            <span class="stat-label">Total Courses</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">0</span>
+            <span class="stat-label">Total Students</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">
+              <% let totalClassrooms = 0; if (faculty.courses) {
+              faculty.courses.forEach(course => { totalClassrooms +=
+              course.classrooms ? course.classrooms.length : 0; }); } %> <%=
+              totalClassrooms %>
+            </span>
+            <span class="stat-label">Classrooms</span>
+          </div>
+          <% if (faculty.contactEmail) { %>
+          <div class="stat-item">
+            <span class="stat-label">Contact</span>
+            <span
+              style="
+                display: block;
+                margin-top: 0.5rem;
+                color: #4a90e2;
+                font-weight: 500;
+              "
+            >
+              <%= faculty.contactEmail %>
+            </span>
+          </div>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Courses Section -->
+      <div class="courses-section">
+        <h2 class="section-title">Available Courses</h2>
+
+        <% if (faculty.courses && faculty.courses.length > 0) { %>
+        <div class="courses-grid">
+          <% faculty.courses.forEach(course => { %>
+          <div
+            class="course-card"
+            onclick="viewCourseDetails('<%= university._id %>', '<%= facultyIndex %>', '<%= course.courseCode %>')"
+          >
+            <div class="course-header">
+              <span class="course-code"><%= course.courseCode %></span>
+              <span class="course-level">Level <%= course.level %></span>
+            </div>
+            <h3 class="course-name"><%= course.courseName %></h3>
+            <% if (course.description) { %>
+            <p class="course-description"><%= course.description %></p>
+            <% } %>
+            <div class="course-meta">
+              <span class="meta-item"><%= course.credits || 3 %> Credits</span>
+              <span class="meta-item">
+                <%= course.classrooms ? course.classrooms.length : 0 %> Classes
+              </span>
+            </div>
+
+            <% if (course.classrooms && course.classrooms.length > 0) { %>
+            <div class="classrooms-section">
+              <div class="classrooms-title">Classrooms:</div>
+              <% course.classrooms.slice(0, 2).forEach(classroom => { %>
+              <div class="classroom-item">
+                <div class="classroom-name"><%= classroom.name %></div>
+                <% if (classroom.schedule) { %>
+                <div class="classroom-schedule">
+                  <%= classroom.schedule.day %> at <%= classroom.schedule.time
+                  %>
+                </div>
+                <% } %>
+              </div>
+              <% }) %> <% if (course.classrooms.length > 2) { %>
+              <div
+                class="classroom-item"
+                style="text-align: center; color: #4a90e2"
+              >
+                +<%= course.classrooms.length - 2 %> more classrooms
+              </div>
+              <% } %>
+            </div>
+            <% } %>
+          </div>
+          <% }) %>
+        </div>
+        <% } else { %>
+        <div class="no-courses">
+          <div class="no-courses-icon">📚</div>
+          <h3>No Courses Available</h3>
+          <p>This faculty doesn't have any courses yet.</p>
+        </div>
+        <% } %>
+      </div>
+    </div>
+
+    <script>
+      function viewCourseDetails(universityId, facultyIndex, courseCode) {
+        // You can implement course detail viewing here
+        alert(
+          `Viewing details for ${courseCode}\n\nThis would open a course detail page.`
+        );
+        // Example: window.location.href = `/universities/${universityId}/faculties/${facultyIndex}/courses/${courseCode}`;
+      }
+    </script>
+  </body>
+</html>
