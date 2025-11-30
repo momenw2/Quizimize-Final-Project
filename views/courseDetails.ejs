@@ -758,39 +758,215 @@
 
               <!-- Timeline Tab Content -->
               <div class="tab-content active" id="timeline">
-                <div class="timeline">
-                  <div class="timeline-item">
-                    <div class="timeline-date">Today, 10:30 AM</div>
-                    <div class="timeline-title">Assignment 1 Posted</div>
-                    <div class="timeline-description">
-                      The first assignment for this course has been posted.
-                      Please check the assignments section for details.
+                <!-- Post Creation Form (Visible to Teacher Only) -->
+                <% if (user._id === course.teacher.toString()) { %>
+                <div class="post-creation-form" style="margin-bottom: 2rem">
+                  <div class="info-card">
+                    <h3 style="margin-bottom: 1rem">Create New Post</h3>
+                    <form id="create-post-form">
+                      <div style="margin-bottom: 1rem">
+                        <select
+                          name="postType"
+                          id="post-type"
+                          style="
+                            padding: 0.5rem;
+                            border: 1px solid #e9ecef;
+                            border-radius: 4px;
+                            margin-bottom: 1rem;
+                          "
+                        >
+                          <option value="announcement">📢 Announcement</option>
+                          <option value="assignment">📝 Assignment</option>
+                          <option value="material">📚 Material</option>
+                          <option value="general">💬 General</option>
+                        </select>
+                      </div>
+                      <textarea
+                        id="post-content"
+                        placeholder="What's new in your course?"
+                        rows="3"
+                        style="
+                          width: 100%;
+                          padding: 0.75rem;
+                          border: 1px solid #e9ecef;
+                          border-radius: 8px;
+                          resize: vertical;
+                          font-family: inherit;
+                        "
+                      ></textarea>
+                      <button
+                        type="submit"
+                        style="
+                          margin-top: 0.5rem;
+                          padding: 0.5rem 1.5rem;
+                          background-color: #4a90e2;
+                          color: white;
+                          border: none;
+                          border-radius: 6px;
+                          cursor: pointer;
+                        "
+                      >
+                        Post
+                      </button>
+                    </form>
+                  </div>
+                </div>
+                <% } %>
+
+                <!-- Posts Timeline -->
+                <div class="timeline" id="course-timeline">
+                  <% if (course.posts && course.posts.length > 0) { %> <%
+                  course.posts.forEach((post, index) => { %>
+                  <div
+                    class="timeline-item post-item"
+                    data-post-index="<%= index %>"
+                  >
+                    <div class="timeline-date">
+                      <%= new Date(post.createdAt).toLocaleDateString() %> at
+                      <%= new Date(post.createdAt).toLocaleTimeString([], {hour:
+                      '2-digit', minute:'2-digit'}) %> <% if (post.postType ===
+                      'announcement') { %> • 📢 Announcement <% } %> <% if
+                      (post.postType === 'assignment') { %> • 📝 Assignment <% }
+                      %> <% if (post.postType === 'material') { %> • 📚 Material
+                      <% } %>
+                    </div>
+                    <div class="timeline-title">
+                      <%= post.authorName %> <% if (post.author.toString() ===
+                      course.teacher.toString()) { %>
+                      <span style="color: #4a90e2; font-size: 0.8rem"
+                        >(Teacher)</span
+                      >
+                      <% } %>
+                    </div>
+                    <div class="timeline-description"><%= post.content %></div>
+
+                    <!-- Post Actions -->
+                    <div
+                      class="post-actions"
+                      style="
+                        margin-top: 1rem;
+                        display: flex;
+                        gap: 1rem;
+                        align-items: center;
+                      "
+                    >
+                      <!-- Like Button -->
+                      <button
+                        class="like-btn <%= post.likes.some(like => like.user.toString() === user._id) ? 'liked' : '' %>"
+                        style="
+                          background: none;
+                          border: none;
+                          cursor: pointer;
+                          color: #666;
+                          display: flex;
+                          align-items: center;
+                          gap: 0.25rem;
+                        "
+                      >
+                        ❤️
+                        <span class="like-count"><%= post.likes.length %></span>
+                      </button>
+
+                      <!-- Comment Toggle -->
+                      <button
+                        class="comment-toggle-btn"
+                        style="
+                          background: none;
+                          border: none;
+                          cursor: pointer;
+                          color: #666;
+                          display: flex;
+                          align-items: center;
+                          gap: 0.25rem;
+                        "
+                      >
+                        💬
+                        <span class="comment-count"
+                          ><%= post.comments.length %></span
+                        >
+                      </button>
+                    </div>
+
+                    <!-- Comments Section -->
+                    <div
+                      class="comments-section"
+                      style="display: none; margin-top: 1rem"
+                    >
+                      <!-- Comments List -->
+                      <div class="comments-list" style="margin-bottom: 1rem">
+                        <% post.comments.forEach(comment => { %>
+                        <div
+                          class="comment-item"
+                          style="
+                            padding: 0.75rem;
+                            background: #f8f9fa;
+                            border-radius: 8px;
+                            margin-bottom: 0.5rem;
+                          "
+                        >
+                          <div
+                            style="
+                              font-weight: 600;
+                              color: #2c3e50;
+                              font-size: 0.9rem;
+                            "
+                          >
+                            <%= comment.authorName %>
+                          </div>
+                          <div style="color: #666; margin: 0.25rem 0">
+                            <%= comment.content %>
+                          </div>
+                          <div style="font-size: 0.75rem; color: #999">
+                            <%= new Date(comment.createdAt).toLocaleDateString()
+                            %>
+                          </div>
+                        </div>
+                        <% }) %>
+                      </div>
+
+                      <!-- Add Comment Form -->
+                      <form
+                        class="add-comment-form"
+                        style="display: flex; gap: 0.5rem"
+                      >
+                        <input
+                          type="text"
+                          placeholder="Write a comment..."
+                          class="comment-input"
+                          style="
+                            flex: 1;
+                            padding: 0.5rem;
+                            border: 1px solid #e9ecef;
+                            border-radius: 20px;
+                          "
+                          required
+                        />
+                        <button
+                          type="submit"
+                          style="
+                            padding: 0.5rem 1rem;
+                            background-color: #4a90e2;
+                            color: white;
+                            border: none;
+                            border-radius: 20px;
+                            cursor: pointer;
+                          "
+                        >
+                          Post
+                        </button>
+                      </form>
                     </div>
                   </div>
-                  <div class="timeline-item">
-                    <div class="timeline-date">Yesterday, 2:15 PM</div>
-                    <div class="timeline-title">Lecture Materials Updated</div>
-                    <div class="timeline-description">
-                      New lecture slides and supplementary materials have been
-                      uploaded for Week 3.
-                    </div>
+                  <% }) %> <% } else { %>
+                  <div
+                    class="no-posts"
+                    style="text-align: center; padding: 2rem; color: #666"
+                  >
+                    <div style="font-size: 3rem; margin-bottom: 1rem">📝</div>
+                    <h3>No posts yet</h3>
+                    <p>Be the first to share something in this course!</p>
                   </div>
-                  <div class="timeline-item">
-                    <div class="timeline-date">Monday, 9:00 AM</div>
-                    <div class="timeline-title">Office Hours Announcement</div>
-                    <div class="timeline-description">
-                      Professor Smith will hold additional office hours this
-                      Thursday from 2-4 PM.
-                    </div>
-                  </div>
-                  <div class="timeline-item">
-                    <div class="timeline-date">Last Friday, 4:30 PM</div>
-                    <div class="timeline-title">Quiz Results Released</div>
-                    <div class="timeline-description">
-                      The results for Quiz 2 are now available in the grades
-                      section.
-                    </div>
-                  </div>
+                  <% } %>
                 </div>
               </div>
 
@@ -1041,6 +1217,134 @@
             sendMessage();
           }
         });
+      });
+
+      // Post creation
+      document
+        .getElementById("create-post-form")
+        ?.addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const content = document.getElementById("post-content").value.trim();
+          const postType = document.getElementById("post-type").value;
+
+          if (!content) {
+            alert("Please enter post content");
+            return;
+          }
+
+          try {
+            const response = await fetch(
+              `/universities/<%= university._id %>/faculties/<%= facultyIndex %>/courses/<%= courseIndex %>/posts`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ content, postType }),
+              }
+            );
+
+            if (response.ok) {
+              location.reload(); // Refresh to show new post
+            } else {
+              const error = await response.json();
+              alert(error.error);
+            }
+          } catch (error) {
+            console.error("Error creating post:", error);
+            alert("Failed to create post");
+          }
+        });
+
+      // Like functionality
+      document.addEventListener("click", async (e) => {
+        if (e.target.closest(".like-btn")) {
+          const likeBtn = e.target.closest(".like-btn");
+          const postItem = likeBtn.closest(".post-item");
+          const postIndex = postItem.dataset.postIndex;
+
+          try {
+            const response = await fetch(
+              `/universities/<%= university._id %>/faculties/<%= facultyIndex %>/courses/<%= courseIndex %>/posts/${postIndex}/like`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            if (response.ok) {
+              const result = await response.json();
+              const likeCount = likeBtn.querySelector(".like-count");
+              likeCount.textContent = result.likesCount;
+
+              if (result.isLiked) {
+                likeBtn.classList.add("liked");
+                likeBtn.style.color = "#e74c3c";
+              } else {
+                likeBtn.classList.remove("liked");
+                likeBtn.style.color = "#666";
+              }
+            }
+          } catch (error) {
+            console.error("Error liking post:", error);
+          }
+        }
+      });
+
+      // Comment toggle
+      document.addEventListener("click", (e) => {
+        if (e.target.closest(".comment-toggle-btn")) {
+          const commentBtn = e.target.closest(".comment-toggle-btn");
+          const commentsSection = commentBtn
+            .closest(".post-item")
+            .querySelector(".comments-section");
+          commentsSection.style.display =
+            commentsSection.style.display === "none" ? "block" : "none";
+        }
+      });
+
+      // Add comment
+      document.addEventListener("submit", async (e) => {
+        if (e.target.closest(".add-comment-form")) {
+          e.preventDefault();
+
+          const form = e.target.closest(".add-comment-form");
+          const commentInput = form.querySelector(".comment-input");
+          const content = commentInput.value.trim();
+          const postItem = form.closest(".post-item");
+          const postIndex = postItem.dataset.postIndex;
+
+          if (!content) {
+            alert("Please enter a comment");
+            return;
+          }
+
+          try {
+            const response = await fetch(
+              `/universities/<%= university._id %>/faculties/<%= facultyIndex %>/courses/<%= courseIndex %>/posts/${postIndex}/comments`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ content }),
+              }
+            );
+
+            if (response.ok) {
+              location.reload(); // Refresh to show new comment
+            } else {
+              const error = await response.json();
+              alert(error.error);
+            }
+          } catch (error) {
+            console.error("Error adding comment:", error);
+            alert("Failed to add comment");
+          }
+        }
       });
     </script>
   </body>

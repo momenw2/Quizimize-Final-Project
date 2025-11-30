@@ -35,7 +35,7 @@ router.get("/api", async (req, res) => {
   }
 });
 
-// POST create university
+// POST create university - UPDATED with proper initialization
 router.post("/", async (req, res) => {
   try {
     const { name, location, website, description } = req.body;
@@ -51,13 +51,25 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // Create new university in MongoDB
+    // Create new university with proper initialization
     const university = new University({
       name,
       location,
       website: website || "",
       description: description || "",
       logoUrl: "/assets/default-university-logo.png",
+      posts: [], // Explicitly initialize
+      faculties: [], // Explicitly initialize
+      members: [], // Explicitly initialize
+      // These will be set by defaults in the model:
+      totalXP: 0,
+      averageLevel: 1,
+      statistics: {
+        totalQuizzes: 0,
+        totalAssignments: 0,
+        averagePerformance: 0,
+        engagementRate: 0,
+      },
     });
 
     await university.save();
@@ -165,7 +177,7 @@ router.post("/join/:code", async (req, res) => {
   }
 });
 
-// GET university details page
+// GET university details page - FIXED
 router.get("/:id", async (req, res) => {
   try {
     const university = await University.findById(req.params.id);
@@ -182,9 +194,19 @@ router.get("/:id", async (req, res) => {
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
     );
 
+    // Calculate user role and membership status
+    const userId = req.user?._id || "67d9733be64bed89238cb710";
+    const userRole = university.getUserRole(userId);
+    const isMember = university.isMember(userId);
+
+    console.log(`User ${userId} role in ${university.name}:`, userRole);
+    console.log(`Is member:`, isMember);
+
     res.render("universityDetail", {
       university: university,
       user: req.user || { _id: "67d9733be64bed89238cb710", fullName: "Moemen" },
+      userRole: userRole, // Add this line
+      isMember: isMember, // Add this line
       title: `${university.name} - Quizmize`,
     });
   } catch (error) {
@@ -508,6 +530,7 @@ router.post("/:id/courses", async (req, res) => {
       level: level || 1,
       teacher: userId, // Using admin as teacher for now
       classrooms: [],
+      posts: [], // Initialize empty posts array
     };
 
     faculty.courses.push(newCourse);
@@ -568,7 +591,7 @@ router.get("/:id/faculties/:facultyIndex/courses", async (req, res) => {
   }
 });
 
-// GET course details page
+// GET course details page - FIXED
 router.get(
   "/:id/faculties/:facultyIndex/courses/:courseIndex",
   async (req, res) => {
@@ -576,7 +599,6 @@ router.get(
       const university = await University.findById(req.params.id);
       const facultyIndex = parseInt(req.params.facultyIndex);
       const courseIndex = parseInt(req.params.courseIndex);
-      const courseCode = req.query.courseCode;
 
       if (!university) {
         return res.status(404).render("error", {
@@ -608,6 +630,27 @@ router.get(
 
       const course = faculty.courses[courseIndex];
 
+      // Ensure posts array exists
+      if (!course.posts) {
+        course.posts = [];
+        await university.save();
+      }
+
+      // Sort course posts by creation date (newest first)
+      course.posts.sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+
+      // Calculate user role and membership status
+      const userId = req.user?._id || "67d9733be64bed89238cb710";
+      const userRole = university.getUserRole(userId);
+      const isMember = university.isMember(userId);
+      const isCourseTeacher = university.isCourseTeacher(
+        facultyIndex,
+        courseIndex,
+        userId
+      );
+
       res.render("courseDetails", {
         university: university,
         faculty: faculty,
@@ -618,6 +661,9 @@ router.get(
           _id: "67d9733be64bed89238cb710",
           fullName: "Moemen",
         },
+        userRole: userRole, // Add this
+        isMember: isMember, // Add this
+        isCourseTeacher: isCourseTeacher, // Add this for course-specific permissions
         title: `${course.courseCode} - ${course.courseName} - ${university.name} - Quizmize`,
       });
     } catch (error) {
@@ -629,5 +675,383 @@ router.get(
     }
   }
 );
+
+// COURSE POSTS ROUTES
+
+// POST create a course post (Teacher only)
+router.post(
+  "/:id/faculties/:facultyIndex/courses/:courseIndex/posts",
+  async (req, res) => {
+    try {
+      const university = await University.findById(req.params.id);
+      const facultyIndex = parseInt(req.params.facultyIndex);
+      const courseIndex = parseInt(req.params.courseIndex);
+
+      if (!university) {
+        return res.status(404).json({ error: "University not found" });
+      }
+
+      const { content, postType } = req.body;
+      const userId = "67d9733be64bed89238cb710"; // Your actual user ID
+      const userName = "Moemen"; // Replace with actual user name
+
+      // Check if faculty and course exist
+      if (
+        !university.faculties[facultyIndex] ||
+        !university.faculties[facultyIndex].courses[courseIndex]
+      ) {
+        return res.status(404).json({ error: "Course not found" });
+      }
+
+      const course = university.faculties[facultyIndex].courses[courseIndex];
+
+      // Check if user is the teacher of this course
+      if (course.teacher.toString() !== userId.toString()) {
+        return res.status(403).json({
+          error: "Only the course teacher can create posts",
+        });
+      }
+
+      if (!content || content.trim().length === 0) {
+        return res.status(400).json({
+          error: "Post content cannot be empty",
+        });
+      }
+
+      // Use the model method to create post
+      await university.createCoursePost(
+        facultyIndex,
+        courseIndex,
+        userId,
+        userName,
+        content.trim(),
+        postType || "general"
+      );
+
+      // Get the updated course
+      const updatedUniversity = await University.findById(req.params.id);
+      const updatedCourse =
+        updatedUniversity.faculties[facultyIndex].courses[courseIndex];
+
+      res.status(201).json({
+        message: "Post created successfully!",
+        post: updatedCourse.posts[0], // Return the newest post
+      });
+    } catch (error) {
+      console.error("Error creating course post:", error);
+      res.status(500).json({
+        error: "Failed to create post",
+        details: error.message,
+      });
+    }
+  }
+);
+
+// POST add comment to course post
+router.post(
+  "/:id/faculties/:facultyIndex/courses/:courseIndex/posts/:postIndex/comments",
+  async (req, res) => {
+    try {
+      const university = await University.findById(req.params.id);
+      const facultyIndex = parseInt(req.params.facultyIndex);
+      const courseIndex = parseInt(req.params.courseIndex);
+      const postIndex = parseInt(req.params.postIndex);
+
+      if (!university) {
+        return res.status(404).json({ error: "University not found" });
+      }
+
+      const { content } = req.body;
+      const userId = "67d9733be64bed89238cb710"; // Your actual user ID
+      const userName = "Moemen"; // Replace with actual user name
+
+      // Check if user is a member of this university
+      if (!university.isMember(userId)) {
+        return res.status(403).json({
+          error: "You must be a member of this university to comment",
+        });
+      }
+
+      if (!content || content.trim().length === 0) {
+        return res.status(400).json({
+          error: "Comment content cannot be empty",
+        });
+      }
+
+      if (content.length > 500) {
+        return res.status(400).json({
+          error: "Comment cannot exceed 500 characters",
+        });
+      }
+
+      // Use the model method to add comment
+      await university.addCommentToCoursePost(
+        facultyIndex,
+        courseIndex,
+        postIndex,
+        userId,
+        userName,
+        content.trim()
+      );
+
+      // Get the updated post
+      const updatedUniversity = await University.findById(req.params.id);
+      const updatedPost =
+        updatedUniversity.faculties[facultyIndex].courses[courseIndex].posts[
+          postIndex
+        ];
+
+      res.status(201).json({
+        message: "Comment added successfully!",
+        comment: updatedPost.comments[updatedPost.comments.length - 1],
+      });
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      res.status(500).json({
+        error: "Failed to add comment",
+        details: error.message,
+      });
+    }
+  }
+);
+
+// POST like/unlike course post
+router.post(
+  "/:id/faculties/:facultyIndex/courses/:courseIndex/posts/:postIndex/like",
+  async (req, res) => {
+    try {
+      const university = await University.findById(req.params.id);
+      const facultyIndex = parseInt(req.params.facultyIndex);
+      const courseIndex = parseInt(req.params.courseIndex);
+      const postIndex = parseInt(req.params.postIndex);
+
+      if (!university) {
+        return res.status(404).json({ error: "University not found" });
+      }
+
+      const userId = "67d9733be64bed89238cb710"; // Your actual user ID
+
+      // Check if user is a member of this university
+      if (!university.isMember(userId)) {
+        return res.status(403).json({
+          error: "You must be a member of this university to like posts",
+        });
+      }
+
+      // Use the model method to like post
+      await university.likeCoursePost(
+        facultyIndex,
+        courseIndex,
+        postIndex,
+        userId
+      );
+
+      // Get the updated post
+      const updatedUniversity = await University.findById(req.params.id);
+      const updatedPost =
+        updatedUniversity.faculties[facultyIndex].courses[courseIndex].posts[
+          postIndex
+        ];
+
+      const isLiked = updatedPost.likes.some(
+        (like) => like.user.toString() === userId.toString()
+      );
+
+      res.json({
+        message: isLiked ? "Post liked!" : "Post unliked!",
+        likesCount: updatedPost.likes.length,
+        isLiked: isLiked,
+      });
+    } catch (error) {
+      console.error("Error liking post:", error);
+      res.status(500).json({
+        error: "Failed to like post",
+        details: error.message,
+      });
+    }
+  }
+);
+
+// GET course posts
+router.get(
+  "/:id/faculties/:facultyIndex/courses/:courseIndex/posts",
+  async (req, res) => {
+    try {
+      const university = await University.findById(req.params.id);
+      const facultyIndex = parseInt(req.params.facultyIndex);
+      const courseIndex = parseInt(req.params.courseIndex);
+
+      if (!university) {
+        return res.status(404).json({ error: "University not found" });
+      }
+
+      // Check if faculty and course exist
+      if (
+        !university.faculties[facultyIndex] ||
+        !university.faculties[facultyIndex].courses[courseIndex]
+      ) {
+        return res.status(404).json({ error: "Course not found" });
+      }
+
+      const course = university.faculties[facultyIndex].courses[courseIndex];
+
+      // Ensure posts array exists
+      if (!course.posts) {
+        course.posts = [];
+      }
+
+      res.json({
+        posts: course.posts || [],
+      });
+    } catch (error) {
+      console.error("Error fetching course posts:", error);
+      res.status(500).json({
+        error: "Failed to fetch course posts",
+        details: error.message,
+      });
+    }
+  }
+);
+
+// FIX ROUTES FOR EXISTING DATA
+
+// PUT initialize posts for all courses in a university
+router.put("/:id/initialize-course-posts", async (req, res) => {
+  try {
+    const university = await University.findById(req.params.id);
+
+    if (!university) {
+      return res.status(404).json({ error: "University not found" });
+    }
+
+    let updatedCount = 0;
+
+    // Initialize posts array for all courses
+    university.faculties.forEach((faculty) => {
+      faculty.courses.forEach((course) => {
+        if (!course.posts) {
+          course.posts = [];
+          updatedCount++;
+        }
+      });
+    });
+
+    await university.save();
+
+    res.json({
+      message: `Successfully initialized posts for ${updatedCount} courses`,
+      university: university,
+    });
+  } catch (error) {
+    console.error("Error initializing course posts:", error);
+    res.status(500).json({
+      error: "Failed to initialize course posts",
+      details: error.message,
+    });
+  }
+});
+
+// TEMPORARY: Fix course posts for your university
+router.get("/fix-posts", async (req, res) => {
+  try {
+    const universityId = "690c644e76a79fe8d121fe21";
+    const university = await University.findById(universityId);
+
+    if (!university) {
+      return res.status(404).json({ error: "University not found" });
+    }
+
+    // Initialize posts for all courses
+    university.faculties.forEach((faculty) => {
+      faculty.courses.forEach((course) => {
+        if (!course.posts) {
+          course.posts = [];
+          console.log(`Initialized posts for course: ${course.courseCode}`);
+        }
+      });
+    });
+
+    await university.save();
+
+    res.json({
+      message: "Course posts initialized successfully!",
+      courses: university.faculties.flatMap((f) =>
+        f.courses.map((c) => ({
+          name: c.courseName,
+          code: c.courseCode,
+          hasPosts: !!c.posts,
+          postCount: c.posts ? c.posts.length : 0,
+        }))
+      ),
+    });
+  } catch (error) {
+    console.error("Error fixing posts:", error);
+    res.status(500).json({
+      error: "Failed to fix posts",
+      details: error.message,
+    });
+  }
+});
+
+// FIX ALL UNIVERSITIES - Run this once
+router.get("/fix-all-universities", async (req, res) => {
+  try {
+    const universities = await University.find({});
+    let fixedCount = 0;
+    let coursesFixed = 0;
+
+    for (let university of universities) {
+      let needsFix = false;
+
+      // Ensure posts array exists
+      if (!university.posts) {
+        university.posts = [];
+        needsFix = true;
+      }
+
+      // Ensure faculties array exists and has proper structure
+      if (!university.faculties) {
+        university.faculties = [];
+        needsFix = true;
+      }
+
+      // Fix each faculty and its courses
+      university.faculties.forEach((faculty) => {
+        if (!faculty.courses) {
+          faculty.courses = [];
+          needsFix = true;
+        }
+
+        // Fix each course to have posts array
+        faculty.courses.forEach((course) => {
+          if (!course.posts) {
+            course.posts = [];
+            coursesFixed++;
+            needsFix = true;
+          }
+        });
+      });
+
+      if (needsFix) {
+        await university.save();
+        fixedCount++;
+        console.log(`Fixed university: ${university.name}`);
+      }
+    }
+
+    res.json({
+      message: `Successfully fixed ${fixedCount} universities and ${coursesFixed} courses!`,
+      totalUniversities: universities.length,
+      fixedUniversities: fixedCount,
+      fixedCourses: coursesFixed,
+    });
+  } catch (error) {
+    console.error("Error fixing all universities:", error);
+    res.status(500).json({
+      error: "Failed to fix universities",
+      details: error.message,
+    });
+  }
+});
 
 module.exports = router;

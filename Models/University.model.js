@@ -150,6 +150,78 @@ const universitySchema = new mongoose.Schema(
               ref: "User",
               required: true,
             },
+            // Course-level Posts System
+            posts: {
+              type: [
+                {
+                  content: {
+                    type: String,
+                    required: [true, "Post content is required"],
+                    trim: true,
+                    maxlength: [1000, "Post cannot exceed 1000 characters"],
+                  },
+                  author: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    required: true,
+                  },
+                  authorName: {
+                    type: String,
+                    required: true,
+                  },
+                  postType: {
+                    type: String,
+                    enum: ["announcement", "assignment", "material", "general"],
+                    default: "general",
+                  },
+                  createdAt: {
+                    type: Date,
+                    default: Date.now,
+                  },
+                  updatedAt: {
+                    type: Date,
+                    default: Date.now,
+                  },
+                  likes: [
+                    {
+                      user: {
+                        type: mongoose.Schema.Types.ObjectId,
+                        required: true,
+                      },
+                      likedAt: {
+                        type: Date,
+                        default: Date.now,
+                      },
+                    },
+                  ],
+                  comments: [
+                    {
+                      content: {
+                        type: String,
+                        required: true,
+                        trim: true,
+                        maxlength: [
+                          500,
+                          "Comment cannot exceed 500 characters",
+                        ],
+                      },
+                      author: {
+                        type: mongoose.Schema.Types.ObjectId,
+                        required: true,
+                      },
+                      authorName: {
+                        type: String,
+                        required: true,
+                      },
+                      createdAt: {
+                        type: Date,
+                        default: Date.now,
+                      },
+                    },
+                  ],
+                },
+              ],
+              default: [], // Ensure posts array is always initialized
+            },
             classrooms: [
               {
                 name: {
@@ -341,6 +413,7 @@ universitySchema.index({ "settings.joinCode": 1 }, { sparse: true });
 universitySchema.index({ "members.user": 1 });
 universitySchema.index({ "members.role": 1 });
 universitySchema.index({ "posts.createdAt": -1 });
+universitySchema.index({ "faculties.courses.posts.createdAt": -1 });
 
 // Pre-save middleware to generate join code if not exists
 universitySchema.pre("save", function (next) {
@@ -493,6 +566,190 @@ universitySchema.methods.likePost = function (postId, userId) {
   return this.save();
 };
 
+// COURSE-LEVEL POST METHODS
+
+// Instance method to create a course post
+universitySchema.methods.createCoursePost = function (
+  facultyIndex,
+  courseIndex,
+  authorId,
+  authorName,
+  content,
+  postType = "general"
+) {
+  const faculty = this.faculties[facultyIndex];
+  if (!faculty) {
+    throw new Error("Faculty not found");
+  }
+
+  const course = faculty.courses[courseIndex];
+  if (!course) {
+    throw new Error("Course not found");
+  }
+
+  // Ensure posts array exists
+  if (!course.posts) {
+    course.posts = [];
+  }
+
+  const post = {
+    content: content.trim(),
+    author: authorId,
+    authorName: authorName,
+    postType: postType,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    likes: [],
+    comments: [],
+  };
+
+  course.posts.unshift(post); // Add to beginning of array (newest first)
+  return this.save();
+};
+
+// Instance method to add a comment to a course post
+universitySchema.methods.addCommentToCoursePost = function (
+  facultyIndex,
+  courseIndex,
+  postIndex,
+  authorId,
+  authorName,
+  content
+) {
+  const faculty = this.faculties[facultyIndex];
+  if (!faculty) {
+    throw new Error("Faculty not found");
+  }
+
+  const course = faculty.courses[courseIndex];
+  if (!course) {
+    throw new Error("Course not found");
+  }
+
+  const post = course.posts[postIndex];
+  if (!post) {
+    throw new Error("Post not found");
+  }
+
+  const comment = {
+    content: content.trim(),
+    author: authorId,
+    authorName: authorName,
+    createdAt: new Date(),
+  };
+
+  post.comments.push(comment);
+  return this.save();
+};
+
+// Instance method to like a course post
+universitySchema.methods.likeCoursePost = function (
+  facultyIndex,
+  courseIndex,
+  postIndex,
+  userId
+) {
+  const faculty = this.faculties[facultyIndex];
+  if (!faculty) {
+    throw new Error("Faculty not found");
+  }
+
+  const course = faculty.courses[courseIndex];
+  if (!course) {
+    throw new Error("Course not found");
+  }
+
+  const post = course.posts[postIndex];
+  if (!post) {
+    throw new Error("Post not found");
+  }
+
+  // Check if user already liked the post
+  const alreadyLiked = post.likes.some(
+    (like) => like.user.toString() === userId.toString()
+  );
+  if (alreadyLiked) {
+    // Unlike the post
+    post.likes = post.likes.filter(
+      (like) => like.user.toString() !== userId.toString()
+    );
+  } else {
+    // Like the post
+    post.likes.push({
+      user: userId,
+      likedAt: new Date(),
+    });
+  }
+
+  return this.save();
+};
+
+// Instance method to get course posts (sorted by date)
+universitySchema.methods.getCoursePosts = function (facultyIndex, courseIndex) {
+  const faculty = this.faculties[facultyIndex];
+  if (!faculty) {
+    throw new Error("Faculty not found");
+  }
+
+  const course = faculty.courses[courseIndex];
+  if (!course) {
+    throw new Error("Course not found");
+  }
+
+  // Ensure posts array exists
+  if (!course.posts) {
+    course.posts = [];
+  }
+
+  // Return posts sorted by creation date (newest first)
+  return course.posts.sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+  );
+};
+
+// Instance method to check if user is course teacher
+universitySchema.methods.isCourseTeacher = function (
+  facultyIndex,
+  courseIndex,
+  userId
+) {
+  const faculty = this.faculties[facultyIndex];
+  if (!faculty) {
+    return false;
+  }
+
+  const course = faculty.courses[courseIndex];
+  if (!course) {
+    return false;
+  }
+
+  return course.teacher.toString() === userId.toString();
+};
+
+// Instance method to check if user can interact with course (is member)
+universitySchema.methods.canInteractWithCourse = function (
+  facultyIndex,
+  courseIndex,
+  userId
+) {
+  // First check if user is a member of the university
+  if (!this.isMember(userId)) {
+    return false;
+  }
+
+  const faculty = this.faculties[facultyIndex];
+  if (!faculty) {
+    return false;
+  }
+
+  const course = faculty.courses[courseIndex];
+  if (!course) {
+    return false;
+  }
+
+  return true;
+};
+
 // Static method to find by join code
 universitySchema.statics.findByJoinCode = function (joinCode) {
   return this.findOne({ "settings.joinCode": joinCode.toUpperCase() });
@@ -521,6 +778,17 @@ universitySchema.virtual("teacherCount").get(function () {
 // Virtual for student count
 universitySchema.virtual("studentCount").get(function () {
   return this.members.filter((member) => member.role === "student").length;
+});
+
+// Virtual for total course posts count
+universitySchema.virtual("totalCoursePosts").get(function () {
+  let total = 0;
+  this.faculties.forEach((faculty) => {
+    faculty.courses.forEach((course) => {
+      total += (course.posts || []).length;
+    });
+  });
+  return total;
 });
 
 // Transform output to include virtuals
