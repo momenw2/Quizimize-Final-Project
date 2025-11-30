@@ -568,44 +568,63 @@ router.get("/:id/faculties/:facultyIndex/courses", async (req, res) => {
   }
 });
 
-// GET course details (optional - for future implementation)
+// GET course details page
 router.get(
-  "/:id/faculties/:facultyIndex/courses/:courseCode",
+  "/:id/faculties/:facultyIndex/courses/:courseIndex",
   async (req, res) => {
     try {
       const university = await University.findById(req.params.id);
       const facultyIndex = parseInt(req.params.facultyIndex);
-      const courseCode = req.params.courseCode;
+      const courseIndex = parseInt(req.params.courseIndex);
+      const courseCode = req.query.courseCode;
 
       if (!university) {
-        return res.status(404).json({ error: "University not found" });
+        return res.status(404).render("error", {
+          error: "University not found",
+          user: req.user,
+        });
       }
 
+      // Check if faculty exists
       if (
         !university.faculties ||
         university.faculties.length <= facultyIndex
       ) {
-        return res.status(404).json({ error: "Faculty not found" });
+        return res.status(404).render("error", {
+          error: "Faculty not found",
+          user: req.user,
+        });
       }
 
       const faculty = university.faculties[facultyIndex];
-      const course = faculty.courses.find((c) => c.courseCode === courseCode);
 
-      if (!course) {
-        return res.status(404).json({ error: "Course not found" });
+      // Check if course exists
+      if (!faculty.courses || faculty.courses.length <= courseIndex) {
+        return res.status(404).render("error", {
+          error: "Course not found",
+          user: req.user,
+        });
       }
 
-      // You can render a course detail page here
-      res.json({
+      const course = faculty.courses[courseIndex];
+
+      res.render("courseDetails", {
+        university: university,
+        faculty: faculty,
+        facultyIndex: facultyIndex,
         course: course,
-        faculty: faculty.name,
-        university: university.name,
+        courseIndex: courseIndex,
+        user: req.user || {
+          _id: "67d9733be64bed89238cb710",
+          fullName: "Moemen",
+        },
+        title: `${course.courseCode} - ${course.courseName} - ${university.name} - Quizmize`,
       });
     } catch (error) {
       console.error("Error fetching course details:", error);
-      res.status(500).json({
-        error: "Failed to fetch course details",
-        details: error.message,
+      res.status(500).render("error", {
+        error: "Failed to load course details",
+        user: req.user,
       });
     }
   }

@@ -240,6 +240,23 @@
           grid-template-columns: repeat(2, 1fr);
         }
       }
+      .course-card-footer {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e9ecef;
+        text-align: right;
+      }
+
+      .click-hint {
+        color: #4a90e2;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: color 0.3s ease;
+      }
+
+      .course-card:hover .click-hint {
+        color: #357abd;
+      }
     </style>
   </head>
   <body>
@@ -294,16 +311,16 @@
         </div>
       </div>
 
-      <!-- Courses Section -->
+      <!-- courses-section -->
       <div class="courses-section">
         <h2 class="section-title">Available Courses</h2>
 
         <% if (faculty.courses && faculty.courses.length > 0) { %>
         <div class="courses-grid">
-          <% faculty.courses.forEach(course => { %>
+          <% faculty.courses.forEach((course, courseIndex) => { %>
           <div
             class="course-card"
-            onclick="viewCourseDetails('<%= university._id %>', '<%= facultyIndex %>', '<%= course.courseCode %>')"
+            onclick="viewCourseDetails('<%= university._id %>', '<%= facultyIndex %>', '<%= courseIndex %>', '<%= course.courseCode %>')"
           >
             <div class="course-header">
               <span class="course-code"><%= course.courseCode %></span>
@@ -343,6 +360,9 @@
               <% } %>
             </div>
             <% } %>
+            <div class="course-card-footer">
+              <span class="click-hint">Click for details →</span>
+            </div>
           </div>
           <% }) %>
         </div>
@@ -357,12 +377,16 @@
     </div>
 
     <script>
-      function viewCourseDetails(universityId, facultyIndex, courseCode) {
-        // You can implement course detail viewing here
-        alert(
-          `Viewing details for ${courseCode}\n\nThis would open a course detail page.`
-        );
-        // Example: window.location.href = `/universities/${universityId}/faculties/${facultyIndex}/courses/${courseCode}`;
+      function viewCourseDetails(
+        universityId,
+        facultyIndex,
+        courseIndex,
+        courseCode
+      ) {
+        // Redirect to course details page
+        window.location.href = `/universities/${universityId}/faculties/${facultyIndex}/courses/${courseIndex}?courseCode=${encodeURIComponent(
+          courseCode
+        )}`;
       }
     </script>
   </body>
