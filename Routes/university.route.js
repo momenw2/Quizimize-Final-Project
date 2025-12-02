@@ -87,43 +87,93 @@ router.post("/", async (req, res) => {
   }
 });
 
-// POST join university - Fixed: Use actual user ID from session
+// POST join university - FIXED VERSION
 router.post("/:id/join", async (req, res) => {
   try {
+    console.log("=== JOIN UNIVERSITY REQUEST ===");
+    console.log("University ID:", req.params.id);
+    console.log("Request Body:", req.body);
+    console.log("Session User (req.user):", req.user); // Debug
+
     const university = await University.findById(req.params.id);
 
     if (!university) {
+      console.log("University not found with ID:", req.params.id);
       return res.status(404).json({ error: "University not found" });
     }
 
-    // Use the actual user ID from your session/authentication
-    // For now, using the test user ID from your console
-    const userId = "67d9733be64bed89238cb710"; // Your actual user ID
+    console.log("University found:", university.name);
 
-    // Check if already a member
-    if (university.isMember(userId)) {
+    // FIX 1: Get user ID from request body FIRST, then from session
+    let userId = req.body?.userId; // Get from body
+
+    if (!userId && req.user?._id) {
+      userId = req.user._id; // Fallback to session
+    }
+
+    if (!userId) {
+      console.log("No user ID provided in request");
+      return res.status(400).json({
+        error: "User ID is required. Please log in again.",
+      });
+    }
+
+    console.log("Attempting to join with User ID:", userId);
+    console.log("University members before:", university.members?.length || 0);
+
+    // FIX 2: Better debugging for membership check
+    console.log("Checking if user is already a member...");
+    let isAlreadyMember = false;
+
+    if (university.members && university.members.length > 0) {
+      university.members.forEach((member, index) => {
+        const memberId = member.user?._id || member.user;
+        console.log(`Member ${index}:`, {
+          storedId: memberId,
+          storedIdString: memberId?.toString(),
+          userIdString: userId?.toString(),
+          isMatch: memberId && memberId.toString() === userId.toString(),
+        });
+
+        if (memberId && memberId.toString() === userId.toString()) {
+          isAlreadyMember = true;
+        }
+      });
+    }
+
+    if (isAlreadyMember) {
+      console.log("User is already a member. Returning error.");
       return res
         .status(400)
         .json({ error: "You are already a member of this university" });
     }
 
     // Add as member
-    await university.addMember(userId, "student", {
+    university.members = university.members || [];
+    university.members.push({
+      user: userId,
+      role: "student",
+      joinedAt: new Date(),
+      xp: 0,
+      level: 1,
       studentInfo: {
         enrollmentDate: new Date(),
         currentLevel: 1,
       },
     });
 
-    // Get updated university without populate
-    const updatedUniversity = await University.findById(university._id);
+    await university.save();
+
+    console.log("User successfully added as member");
+    console.log("University members after:", university.members.length);
 
     res.json({
       message: `Successfully joined ${university.name}!`,
-      university: updatedUniversity,
+      university: university,
     });
   } catch (error) {
-    console.error("Error joining university:", error);
+    console.error("❌ ERROR joining university:", error);
+    console.error("Error stack:", error.stack);
     res.status(500).json({
       error: "Failed to join university",
       details: error.message,
@@ -131,7 +181,7 @@ router.post("/:id/join", async (req, res) => {
   }
 });
 
-// POST join university with code
+// POST join university with code - FIXED
 router.post("/join/:code", async (req, res) => {
   try {
     const universityCode = req.params.code.toUpperCase();
@@ -143,30 +193,49 @@ router.post("/join/:code", async (req, res) => {
       return res.status(404).json({ error: "Invalid university code" });
     }
 
-    // Use the actual user ID from your session/authentication
-    const userId = "67d9733be64bed89238cb710"; // Your actual user ID
+    // FIX: Get user ID from body instead of hardcoded
+    let userId = req.body?.userId;
+    if (!userId && req.user?._id) {
+      userId = req.user._id;
+    }
+
+    if (!userId) {
+      return res.status(400).json({
+        error: "User ID is required. Please log in again.",
+      });
+    }
 
     // Check if already a member
-    if (university.isMember(userId)) {
+    const isMember = university.members?.some((member) => {
+      const memberId = member.user?._id || member.user;
+      return memberId && memberId.toString() === userId.toString();
+    });
+
+    if (isMember) {
       return res
         .status(400)
         .json({ error: "You are already a member of this university" });
     }
 
     // Add as member
-    await university.addMember(userId, "student", {
+    university.members = university.members || [];
+    university.members.push({
+      user: userId,
+      role: "student",
+      joinedAt: new Date(),
+      xp: 0,
+      level: 1,
       studentInfo: {
         enrollmentDate: new Date(),
         currentLevel: 1,
       },
     });
 
-    // Get updated university without populate
-    const updatedUniversity = await University.findById(university._id);
+    await university.save();
 
     res.json({
       message: `Successfully joined ${university.name}!`,
-      university: updatedUniversity,
+      university: university,
     });
   } catch (error) {
     console.error("Error joining university with code:", error);
@@ -1237,11 +1306,9 @@ router.post(
       // Check if teacher is a member of the university
       const isTeacherMember = university.isMember(teacherId);
       if (!isTeacherMember) {
-        return res
-          .status(400)
-          .json({
-            error: "Selected teacher is not a member of this university",
-          });
+        return res.status(400).json({
+          error: "Selected teacher is not a member of this university",
+        });
       }
 
       // Update teacher
@@ -1283,11 +1350,9 @@ router.post(
       const userRole = university.getUserRole(userId);
 
       if (userRole !== "admin") {
-        return res
-          .status(403)
-          .json({
-            error: "Only university admins can manage classroom students",
-          });
+        return res.status(403).json({
+          error: "Only university admins can manage classroom students",
+        });
       }
 
       // Check if faculty, course and classroom exist

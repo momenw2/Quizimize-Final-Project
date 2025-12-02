@@ -197,7 +197,7 @@
         }
       }
 
-      // Enhanced function to check if current user is a member of a university
+      // Add debug logging to isUserMember function
       function isUserMember(university) {
         if (!currentUser || !currentUser._id) {
           console.log("No current user or user ID");
@@ -209,19 +209,27 @@
           return false;
         }
 
+        console.log(`\n=== Checking membership for ${university.name} ===`);
+        console.log("User ID:", currentUser._id);
+        console.log("University members:", university.members);
+
         const isMember = university.members.some((member) => {
-          // Handle both populated user object and user ID string
           const memberUserId = member.user?._id || member.user;
-          return (
+          const isMatch =
             memberUserId &&
-            memberUserId.toString() === currentUser._id.toString()
-          );
+            memberUserId.toString() === currentUser._id.toString();
+
+          if (isMatch) {
+            console.log(
+              `FOUND MATCH! User ${currentUser._id} is member of ${university.name}`
+            );
+            console.log("Member details:", member);
+          }
+
+          return isMatch;
         });
 
-        console.log(
-          `User ${currentUser._id} is member of ${university.name}:`,
-          isMember
-        );
+        console.log(`Final result: ${isMember ? "IS member" : "NOT member"}`);
         return isMember;
       }
 
@@ -365,6 +373,8 @@
       // Join university function
       async function joinUniversity(universityId) {
         console.log("Joining university:", universityId);
+        console.log("Current user:", currentUser);
+
         const joinBtn = document.querySelector(
           `[onclick="joinUniversity('${universityId}')"]`
         );
@@ -379,9 +389,14 @@
             headers: {
               "Content-Type": "application/json",
             },
+            body: JSON.stringify({
+              userId: currentUser?._id, // Send user ID in request body
+            }),
           });
 
           const result = await response.json();
+
+          console.log("Join response:", result);
 
           if (response.ok) {
             showMessage(
