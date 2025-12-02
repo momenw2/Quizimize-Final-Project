@@ -54,55 +54,6 @@
       <!-- Main Content -->
       <div class="content-grid">
         <div class="main-content">
-          <!-- Classrooms -->
-          <div class="info-card">
-            <h2 class="card-title">Classrooms</h2>
-            <% if (course.classrooms && course.classrooms.length > 0) { %>
-            <div class="classrooms-list">
-              <% course.classrooms.forEach((classroom, index) => { %>
-              <div class="classroom-card">
-                <div class="classroom-header">
-                  <div class="classroom-name"><%= classroom.name %></div>
-                  <% if (classroom.section) { %>
-                  <span class="classroom-section"
-                    ><%= classroom.section %></span
-                  >
-                  <% } %>
-                </div>
-                <% if (classroom.schedule) { %>
-                <div class="schedule-info">
-                  <span class="schedule-day"
-                    ><%= classroom.schedule.day %></span
-                  >
-                  at <strong><%= classroom.schedule.time %></strong> <% if
-                  (classroom.schedule.location) { %> in
-                  <em><%= classroom.schedule.location %></em>
-                  <% } %>
-                </div>
-                <% } %>
-                <div class="students-count">
-                  <%= classroom.students ? classroom.students.length : 0 %>
-                  students enrolled
-                </div>
-                <% if (classroom.xp && classroom.xp > 0) { %>
-                <div style="margin-top: 0.5rem">
-                  <small style="color: #4a90e2; font-weight: 500">
-                    XP: <%= classroom.xp %> • Level: <%= classroom.level || 1 %>
-                  </small>
-                </div>
-                <% } %>
-              </div>
-              <% }) %>
-            </div>
-            <% } else { %>
-            <div class="no-classrooms">
-              <div class="no-classrooms-icon">🏫</div>
-              <h3>No Classrooms Available</h3>
-              <p>This course doesn't have any classrooms yet.</p>
-            </div>
-            <% } %>
-          </div>
-
           <!-- Tabs Section -->
           <div class="info-card">
             <h2 class="card-title">Course Activities</h2>
@@ -112,6 +63,7 @@
                   📅 Timeline
                 </button>
                 <button class="tab" data-tab="chat">💬 Chat</button>
+                <button class="tab" data-tab="classroom">🏫 Classroom</button>
                 <button class="tab" data-tab="missions">🎯 Missions</button>
               </div>
 
@@ -374,6 +326,130 @@
                 </div>
               </div>
 
+              <!-- Classroom Tab Content -->
+              <div class="tab-content" id="classroom">
+                <div class="classroom-management">
+                  <!-- Add Classroom Button (Teacher Only) -->
+                  <% if (user._id === course.teacher.toString()) { %>
+                  <div style="margin-bottom: 1.5rem">
+                    <button
+                      id="add-classroom-btn"
+                      style="
+                        padding: 0.75rem 1.5rem;
+                        background-color: #4a90e2;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 1rem;
+                      "
+                    >
+                      🏫 Add New Classroom
+                    </button>
+                  </div>
+                  <% } %>
+
+                  <!-- Classrooms List -->
+                  <% if (course.classrooms && course.classrooms.length > 0) { %>
+                  <div class="classrooms-grid">
+                    <% course.classrooms.forEach((classroom, index) => { %>
+                    <div
+                      class="classroom-card"
+                      data-classroom-index="<%= index %>"
+                    >
+                      <div class="classroom-header">
+                        <div class="classroom-name">
+                          <strong><%= classroom.name %></strong>
+                        </div>
+                        <% if (classroom.section) { %>
+                        <span class="classroom-section"
+                          >Section <%= classroom.section %></span
+                        >
+                        <% } %>
+                      </div>
+
+                      <% if (classroom.schedule) { %>
+                      <div class="classroom-schedule">
+                        <div class="schedule-item">
+                          <span class="schedule-label">📅 Day:</span>
+                          <span class="schedule-value"
+                            ><%= classroom.schedule.day %></span
+                          >
+                        </div>
+                        <div class="schedule-item">
+                          <span class="schedule-label">⏰ Time:</span>
+                          <span class="schedule-value"
+                            ><%= classroom.schedule.time %></span
+                          >
+                        </div>
+                        <% if (classroom.schedule.location) { %>
+                        <div class="schedule-item">
+                          <span class="schedule-label">📍 Location:</span>
+                          <span class="schedule-value"
+                            ><%= classroom.schedule.location %></span
+                          >
+                        </div>
+                        <% } %>
+                      </div>
+                      <% } %>
+
+                      <div class="classroom-stats">
+                        <div class="stat-item">
+                          <span class="stat-label">Students:</span>
+                          <span class="stat-value"
+                            ><%= classroom.students ? classroom.students.length
+                            : 0 %></span
+                          >
+                        </div>
+                        <% if (classroom.xp && classroom.xp > 0) { %>
+                        <div class="stat-item">
+                          <span class="stat-label">XP:</span>
+                          <span class="stat-value"><%= classroom.xp %></span>
+                        </div>
+                        <div class="stat-item">
+                          <span class="stat-label">Level:</span>
+                          <span class="stat-value"
+                            ><%= classroom.level || 1 %></span
+                          >
+                        </div>
+                        <% } %>
+                      </div>
+
+                      <div class="classroom-actions">
+                        <button
+                          class="classroom-action-btn join-btn"
+                          onclick="joinClassroom('<%= index %>')"
+                        >
+                          🚀 Join Classroom
+                        </button>
+                        <% if (user._id === course.teacher.toString()) { %>
+                        <button
+                          class="classroom-action-btn manage-btn"
+                          onclick="manageClassroom('<%= index %>')"
+                        >
+                          ⚙️ Manage
+                        </button>
+                        <% } %>
+                      </div>
+                    </div>
+                    <% }) %>
+                  </div>
+                  <% } else { %>
+                  <div class="no-classrooms">
+                    <div class="no-classrooms-icon">🏫</div>
+                    <h3>No Classrooms Available</h3>
+                    <p>This course doesn't have any classrooms yet.</p>
+                    <% if (user._id === course.teacher.toString()) { %>
+                    <p>
+                      Click "Add New Classroom" to create the first classroom
+                      for this course.
+                    </p>
+                    <% } %>
+                  </div>
+                  <% } %>
+                </div>
+              </div>
+
               <!-- Missions Tab Content -->
               <div class="tab-content" id="missions">
                 <div class="missions-list">
@@ -576,6 +652,172 @@
             sendMessage();
           }
         });
+
+        // Add Classroom functionality (for teachers)
+        const addClassroomBtn = document.getElementById("add-classroom-btn");
+        if (addClassroomBtn) {
+          addClassroomBtn.addEventListener("click", function () {
+            // Create modal or form for adding new classroom
+            const modalHtml = `
+              <div class="modal-overlay" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+              ">
+                <div class="modal-content" style="
+                  background: white;
+                  padding: 2rem;
+                  border-radius: 8px;
+                  max-width: 500px;
+                  width: 90%;
+                ">
+                  <h2 style="margin-bottom: 1.5rem">Add New Classroom</h2>
+                  <form id="create-classroom-form">
+                    <div style="margin-bottom: 1rem">
+                      <label style="display: block; margin-bottom: 0.5rem">Classroom Name</label>
+                      <input type="text" id="classroom-name" style="
+                        width: 100%;
+                        padding: 0.75rem;
+                        border: 1px solid #e9ecef;
+                        border-radius: 4px;
+                      " required>
+                    </div>
+                    <div style="margin-bottom: 1rem">
+                      <label style="display: block; margin-bottom: 0.5rem">Section (Optional)</label>
+                      <input type="text" id="classroom-section" style="
+                        width: 100%;
+                        padding: 0.75rem;
+                        border: 1px solid #e9ecef;
+                        border-radius: 4px;
+                      ">
+                    </div>
+                    <div style="margin-bottom: 1rem">
+                      <label style="display: block; margin-bottom: 0.5rem">Schedule Day</label>
+                      <select id="schedule-day" style="
+                        width: 100%;
+                        padding: 0.75rem;
+                        border: 1px solid #e9ecef;
+                        border-radius: 4px;
+                      ">
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                        <option value="Sunday">Sunday</option>
+                      </select>
+                    </div>
+                    <div style="margin-bottom: 1rem">
+                      <label style="display: block; margin-bottom: 0.5rem">Schedule Time</label>
+                      <input type="time" id="schedule-time" style="
+                        width: 100%;
+                        padding: 0.75rem;
+                        border: 1px solid #e9ecef;
+                        border-radius: 4px;
+                      " required>
+                    </div>
+                    <div style="margin-bottom: 1.5rem">
+                      <label style="display: block; margin-bottom: 0.5rem">Location (Optional)</label>
+                      <input type="text" id="classroom-location" style="
+                        width: 100%;
+                        padding: 0.75rem;
+                        border: 1px solid #e9ecef;
+                        border-radius: 4px;
+                      ">
+                    </div>
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end">
+                      <button type="button" id="cancel-modal" style="
+                        padding: 0.75rem 1.5rem;
+                        background: #f8f9fa;
+                        border: 1px solid #e9ecef;
+                        border-radius: 6px;
+                        cursor: pointer;
+                      ">Cancel</button>
+                      <button type="submit" style="
+                        padding: 0.75rem 1.5rem;
+                        background-color: #4a90e2;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                      ">Create Classroom</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            `;
+
+            const modalElement = document.createElement("div");
+            modalElement.innerHTML = modalHtml;
+            document.body.appendChild(modalElement);
+
+            // Handle form submission
+            const form = modalElement.querySelector("#create-classroom-form");
+            form.addEventListener("submit", async function (e) {
+              e.preventDefault();
+
+              const classroomData = {
+                name: document.getElementById("classroom-name").value,
+                section:
+                  document.getElementById("classroom-section").value ||
+                  undefined,
+                schedule: {
+                  day: document.getElementById("schedule-day").value,
+                  time: document.getElementById("schedule-time").value,
+                  location:
+                    document.getElementById("classroom-location").value ||
+                    undefined,
+                },
+              };
+
+              try {
+                const response = await fetch(
+                  `/universities/<%= university._id %>/faculties/<%= facultyIndex %>/courses/<%= courseIndex %>/classrooms`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(classroomData),
+                  }
+                );
+
+                if (response.ok) {
+                  location.reload();
+                } else {
+                  const error = await response.json();
+                  alert(error.error || "Failed to create classroom");
+                }
+              } catch (error) {
+                console.error("Error creating classroom:", error);
+                alert("Failed to create classroom");
+              }
+            });
+
+            // Handle cancel button
+            const cancelBtn = modalElement.querySelector("#cancel-modal");
+            cancelBtn.addEventListener("click", function () {
+              document.body.removeChild(modalElement);
+            });
+
+            // Close modal when clicking outside
+            modalElement
+              .querySelector(".modal-overlay")
+              .addEventListener("click", function (e) {
+                if (e.target === this) {
+                  document.body.removeChild(modalElement);
+                }
+              });
+          });
+        }
       });
 
       // Post creation
@@ -705,6 +947,17 @@
           }
         }
       });
+
+      // Classroom functions
+      function joinClassroom(classroomIndex) {
+        alert(`Joining classroom ${parseInt(classroomIndex) + 1}...`);
+        // Future implementation: enroll user in specific classroom
+      }
+
+      function manageClassroom(classroomIndex) {
+        alert(`Managing classroom ${parseInt(classroomIndex) + 1}...`);
+        // Future implementation: open classroom management interface
+      }
     </script>
   </body>
 </html>
