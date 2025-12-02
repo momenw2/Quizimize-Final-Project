@@ -53,6 +53,7 @@ app.get("/university", (req, res) => res.render("university"));
 app.get("/universityDetail", (req, res) => res.render("universityDetail"));
 app.get("/facultyCourses", (req, res) => res.render("facultyCourses"));
 app.get("/courseDetails", (req, res) => res.render("courseDetails"));
+app.get("/manageCourses", (req, res) => res.render("manageCourses"));
 
 // ##### Admin Pages #####
 app.get("/adminDashboard", (req, res) => res.render("adminDashboardPage"));

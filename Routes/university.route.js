@@ -1054,4 +1054,394 @@ router.get("/fix-all-universities", async (req, res) => {
   }
 });
 
+// GET manage courses page
+router.get("/:id/manage-courses", async (req, res) => {
+  try {
+    const university = await University.findById(req.params.id);
+
+    if (!university) {
+      return res.status(404).render("error", {
+        error: "University not found",
+        user: req.user,
+      });
+    }
+
+    // Check if user is admin
+    const userId = req.user?._id || "67d9733be64bed89238cb710";
+    const userRole = university.getUserRole(userId);
+
+    if (userRole !== "admin") {
+      return res.status(403).render("error", {
+        error: "Only university admins can manage courses",
+        user: req.user,
+      });
+    }
+
+    // Gather all courses with faculty information
+    const allCourses = [];
+    university.faculties.forEach((faculty, facultyIndex) => {
+      faculty.courses.forEach((course, courseIndex) => {
+        allCourses.push({
+          facultyName: faculty.name,
+          facultyIndex: facultyIndex,
+          courseCode: course.courseCode,
+          courseName: course.courseName,
+          courseIndex: courseIndex,
+          description: course.description,
+          level: course.level,
+          credits: course.credits,
+          teacher: course.teacher,
+          totalStudents: course.classrooms
+            ? course.classrooms.reduce(
+                (sum, classroom) =>
+                  sum + (classroom.students ? classroom.students.length : 0),
+                0
+              )
+            : 0,
+          classrooms: course.classrooms || [],
+        });
+      });
+    });
+
+    res.render("manageCourses", {
+      university: university,
+      courses: allCourses,
+      user: req.user || { _id: "67d9733be64bed89238cb710", fullName: "Moemen" },
+      title: `Manage Courses - ${university.name} - Quizmize`,
+    });
+  } catch (error) {
+    console.error("Error fetching courses for management:", error);
+    res.status(500).render("error", {
+      error: "Failed to load course management",
+      user: req.user,
+    });
+  }
+});
+
+// GET course management details
+router.get(
+  "/:id/faculties/:facultyIndex/courses/:courseIndex/manage",
+  async (req, res) => {
+    try {
+      const university = await University.findById(req.params.id);
+      const facultyIndex = parseInt(req.params.facultyIndex);
+      const courseIndex = parseInt(req.params.courseIndex);
+
+      if (!university) {
+        return res.status(404).json({ error: "University not found" });
+      }
+
+      // Check if user is admin
+      const userId = req.user?._id || "67d9733be64bed89238cb710";
+      const userRole = university.getUserRole(userId);
+
+      if (userRole !== "admin") {
+        return res
+          .status(403)
+          .json({ error: "Only university admins can manage courses" });
+      }
+
+      // Check if faculty and course exist
+      if (
+        !university.faculties[facultyIndex] ||
+        !university.faculties[facultyIndex].courses[courseIndex]
+      ) {
+        return res.status(404).json({ error: "Course not found" });
+      }
+
+      const faculty = university.faculties[facultyIndex];
+      const course = faculty.courses[courseIndex];
+
+      // Get all university members
+      const universityMembers = university.members.map((member) => ({
+        userId: member.user,
+        role: member.role,
+        xp: member.xp,
+        level: member.level,
+      }));
+
+      // Get course participants (from all classrooms)
+      const courseParticipants = [];
+      if (course.classrooms) {
+        course.classrooms.forEach((classroom) => {
+          if (classroom.students) {
+            classroom.students.forEach((student) => {
+              courseParticipants.push({
+                userId: student.student,
+                classroom: classroom.name,
+                status: student.status,
+                joinedAt: student.joinedAt,
+              });
+            });
+          }
+        });
+      }
+
+      res.json({
+        course: {
+          facultyName: faculty.name,
+          facultyIndex: facultyIndex,
+          courseCode: course.courseCode,
+          courseName: course.courseName,
+          courseIndex: courseIndex,
+          description: course.description,
+          teacher: course.teacher,
+          classrooms: course.classrooms || [],
+        },
+        universityMembers: universityMembers,
+        courseParticipants: courseParticipants,
+        totalMembers: university.members.length,
+      });
+    } catch (error) {
+      console.error("Error fetching course management details:", error);
+      res.status(500).json({
+        error: "Failed to fetch course details",
+        details: error.message,
+      });
+    }
+  }
+);
+
+// POST assign teacher to course
+router.post(
+  "/:id/faculties/:facultyIndex/courses/:courseIndex/assign-teacher",
+  async (req, res) => {
+    try {
+      const university = await University.findById(req.params.id);
+      const facultyIndex = parseInt(req.params.facultyIndex);
+      const courseIndex = parseInt(req.params.courseIndex);
+      const { teacherId } = req.body;
+
+      if (!university) {
+        return res.status(404).json({ error: "University not found" });
+      }
+
+      // Check if user is admin
+      const userId = req.user?._id || "67d9733be64bed89238cb710";
+      const userRole = university.getUserRole(userId);
+
+      if (userRole !== "admin") {
+        return res
+          .status(403)
+          .json({ error: "Only university admins can assign teachers" });
+      }
+
+      // Check if faculty and course exist
+      if (
+        !university.faculties[facultyIndex] ||
+        !university.faculties[facultyIndex].courses[courseIndex]
+      ) {
+        return res.status(404).json({ error: "Course not found" });
+      }
+
+      // Check if teacher is a member of the university
+      const isTeacherMember = university.isMember(teacherId);
+      if (!isTeacherMember) {
+        return res
+          .status(400)
+          .json({
+            error: "Selected teacher is not a member of this university",
+          });
+      }
+
+      // Update teacher
+      university.faculties[facultyIndex].courses[courseIndex].teacher =
+        teacherId;
+      await university.save();
+
+      res.json({
+        message: "Teacher assigned successfully!",
+        teacherId: teacherId,
+      });
+    } catch (error) {
+      console.error("Error assigning teacher:", error);
+      res.status(500).json({
+        error: "Failed to assign teacher",
+        details: error.message,
+      });
+    }
+  }
+);
+
+// POST manage classroom students
+router.post(
+  "/:id/faculties/:facultyIndex/courses/:courseIndex/classrooms/:classroomIndex/manage-students",
+  async (req, res) => {
+    try {
+      const university = await University.findById(req.params.id);
+      const facultyIndex = parseInt(req.params.facultyIndex);
+      const courseIndex = parseInt(req.params.courseIndex);
+      const classroomIndex = parseInt(req.params.classroomIndex);
+      const { action, studentId } = req.body;
+
+      if (!university) {
+        return res.status(404).json({ error: "University not found" });
+      }
+
+      // Check if user is admin
+      const userId = req.user?._id || "67d9733be64bed89238cb710";
+      const userRole = university.getUserRole(userId);
+
+      if (userRole !== "admin") {
+        return res
+          .status(403)
+          .json({
+            error: "Only university admins can manage classroom students",
+          });
+      }
+
+      // Check if faculty, course and classroom exist
+      if (
+        !university.faculties[facultyIndex] ||
+        !university.faculties[facultyIndex].courses[courseIndex] ||
+        !university.faculties[facultyIndex].courses[courseIndex].classrooms[
+          classroomIndex
+        ]
+      ) {
+        return res.status(404).json({ error: "Classroom not found" });
+      }
+
+      const classroom =
+        university.faculties[facultyIndex].courses[courseIndex].classrooms[
+          classroomIndex
+        ];
+
+      switch (action) {
+        case "add":
+          // Check if student is already in classroom
+          const existingStudent = classroom.students.find(
+            (s) => s.student.toString() === studentId.toString()
+          );
+          if (existingStudent) {
+            return res
+              .status(400)
+              .json({ error: "Student already in this classroom" });
+          }
+
+          // Check if student is a member of the university
+          const isMember = university.isMember(studentId);
+          if (!isMember) {
+            return res
+              .status(400)
+              .json({ error: "Student is not a member of this university" });
+          }
+
+          classroom.students.push({
+            student: studentId,
+            joinedAt: new Date(),
+            status: "active",
+          });
+          break;
+
+        case "remove":
+          classroom.students = classroom.students.filter(
+            (s) => s.student.toString() !== studentId.toString()
+          );
+          break;
+
+        case "updateStatus":
+          const { status } = req.body;
+          const student = classroom.students.find(
+            (s) => s.student.toString() === studentId.toString()
+          );
+          if (student) {
+            student.status = status;
+          }
+          break;
+
+        default:
+          return res.status(400).json({ error: "Invalid action" });
+      }
+
+      await university.save();
+
+      res.json({
+        message: `Student ${action}ed successfully!`,
+        classroom: classroom,
+      });
+    } catch (error) {
+      console.error("Error managing classroom students:", error);
+      res.status(500).json({
+        error: "Failed to manage classroom students",
+        details: error.message,
+      });
+    }
+  }
+);
+
+// POST create new classroom
+router.post(
+  "/:id/faculties/:facultyIndex/courses/:courseIndex/create-classroom",
+  async (req, res) => {
+    try {
+      const university = await University.findById(req.params.id);
+      const facultyIndex = parseInt(req.params.facultyIndex);
+      const courseIndex = parseInt(req.params.courseIndex);
+      const { name, section, schedule } = req.body;
+
+      if (!university) {
+        return res.status(404).json({ error: "University not found" });
+      }
+
+      // Check if user is admin
+      const userId = req.user?._id || "67d9733be64bed89238cb710";
+      const userRole = university.getUserRole(userId);
+
+      if (userRole !== "admin") {
+        return res
+          .status(403)
+          .json({ error: "Only university admins can create classrooms" });
+      }
+
+      // Check if faculty and course exist
+      if (
+        !university.faculties[facultyIndex] ||
+        !university.faculties[facultyIndex].courses[courseIndex]
+      ) {
+        return res.status(404).json({ error: "Course not found" });
+      }
+
+      const course = university.faculties[facultyIndex].courses[courseIndex];
+
+      // Check if classroom with same name already exists
+      const existingClassroom = course.classrooms.find(
+        (c) => c.name.toLowerCase() === name.toLowerCase()
+      );
+      if (existingClassroom) {
+        return res
+          .status(400)
+          .json({ error: "Classroom with this name already exists" });
+      }
+
+      // Create new classroom
+      const newClassroom = {
+        name: name.trim(),
+        section: section ? section.trim() : "",
+        schedule: schedule || {},
+        students: [],
+        xp: 0,
+        level: 1,
+      };
+
+      if (!course.classrooms) {
+        course.classrooms = [];
+      }
+
+      course.classrooms.push(newClassroom);
+      await university.save();
+
+      res.status(201).json({
+        message: "Classroom created successfully!",
+        classroom: newClassroom,
+      });
+    } catch (error) {
+      console.error("Error creating classroom:", error);
+      res.status(500).json({
+        error: "Failed to create classroom",
+        details: error.message,
+      });
+    }
+  }
+);
+
 module.exports = router;

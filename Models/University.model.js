@@ -607,6 +607,78 @@ universitySchema.methods.createCoursePost = function (
   return this.save();
 };
 
+// getCourseParticipants
+universitySchema.methods.getCourseParticipants = function (
+  facultyIndex,
+  courseIndex
+) {
+  const faculty = this.faculties[facultyIndex];
+  if (!faculty) {
+    throw new Error("Faculty not found");
+  }
+
+  const course = faculty.courses[courseIndex];
+  if (!course) {
+    throw new Error("Course not found");
+  }
+
+  const participants = [];
+
+  if (course.classrooms) {
+    course.classrooms.forEach((classroom) => {
+      if (classroom.students) {
+        classroom.students.forEach((student) => {
+          participants.push({
+            userId: student.student,
+            classroom: classroom.name,
+            status: student.status,
+            joinedAt: student.joinedAt,
+          });
+        });
+      }
+    });
+  }
+
+  return participants;
+};
+
+// Method to get all university members with basic info
+universitySchema.methods.getAllMembersInfo = function () {
+  return this.members.map((member) => ({
+    userId: member.user,
+    role: member.role,
+    xp: member.xp,
+    level: member.level,
+  }));
+};
+
+// Method to get course with faculty info
+universitySchema.methods.getCourseWithInfo = function (
+  facultyIndex,
+  courseIndex
+) {
+  const faculty = this.faculties[facultyIndex];
+  if (!faculty) {
+    throw new Error("Faculty not found");
+  }
+
+  const course = faculty.courses[courseIndex];
+  if (!course) {
+    throw new Error("Course not found");
+  }
+
+  return {
+    facultyName: faculty.name,
+    facultyIndex: facultyIndex,
+    courseCode: course.courseCode,
+    courseName: course.courseName,
+    courseIndex: courseIndex,
+    description: course.description,
+    teacher: course.teacher,
+    classrooms: course.classrooms || [],
+  };
+};
+
 // Instance method to add a comment to a course post
 universitySchema.methods.addCommentToCoursePost = function (
   facultyIndex,
