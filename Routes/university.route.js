@@ -1,12 +1,35 @@
 const express = require("express");
 const router = express.Router();
 const University = require("../Models/University.model");
+const {
+  checkUser,
+  requireAuth,
+  requireAdmin,
+} = require("../middleware/authMiddleware");
+
+// Apply checkUser middleware to all routes
+router.use(checkUser);
+
+// Helper function to get user info (updated to use res.locals)
+const getUserInfo = (req, res) => {
+  const user = res.locals.user;
+  if (user) {
+    return {
+      _id: user._id,
+      fullName: user.fullName || user.username || "User",
+      email: user.email,
+      role: user.role || "student",
+      // Add any other user properties you need
+    };
+  }
+  return null;
+};
 
 // GET universities page
 router.get("/", (req, res) => {
   try {
     res.render("universities", {
-      user: req.user || { _id: "67d9733be64bed89238cb710", fullName: "Moemen" },
+      user: res.locals.user || null,
     });
   } catch (error) {
     console.error("Error rendering universities page:", error);
@@ -14,12 +37,10 @@ router.get("/", (req, res) => {
   }
 });
 
-// GET universities API - Fixed: Remove populate for now
+// GET universities API
 router.get("/api", async (req, res) => {
   try {
     console.log("Attempting to fetch universities from MongoDB...");
-
-    // Remove populate since User model might not exist
     const universities = await University.find({}).sort({ createdAt: -1 });
 
     console.log("Successfully found", universities.length, "universities");
@@ -35,10 +56,17 @@ router.get("/api", async (req, res) => {
   }
 });
 
-// POST create university - UPDATED with proper initialization
-router.post("/", async (req, res) => {
+// POST create university
+router.post("/", requireAuth, async (req, res) => {
   try {
     const { name, location, website, description } = req.body;
+    const currentUser = res.locals.user;
+
+    if (!currentUser) {
+      return res.status(401).json({
+        error: "You must be logged in to create a university",
+      });
+    }
 
     // Check if university already exists
     const existingUniversity = await University.findOne({
@@ -58,10 +86,18 @@ router.post("/", async (req, res) => {
       website: website || "",
       description: description || "",
       logoUrl: "/assets/default-university-logo.png",
-      posts: [], // Explicitly initialize
-      faculties: [], // Explicitly initialize
-      members: [], // Explicitly initialize
-      // These will be set by defaults in the model:
+      posts: [],
+      faculties: [],
+      members: [
+        // Add the creator as first member and admin
+        {
+          user: currentUser._id,
+          role: "admin",
+          joinedAt: new Date(),
+          xp: 0,
+          level: 1,
+        },
+      ],
       totalXP: 0,
       averageLevel: 1,
       statistics: {
@@ -70,6 +106,7 @@ router.post("/", async (req, res) => {
         averagePerformance: 0,
         engagementRate: 0,
       },
+      createdBy: currentUser._id,
     });
 
     await university.save();
@@ -87,13 +124,14 @@ router.post("/", async (req, res) => {
   }
 });
 
-// POST join university - FIXED VERSION
-router.post("/:id/join", async (req, res) => {
+// POST join university
+router.post("/:id/join", requireAuth, async (req, res) => {
   try {
     console.log("=== JOIN UNIVERSITY REQUEST ===");
     console.log("University ID:", req.params.id);
-    console.log("Request Body:", req.body);
-    console.log("Session User (req.user):", req.user); // Debug
+
+    const currentUser = res.locals.user;
+    console.log("Current User:", currentUser);
 
     const university = await University.findById(req.params.id);
 
@@ -104,37 +142,23 @@ router.post("/:id/join", async (req, res) => {
 
     console.log("University found:", university.name);
 
-    // FIX 1: Get user ID from request body FIRST, then from session
-    let userId = req.body?.userId; // Get from body
-
-    if (!userId && req.user?._id) {
-      userId = req.user._id; // Fallback to session
-    }
-
-    if (!userId) {
-      console.log("No user ID provided in request");
-      return res.status(400).json({
-        error: "User ID is required. Please log in again.",
+    if (!currentUser) {
+      return res.status(401).json({
+        error: "You must be logged in to join a university",
       });
     }
+
+    const userId = currentUser._id;
 
     console.log("Attempting to join with User ID:", userId);
     console.log("University members before:", university.members?.length || 0);
 
-    // FIX 2: Better debugging for membership check
-    console.log("Checking if user is already a member...");
+    // Check if user is already a member
     let isAlreadyMember = false;
 
     if (university.members && university.members.length > 0) {
-      university.members.forEach((member, index) => {
+      university.members.forEach((member) => {
         const memberId = member.user?._id || member.user;
-        console.log(`Member ${index}:`, {
-          storedId: memberId,
-          storedIdString: memberId?.toString(),
-          userIdString: userId?.toString(),
-          isMatch: memberId && memberId.toString() === userId.toString(),
-        });
-
         if (memberId && memberId.toString() === userId.toString()) {
           isAlreadyMember = true;
         }
@@ -181,8 +205,8 @@ router.post("/:id/join", async (req, res) => {
   }
 });
 
-// POST join university with code - FIXED
-router.post("/join/:code", async (req, res) => {
+// POST join university with code
+router.post("/join/:code", requireAuth, async (req, res) => {
   try {
     const universityCode = req.params.code.toUpperCase();
     const university = await University.findOne({
@@ -193,17 +217,8 @@ router.post("/join/:code", async (req, res) => {
       return res.status(404).json({ error: "Invalid university code" });
     }
 
-    // FIX: Get user ID from body instead of hardcoded
-    let userId = req.body?.userId;
-    if (!userId && req.user?._id) {
-      userId = req.user._id;
-    }
-
-    if (!userId) {
-      return res.status(400).json({
-        error: "User ID is required. Please log in again.",
-      });
-    }
+    const currentUser = res.locals.user;
+    const userId = currentUser._id;
 
     // Check if already a member
     const isMember = university.members?.some((member) => {
@@ -246,15 +261,16 @@ router.post("/join/:code", async (req, res) => {
   }
 });
 
-// GET university details page - FIXED
+// GET university details page
 router.get("/:id", async (req, res) => {
   try {
     const university = await University.findById(req.params.id);
+    const currentUser = res.locals.user;
 
     if (!university) {
       return res.status(404).render("error", {
         error: "University not found",
-        user: req.user,
+        user: currentUser,
       });
     }
 
@@ -264,41 +280,54 @@ router.get("/:id", async (req, res) => {
     );
 
     // Calculate user role and membership status
-    const userId = req.user?._id || "67d9733be64bed89238cb710";
-    const userRole = university.getUserRole(userId);
-    const isMember = university.isMember(userId);
+    const userId = currentUser?._id;
+    let userRole = null;
+    let isMember = false;
+
+    if (userId) {
+      userRole = university.getUserRole(userId);
+      isMember = university.isMember(userId);
+    }
 
     console.log(`User ${userId} role in ${university.name}:`, userRole);
     console.log(`Is member:`, isMember);
 
     res.render("universityDetail", {
       university: university,
-      user: req.user || { _id: "67d9733be64bed89238cb710", fullName: "Moemen" },
-      userRole: userRole, // Add this line
-      isMember: isMember, // Add this line
+      user: currentUser,
+      userRole: userRole,
+      isMember: isMember,
       title: `${university.name} - Quizmize`,
     });
   } catch (error) {
     console.error("Error fetching university:", error);
     res.status(500).render("error", {
       error: "Failed to load university",
-      user: req.user,
+      user: res.locals.user,
     });
   }
 });
 
 // POST create a new post in university timeline
-router.post("/:id/posts", async (req, res) => {
+router.post("/:id/posts", requireAuth, async (req, res) => {
   try {
     const university = await University.findById(req.params.id);
+    const currentUser = res.locals.user;
 
     if (!university) {
       return res.status(404).json({ error: "University not found" });
     }
 
     const { content } = req.body;
-    const userId = "67d9733be64bed89238cb710"; // Your actual user ID
-    const userName = "Moemen"; // Replace with actual user name
+
+    if (!currentUser) {
+      return res.status(401).json({
+        error: "You must be logged in to create posts",
+      });
+    }
+
+    const userId = currentUser._id;
+    const userName = currentUser.fullName || currentUser.username || "User";
 
     // Check if user is admin of this university
     const userRole = university.getUserRole(userId);
@@ -318,7 +347,7 @@ router.post("/:id/posts", async (req, res) => {
 
     res.status(201).json({
       message: "Post created successfully!",
-      post: university.posts[0], // Return the newest post
+      post: university.posts[0],
     });
   } catch (error) {
     console.error("Error creating post:", error);
@@ -351,17 +380,25 @@ router.get("/:id/posts", async (req, res) => {
 });
 
 // POST add comment to a post
-router.post("/:id/posts/:postId/comments", async (req, res) => {
+router.post("/:id/posts/:postId/comments", requireAuth, async (req, res) => {
   try {
     const university = await University.findById(req.params.id);
+    const currentUser = res.locals.user;
 
     if (!university) {
       return res.status(404).json({ error: "University not found" });
     }
 
     const { content } = req.body;
-    const userId = "67d9733be64bed89238cb710"; // Your actual user ID
-    const userName = "Moemen"; // Replace with actual user name
+
+    if (!currentUser) {
+      return res.status(401).json({
+        error: "You must be logged in to comment",
+      });
+    }
+
+    const userId = currentUser._id;
+    const userName = currentUser.fullName || currentUser.username || "User";
 
     // Check if user is a member of this university
     if (!university.isMember(userId)) {
@@ -406,15 +443,22 @@ router.post("/:id/posts/:postId/comments", async (req, res) => {
 });
 
 // POST like/unlike a post
-router.post("/:id/posts/:postId/like", async (req, res) => {
+router.post("/:id/posts/:postId/like", requireAuth, async (req, res) => {
   try {
     const university = await University.findById(req.params.id);
+    const currentUser = res.locals.user;
 
     if (!university) {
       return res.status(404).json({ error: "University not found" });
     }
 
-    const userId = "67d9733be64bed89238cb710"; // Your actual user ID
+    if (!currentUser) {
+      return res.status(401).json({
+        error: "You must be logged in to like posts",
+      });
+    }
+
+    const userId = currentUser._id;
 
     // Check if user is a member of this university
     if (!university.isMember(userId)) {
@@ -445,16 +489,24 @@ router.post("/:id/posts/:postId/like", async (req, res) => {
 });
 
 // POST create faculty
-router.post("/:id/faculties", async (req, res) => {
+router.post("/:id/faculties", requireAuth, async (req, res) => {
   try {
     const university = await University.findById(req.params.id);
+    const currentUser = res.locals.user;
 
     if (!university) {
       return res.status(404).json({ error: "University not found" });
     }
 
     const { name, description, contactEmail } = req.body;
-    const userId = "67d9733be64bed89238cb710"; // Your actual user ID
+
+    if (!currentUser) {
+      return res.status(401).json({
+        error: "You must be logged in to create faculties",
+      });
+    }
+
+    const userId = currentUser._id;
 
     // Check if user is admin of this university
     const userRole = university.getUserRole(userId);
@@ -532,9 +584,10 @@ router.get("/:id/faculties", async (req, res) => {
 });
 
 // POST create course
-router.post("/:id/courses", async (req, res) => {
+router.post("/:id/courses", requireAuth, async (req, res) => {
   try {
     const university = await University.findById(req.params.id);
+    const currentUser = res.locals.user;
 
     if (!university) {
       return res.status(404).json({ error: "University not found" });
@@ -548,7 +601,14 @@ router.post("/:id/courses", async (req, res) => {
       credits,
       level,
     } = req.body;
-    const userId = "67d9733be64bed89238cb710"; // Your actual user ID
+
+    if (!currentUser) {
+      return res.status(401).json({
+        error: "You must be logged in to create courses",
+      });
+    }
+
+    const userId = currentUser._id;
 
     // Check if user is admin of this university
     const userRole = university.getUserRole(userId);
@@ -597,9 +657,9 @@ router.post("/:id/courses", async (req, res) => {
       description: description ? description.trim() : "",
       credits: credits || 3,
       level: level || 1,
-      teacher: userId, // Using admin as teacher for now
+      teacher: userId,
       classrooms: [],
-      posts: [], // Initialize empty posts array
+      posts: [],
     };
 
     faculty.courses.push(newCourse);
@@ -625,11 +685,12 @@ router.get("/:id/faculties/:facultyIndex/courses", async (req, res) => {
     const university = await University.findById(req.params.id);
     const facultyIndex = parseInt(req.params.facultyIndex);
     const facultyName = req.query.name || "Faculty";
+    const currentUser = res.locals.user;
 
     if (!university) {
       return res.status(404).render("error", {
         error: "University not found",
-        user: req.user,
+        user: currentUser,
       });
     }
 
@@ -637,7 +698,7 @@ router.get("/:id/faculties/:facultyIndex/courses", async (req, res) => {
     if (!university.faculties || university.faculties.length <= facultyIndex) {
       return res.status(404).render("error", {
         error: "Faculty not found",
-        user: req.user,
+        user: currentUser,
       });
     }
 
@@ -648,19 +709,19 @@ router.get("/:id/faculties/:facultyIndex/courses", async (req, res) => {
       faculty: faculty,
       facultyIndex: facultyIndex,
       facultyName: facultyName,
-      user: req.user || { _id: "67d9733be64bed89238cb710", fullName: "Moemen" },
+      user: currentUser,
       title: `${faculty.name} Courses - ${university.name} - Quizmize`,
     });
   } catch (error) {
     console.error("Error fetching faculty courses:", error);
     res.status(500).render("error", {
       error: "Failed to load faculty courses",
-      user: req.user,
+      user: res.locals.user,
     });
   }
 });
 
-// GET course details page - FIXED
+// GET course details page
 router.get(
   "/:id/faculties/:facultyIndex/courses/:courseIndex",
   async (req, res) => {
@@ -668,11 +729,12 @@ router.get(
       const university = await University.findById(req.params.id);
       const facultyIndex = parseInt(req.params.facultyIndex);
       const courseIndex = parseInt(req.params.courseIndex);
+      const currentUser = res.locals.user;
 
       if (!university) {
         return res.status(404).render("error", {
           error: "University not found",
-          user: req.user,
+          user: currentUser,
         });
       }
 
@@ -683,7 +745,7 @@ router.get(
       ) {
         return res.status(404).render("error", {
           error: "Faculty not found",
-          user: req.user,
+          user: currentUser,
         });
       }
 
@@ -693,7 +755,7 @@ router.get(
       if (!faculty.courses || faculty.courses.length <= courseIndex) {
         return res.status(404).render("error", {
           error: "Course not found",
-          user: req.user,
+          user: currentUser,
         });
       }
 
@@ -711,14 +773,20 @@ router.get(
       );
 
       // Calculate user role and membership status
-      const userId = req.user?._id || "67d9733be64bed89238cb710";
-      const userRole = university.getUserRole(userId);
-      const isMember = university.isMember(userId);
-      const isCourseTeacher = university.isCourseTeacher(
-        facultyIndex,
-        courseIndex,
-        userId
-      );
+      const userId = currentUser?._id;
+      let userRole = null;
+      let isMember = false;
+      let isCourseTeacher = false;
+
+      if (userId) {
+        userRole = university.getUserRole(userId);
+        isMember = university.isMember(userId);
+        isCourseTeacher = university.isCourseTeacher(
+          facultyIndex,
+          courseIndex,
+          userId
+        );
+      }
 
       res.render("courseDetails", {
         university: university,
@@ -726,43 +794,47 @@ router.get(
         facultyIndex: facultyIndex,
         course: course,
         courseIndex: courseIndex,
-        user: req.user || {
-          _id: "67d9733be64bed89238cb710",
-          fullName: "Moemen",
-        },
-        userRole: userRole, // Add this
-        isMember: isMember, // Add this
-        isCourseTeacher: isCourseTeacher, // Add this for course-specific permissions
+        user: currentUser,
+        userRole: userRole,
+        isMember: isMember,
+        isCourseTeacher: isCourseTeacher,
         title: `${course.courseCode} - ${course.courseName} - ${university.name} - Quizmize`,
       });
     } catch (error) {
       console.error("Error fetching course details:", error);
       res.status(500).render("error", {
         error: "Failed to load course details",
-        user: req.user,
+        user: res.locals.user,
       });
     }
   }
 );
 
-// COURSE POSTS ROUTES
-
 // POST create a course post (Teacher only)
 router.post(
   "/:id/faculties/:facultyIndex/courses/:courseIndex/posts",
+  requireAuth,
   async (req, res) => {
     try {
       const university = await University.findById(req.params.id);
       const facultyIndex = parseInt(req.params.facultyIndex);
       const courseIndex = parseInt(req.params.courseIndex);
+      const currentUser = res.locals.user;
 
       if (!university) {
         return res.status(404).json({ error: "University not found" });
       }
 
       const { content, postType } = req.body;
-      const userId = "67d9733be64bed89238cb710"; // Your actual user ID
-      const userName = "Moemen"; // Replace with actual user name
+
+      if (!currentUser) {
+        return res.status(401).json({
+          error: "You must be logged in to create course posts",
+        });
+      }
+
+      const userId = currentUser._id;
+      const userName = currentUser.fullName || currentUser.username || "User";
 
       // Check if faculty and course exist
       if (
@@ -804,7 +876,7 @@ router.post(
 
       res.status(201).json({
         message: "Post created successfully!",
-        post: updatedCourse.posts[0], // Return the newest post
+        post: updatedCourse.posts[0],
       });
     } catch (error) {
       console.error("Error creating course post:", error);
@@ -819,20 +891,29 @@ router.post(
 // POST add comment to course post
 router.post(
   "/:id/faculties/:facultyIndex/courses/:courseIndex/posts/:postIndex/comments",
+  requireAuth,
   async (req, res) => {
     try {
       const university = await University.findById(req.params.id);
       const facultyIndex = parseInt(req.params.facultyIndex);
       const courseIndex = parseInt(req.params.courseIndex);
       const postIndex = parseInt(req.params.postIndex);
+      const currentUser = res.locals.user;
 
       if (!university) {
         return res.status(404).json({ error: "University not found" });
       }
 
       const { content } = req.body;
-      const userId = "67d9733be64bed89238cb710"; // Your actual user ID
-      const userName = "Moemen"; // Replace with actual user name
+
+      if (!currentUser) {
+        return res.status(401).json({
+          error: "You must be logged in to comment",
+        });
+      }
+
+      const userId = currentUser._id;
+      const userName = currentUser.fullName || currentUser.username || "User";
 
       // Check if user is a member of this university
       if (!university.isMember(userId)) {
@@ -887,18 +968,26 @@ router.post(
 // POST like/unlike course post
 router.post(
   "/:id/faculties/:facultyIndex/courses/:courseIndex/posts/:postIndex/like",
+  requireAuth,
   async (req, res) => {
     try {
       const university = await University.findById(req.params.id);
       const facultyIndex = parseInt(req.params.facultyIndex);
       const courseIndex = parseInt(req.params.courseIndex);
       const postIndex = parseInt(req.params.postIndex);
+      const currentUser = res.locals.user;
 
       if (!university) {
         return res.status(404).json({ error: "University not found" });
       }
 
-      const userId = "67d9733be64bed89238cb710"; // Your actual user ID
+      if (!currentUser) {
+        return res.status(401).json({
+          error: "You must be logged in to like posts",
+        });
+      }
+
+      const userId = currentUser._id;
 
       // Check if user is a member of this university
       if (!university.isMember(userId)) {
@@ -982,10 +1071,8 @@ router.get(
   }
 );
 
-// FIX ROUTES FOR EXISTING DATA
-
 // PUT initialize posts for all courses in a university
-router.put("/:id/initialize-course-posts", async (req, res) => {
+router.put("/:id/initialize-course-posts", requireAdmin, async (req, res) => {
   try {
     const university = await University.findById(req.params.id);
 
@@ -1021,7 +1108,7 @@ router.put("/:id/initialize-course-posts", async (req, res) => {
 });
 
 // TEMPORARY: Fix course posts for your university
-router.get("/fix-posts", async (req, res) => {
+router.get("/fix-posts", requireAdmin, async (req, res) => {
   try {
     const universityId = "690c644e76a79fe8d121fe21";
     const university = await University.findById(universityId);
@@ -1063,7 +1150,7 @@ router.get("/fix-posts", async (req, res) => {
 });
 
 // FIX ALL UNIVERSITIES - Run this once
-router.get("/fix-all-universities", async (req, res) => {
+router.get("/fix-all-universities", requireAdmin, async (req, res) => {
   try {
     const universities = await University.find({});
     let fixedCount = 0;
@@ -1124,25 +1211,32 @@ router.get("/fix-all-universities", async (req, res) => {
 });
 
 // GET manage courses page
-router.get("/:id/manage-courses", async (req, res) => {
+router.get("/:id/manage-courses", requireAuth, async (req, res) => {
   try {
     const university = await University.findById(req.params.id);
+    const currentUser = res.locals.user;
 
     if (!university) {
       return res.status(404).render("error", {
         error: "University not found",
-        user: req.user,
+        user: currentUser,
+      });
+    }
+
+    if (!currentUser) {
+      return res.status(401).json({
+        error: "You must be logged in to manage courses",
       });
     }
 
     // Check if user is admin
-    const userId = req.user?._id || "67d9733be64bed89238cb710";
+    const userId = currentUser._id;
     const userRole = university.getUserRole(userId);
 
     if (userRole !== "admin") {
       return res.status(403).render("error", {
         error: "Only university admins can manage courses",
-        user: req.user,
+        user: currentUser,
       });
     }
 
@@ -1175,14 +1269,14 @@ router.get("/:id/manage-courses", async (req, res) => {
     res.render("manageCourses", {
       university: university,
       courses: allCourses,
-      user: req.user || { _id: "67d9733be64bed89238cb710", fullName: "Moemen" },
+      user: currentUser,
       title: `Manage Courses - ${university.name} - Quizmize`,
     });
   } catch (error) {
     console.error("Error fetching courses for management:", error);
     res.status(500).render("error", {
       error: "Failed to load course management",
-      user: req.user,
+      user: res.locals.user,
     });
   }
 });
@@ -1190,18 +1284,26 @@ router.get("/:id/manage-courses", async (req, res) => {
 // GET course management details
 router.get(
   "/:id/faculties/:facultyIndex/courses/:courseIndex/manage",
+  requireAuth,
   async (req, res) => {
     try {
       const university = await University.findById(req.params.id);
       const facultyIndex = parseInt(req.params.facultyIndex);
       const courseIndex = parseInt(req.params.courseIndex);
+      const currentUser = res.locals.user;
 
       if (!university) {
         return res.status(404).json({ error: "University not found" });
       }
 
+      if (!currentUser) {
+        return res.status(401).json({
+          error: "You must be logged in to manage courses",
+        });
+      }
+
       // Check if user is admin
-      const userId = req.user?._id || "67d9733be64bed89238cb710";
+      const userId = currentUser._id;
       const userRole = university.getUserRole(userId);
 
       if (userRole !== "admin") {
@@ -1274,19 +1376,27 @@ router.get(
 // POST assign teacher to course
 router.post(
   "/:id/faculties/:facultyIndex/courses/:courseIndex/assign-teacher",
+  requireAuth,
   async (req, res) => {
     try {
       const university = await University.findById(req.params.id);
       const facultyIndex = parseInt(req.params.facultyIndex);
       const courseIndex = parseInt(req.params.courseIndex);
       const { teacherId } = req.body;
+      const currentUser = res.locals.user;
 
       if (!university) {
         return res.status(404).json({ error: "University not found" });
       }
 
+      if (!currentUser) {
+        return res.status(401).json({
+          error: "You must be logged in to assign teachers",
+        });
+      }
+
       // Check if user is admin
-      const userId = req.user?._id || "67d9733be64bed89238cb710";
+      const userId = currentUser._id;
       const userRole = university.getUserRole(userId);
 
       if (userRole !== "admin") {
@@ -1333,6 +1443,7 @@ router.post(
 // POST manage classroom students
 router.post(
   "/:id/faculties/:facultyIndex/courses/:courseIndex/classrooms/:classroomIndex/manage-students",
+  requireAuth,
   async (req, res) => {
     try {
       const university = await University.findById(req.params.id);
@@ -1340,13 +1451,20 @@ router.post(
       const courseIndex = parseInt(req.params.courseIndex);
       const classroomIndex = parseInt(req.params.classroomIndex);
       const { action, studentId } = req.body;
+      const currentUser = res.locals.user;
 
       if (!university) {
         return res.status(404).json({ error: "University not found" });
       }
 
+      if (!currentUser) {
+        return res.status(401).json({
+          error: "You must be logged in to manage students",
+        });
+      }
+
       // Check if user is admin
-      const userId = req.user?._id || "67d9733be64bed89238cb710";
+      const userId = currentUser._id;
       const userRole = university.getUserRole(userId);
 
       if (userRole !== "admin") {
@@ -1437,19 +1555,27 @@ router.post(
 // POST create new classroom
 router.post(
   "/:id/faculties/:facultyIndex/courses/:courseIndex/create-classroom",
+  requireAuth,
   async (req, res) => {
     try {
       const university = await University.findById(req.params.id);
       const facultyIndex = parseInt(req.params.facultyIndex);
       const courseIndex = parseInt(req.params.courseIndex);
       const { name, section, schedule } = req.body;
+      const currentUser = res.locals.user;
 
       if (!university) {
         return res.status(404).json({ error: "University not found" });
       }
 
+      if (!currentUser) {
+        return res.status(401).json({
+          error: "You must be logged in to create classrooms",
+        });
+      }
+
       // Check if user is admin
-      const userId = req.user?._id || "67d9733be64bed89238cb710";
+      const userId = currentUser._id;
       const userRole = university.getUserRole(userId);
 
       if (userRole !== "admin") {
