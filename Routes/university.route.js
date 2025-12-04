@@ -79,6 +79,10 @@ router.post("/", requireAuth, async (req, res) => {
       });
     }
 
+    // Get user info
+    const userName = currentUser.fullName || currentUser.username || "User";
+    const userEmail = currentUser.email;
+
     // Create new university with proper initialization
     const university = new University({
       name,
@@ -92,6 +96,8 @@ router.post("/", requireAuth, async (req, res) => {
         // Add the creator as first member and admin
         {
           user: currentUser._id,
+          userName: userName, // Add this
+          userEmail: userEmail, // Add this
           role: "admin",
           joinedAt: new Date(),
           xp: 0,
@@ -143,12 +149,14 @@ router.post("/:id/join", requireAuth, async (req, res) => {
     console.log("University found:", university.name);
 
     if (!currentUser) {
-      return res.status(401).json({
+      return res.status(404).json({
         error: "You must be logged in to join a university",
       });
     }
 
     const userId = currentUser._id;
+    const userName = currentUser.fullName || currentUser.username || "User";
+    const userEmail = currentUser.email;
 
     console.log("Attempting to join with User ID:", userId);
     console.log("University members before:", university.members?.length || 0);
@@ -172,10 +180,12 @@ router.post("/:id/join", requireAuth, async (req, res) => {
         .json({ error: "You are already a member of this university" });
     }
 
-    // Add as member
+    // Add as member with user info
     university.members = university.members || [];
     university.members.push({
       user: userId,
+      userName: userName, // Store user name
+      userEmail: userEmail, // Store user email
       role: "student",
       joinedAt: new Date(),
       xp: 0,
@@ -219,6 +229,8 @@ router.post("/join/:code", requireAuth, async (req, res) => {
 
     const currentUser = res.locals.user;
     const userId = currentUser._id;
+    const userName = currentUser.fullName || currentUser.username || "User";
+    const userEmail = currentUser.email;
 
     // Check if already a member
     const isMember = university.members?.some((member) => {
@@ -232,10 +244,12 @@ router.post("/join/:code", requireAuth, async (req, res) => {
         .json({ error: "You are already a member of this university" });
     }
 
-    // Add as member
+    // Add as member with user info
     university.members = university.members || [];
     university.members.push({
       user: userId,
+      userName: userName, // Add this
+      userEmail: userEmail, // Add this
       role: "student",
       joinedAt: new Date(),
       xp: 0,
@@ -264,7 +278,30 @@ router.post("/join/:code", requireAuth, async (req, res) => {
 // GET university details page
 router.get("/:id", async (req, res) => {
   try {
-    const university = await University.findById(req.params.id);
+    // Populate the members.user field with user data
+    const university = await University.findById(req.params.id)
+      .populate({
+        path: "members.user",
+        select: "fullName username email", // Select the fields you want
+      })
+      .populate({
+        path: "posts.author",
+        select: "fullName username",
+      })
+      .populate({
+        path: "posts.comments.author",
+        select: "fullName username",
+      });
+
+    // Also populate course posts authors if needed
+    university.faculties.forEach((faculty) => {
+      faculty.courses.forEach((course) => {
+        if (course.posts && course.posts.length > 0) {
+          // You may need to manually populate these if needed
+        }
+      });
+    });
+
     const currentUser = res.locals.user;
 
     if (!university) {
@@ -1634,5 +1671,52 @@ router.post(
     }
   }
 );
+
+// Create a temporary migration route in your university.route.js
+router.get("/migrate-user-names", requireAdmin, async (req, res) => {
+  try {
+    const User = require("../Models/User.model"); // Make sure to import User model
+    const universities = await University.find({});
+    let updatedCount = 0;
+
+    for (let university of universities) {
+      let needsUpdate = false;
+
+      for (let member of university.members) {
+        // If userName doesn't exist but we have user reference
+        if (!member.userName && member.user) {
+          try {
+            const user = await User.findById(member.user);
+            if (user) {
+              member.userName = user.fullName || user.username || "User";
+              member.userEmail = user.email;
+              needsUpdate = true;
+              console.log(
+                `Updated member ${member.user} with name: ${member.userName}`
+              );
+            }
+          } catch (userError) {
+            console.error(`Error fetching user ${member.user}:`, userError);
+          }
+        }
+      }
+
+      if (needsUpdate) {
+        await university.save();
+        updatedCount++;
+      }
+    }
+
+    res.json({
+      message: `Successfully migrated ${updatedCount} universities!`,
+    });
+  } catch (error) {
+    console.error("Error migrating user names:", error);
+    res.status(500).json({
+      error: "Failed to migrate user names",
+      details: error.message,
+    });
+  }
+});
 
 module.exports = router;

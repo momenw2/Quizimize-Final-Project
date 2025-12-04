@@ -30,13 +30,23 @@
     university.members.forEach(member => { %>
     <div class="member-card">
       <div style="font-size: 2em; margin-bottom: 10px">👤</div>
+
+      <!-- Display stored user name -->
+      <% if (member.userName) { %>
+      <strong><%= member.userName %></strong>
+      <% } else { %>
       <strong>Member</strong>
+      <% } %>
+
       <div class="role-badge <%= `role-${member.role}` %>">
         <%= member.role.charAt(0).toUpperCase() + member.role.slice(1) %>
       </div>
+
       <div style="margin-top: 10px; font-size: 0.9em">
         Level: <%= member.level || 1 %><br />
-        XP: <%= member.xp || 0 %>
+        XP: <%= member.xp || 0 %><br />
+        <% if (member.userEmail) { %> Email: <%= member.userEmail %><br />
+        <% } %> Joined: <%= new Date(member.joinedAt).toLocaleDateString() %>
       </div>
     </div>
     <% }) %> <% } else { %>

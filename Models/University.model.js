@@ -284,12 +284,21 @@ const universitySchema = new mongoose.Schema(
       },
     ],
 
-    // University Members & Roles
+    // In your University.model.js, update the members schema:
     members: [
       {
         user: {
           type: mongoose.Schema.Types.ObjectId,
           required: true,
+        },
+        userName: {
+          // Add this field
+          type: String,
+          required: true,
+        },
+        userEmail: {
+          // Add this field (optional)
+          type: String,
         },
         role: {
           type: String,
