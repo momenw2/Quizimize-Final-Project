@@ -6,6 +6,7 @@ const {
   requireAuth,
   requireAdmin,
 } = require("../middleware/authMiddleware");
+const authMiddleware = requireAuth;
 
 // Apply checkUser middleware to all routes
 router.use(checkUser);
@@ -1718,5 +1719,301 @@ router.get("/migrate-user-names", requireAdmin, async (req, res) => {
     });
   }
 });
+
+// POST enroll in course classroom
+router.post(
+  "/:id/faculties/:facultyIndex/courses/:courseIndex/enroll",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const university = await University.findById(req.params.id);
+      const facultyIndex = parseInt(req.params.facultyIndex);
+      const courseIndex = parseInt(req.params.courseIndex);
+      const currentUser = res.locals.user;
+
+      if (!university) {
+        return res.status(404).json({ error: "University not found" });
+      }
+
+      if (!currentUser) {
+        return res.status(401).json({
+          error: "You must be logged in to enroll in a course",
+        });
+      }
+
+      const userId = currentUser._id;
+      const { classroomIndex } = req.body;
+
+      // Check if user is a member of the university
+      if (!university.isMember(userId)) {
+        return res.status(403).json({
+          error: "You must be a member of this university to enroll in courses",
+        });
+      }
+
+      // Check if faculty and course exist
+      if (
+        !university.faculties[facultyIndex] ||
+        !university.faculties[facultyIndex].courses[courseIndex]
+      ) {
+        return res.status(404).json({ error: "Course not found" });
+      }
+
+      const course = university.faculties[facultyIndex].courses[courseIndex];
+
+      // Check if user is the teacher (teachers cannot enroll as students)
+      if (course.teacher.toString() === userId.toString()) {
+        return res.status(400).json({
+          error: "Teachers cannot enroll as students in their own course",
+        });
+      }
+
+      // Check if classroom exists
+      if (!course.classrooms || course.classrooms.length <= classroomIndex) {
+        return res.status(404).json({ error: "Classroom not found" });
+      }
+
+      const classroom = course.classrooms[classroomIndex];
+
+      // Check if user is already enrolled in this classroom
+      const isAlreadyEnrolled = classroom.students?.some(
+        (student) => student.student.toString() === userId.toString()
+      );
+
+      if (isAlreadyEnrolled) {
+        return res
+          .status(400)
+          .json({ error: "You are already enrolled in this classroom" });
+      }
+
+      // Add student to classroom
+      if (!classroom.students) {
+        classroom.students = [];
+      }
+
+      classroom.students.push({
+        student: userId,
+        joinedAt: new Date(),
+        status: "active",
+      });
+
+      await university.save();
+
+      res.json({
+        message: `Successfully enrolled in ${classroom.name}!`,
+        classroom: classroom,
+      });
+    } catch (error) {
+      console.error("Error enrolling in classroom:", error);
+      res.status(500).json({
+        error: "Failed to enroll in classroom",
+        details: error.message,
+      });
+    }
+  }
+);
+
+// POST leave course classroom
+router.post(
+  "/:id/faculties/:facultyIndex/courses/:courseIndex/leave",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const university = await University.findById(req.params.id);
+      const facultyIndex = parseInt(req.params.facultyIndex);
+      const courseIndex = parseInt(req.params.courseIndex);
+      const currentUser = res.locals.user;
+
+      if (!university) {
+        return res.status(404).json({ error: "University not found" });
+      }
+
+      if (!currentUser) {
+        return res.status(401).json({
+          error: "You must be logged in to leave a classroom",
+        });
+      }
+
+      const userId = currentUser._id;
+      const { classroomIndex } = req.body;
+
+      // Check if faculty and course exist
+      if (
+        !university.faculties[facultyIndex] ||
+        !university.faculties[facultyIndex].courses[courseIndex]
+      ) {
+        return res.status(404).json({ error: "Course not found" });
+      }
+
+      const course = university.faculties[facultyIndex].courses[courseIndex];
+
+      // Check if classroom exists
+      if (!course.classrooms || course.classrooms.length <= classroomIndex) {
+        return res.status(404).json({ error: "Classroom not found" });
+      }
+
+      const classroom = course.classrooms[classroomIndex];
+
+      // Check if user is enrolled in this classroom
+      const studentIndex = classroom.students?.findIndex(
+        (student) => student.student.toString() === userId.toString()
+      );
+
+      if (studentIndex === -1) {
+        return res
+          .status(400)
+          .json({ error: "You are not enrolled in this classroom" });
+      }
+
+      // Remove student from classroom
+      classroom.students.splice(studentIndex, 1);
+
+      await university.save();
+
+      res.json({
+        message: `Successfully left ${classroom.name}`,
+        classroom: classroom,
+      });
+    } catch (error) {
+      console.error("Error leaving classroom:", error);
+      res.status(500).json({
+        error: "Failed to leave classroom",
+        details: error.message,
+      });
+    }
+  }
+);
+
+// POST route to enroll in course
+router.post(
+  "/:uniId/faculties/:facultyIndex/courses/:courseIndex/enroll-course",
+  requireAuth, // Changed from authMiddleware to requireAuth
+  async (req, res) => {
+    try {
+      const { uniId, facultyIndex, courseIndex } = req.params;
+      const userId = req.user ? req.user._id : res.locals.user?._id; // Get user from either req.user or res.locals
+
+      if (!userId) {
+        return res
+          .status(401)
+          .json({ error: "You must be logged in to enroll in courses" });
+      }
+
+      const university = await University.findById(uniId);
+      if (!university) {
+        return res.status(404).json({ error: "University not found" });
+      }
+
+      // Check if user is a member of the university
+      if (!university.isMember(userId)) {
+        return res.status(403).json({
+          error: "You must be a member of this university to enroll in courses",
+        });
+      }
+
+      // Check if user is the teacher
+      if (
+        university.isCourseTeacher(
+          parseInt(facultyIndex),
+          parseInt(courseIndex),
+          userId
+        )
+      ) {
+        return res.status(403).json({
+          error: "Teachers cannot enroll as students in their own course",
+        });
+      }
+
+      // Check if already enrolled
+      if (
+        university.isStudentEnrolledInCourse(
+          parseInt(facultyIndex),
+          parseInt(courseIndex),
+          userId
+        )
+      ) {
+        return res.status(400).json({
+          error: "You are already enrolled in this course",
+        });
+      }
+
+      // Enroll student in course
+      await university.enrollStudentInCourse(
+        parseInt(facultyIndex),
+        parseInt(courseIndex),
+        userId
+      );
+
+      // Get updated university to get the latest data
+      const updatedUniversity = await University.findById(uniId);
+      const course =
+        updatedUniversity.faculties[parseInt(facultyIndex)].courses[
+          parseInt(courseIndex)
+        ];
+
+      res.json({
+        success: true,
+        message: "Successfully enrolled in course",
+        enrolledStudents: course.enrolledStudents
+          ? course.enrolledStudents.length
+          : 0,
+      });
+    } catch (error) {
+      console.error("Error enrolling in course:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// POST route to leave course
+router.post(
+  "/:uniId/faculties/:facultyIndex/courses/:courseIndex/leave-course",
+  requireAuth, // Changed from authMiddleware to requireAuth
+  async (req, res) => {
+    try {
+      const { uniId, facultyIndex, courseIndex } = req.params;
+      const userId = req.user ? req.user._id : res.locals.user?._id; // Get user from either req.user or res.locals
+
+      if (!userId) {
+        return res
+          .status(401)
+          .json({ error: "You must be logged in to leave a course" });
+      }
+
+      const university = await University.findById(uniId);
+      if (!university) {
+        return res.status(404).json({ error: "University not found" });
+      }
+
+      // Check if student is enrolled
+      if (
+        !university.isStudentEnrolledInCourse(
+          parseInt(facultyIndex),
+          parseInt(courseIndex),
+          userId
+        )
+      ) {
+        return res.status(400).json({
+          error: "You are not enrolled in this course",
+        });
+      }
+
+      // Unenroll student from course
+      await university.unenrollStudentFromCourse(
+        parseInt(facultyIndex),
+        parseInt(courseIndex),
+        userId
+      );
+
+      res.json({
+        success: true,
+        message: "Successfully left the course",
+      });
+    } catch (error) {
+      console.error("Error leaving course:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
 
 module.exports = router;

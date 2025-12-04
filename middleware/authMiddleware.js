@@ -31,6 +31,9 @@ const requireAuth = (req, res, next) => {
   }
 };
 
+// Alias authMiddleware to requireAuth for compatibility
+const authMiddleware = requireAuth;
+
 // Check current user
 const checkUser = (req, res, next) => {
   const token = req.cookies.jwt;
@@ -111,4 +114,4 @@ const requireAdmin = (req, res, next) => {
   }
 };
 
-module.exports = { requireAuth, checkUser, requireAdmin };
+module.exports = { requireAuth, authMiddleware, checkUser, requireAdmin };

@@ -150,6 +150,13 @@ const universitySchema = new mongoose.Schema(
               ref: "User",
               required: true,
             },
+            // Add enrolledStudents field for course-level enrollment
+            enrolledStudents: [
+              {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+              },
+            ],
             // Course-level Posts System
             posts: {
               type: [
@@ -829,6 +836,104 @@ universitySchema.methods.canInteractWithCourse = function (
   }
 
   return true;
+};
+
+// Instance method to enroll student in course
+universitySchema.methods.enrollStudentInCourse = function (
+  facultyIndex,
+  courseIndex,
+  userId
+) {
+  const faculty = this.faculties[facultyIndex];
+  if (!faculty) {
+    throw new Error("Faculty not found");
+  }
+
+  const course = faculty.courses[courseIndex];
+  if (!course) {
+    throw new Error("Course not found");
+  }
+
+  // Initialize enrolledStudents array if it doesn't exist
+  if (!course.enrolledStudents) {
+    course.enrolledStudents = [];
+  }
+
+  // Check if student is already enrolled
+  const alreadyEnrolled = course.enrolledStudents.some(
+    (studentId) => studentId.toString() === userId.toString()
+  );
+
+  if (alreadyEnrolled) {
+    throw new Error("Student already enrolled in this course");
+  }
+
+  // Add student to course
+  course.enrolledStudents.push(userId);
+  return this.save();
+};
+
+// Instance method to unenroll student from course
+universitySchema.methods.unenrollStudentFromCourse = function (
+  facultyIndex,
+  courseIndex,
+  userId
+) {
+  const faculty = this.faculties[facultyIndex];
+  if (!faculty) {
+    throw new Error("Faculty not found");
+  }
+
+  const course = faculty.courses[courseIndex];
+  if (!course) {
+    throw new Error("Course not found");
+  }
+
+  // Check if student is enrolled
+  const studentIndex = course.enrolledStudents.findIndex(
+    (studentId) => studentId.toString() === userId.toString()
+  );
+
+  if (studentIndex === -1) {
+    throw new Error("Student not enrolled in this course");
+  }
+
+  // Remove student from course
+  course.enrolledStudents.splice(studentIndex, 1);
+
+  // Also remove student from all classrooms in this course
+  if (course.classrooms) {
+    course.classrooms.forEach((classroom) => {
+      if (classroom.students) {
+        classroom.students = classroom.students.filter(
+          (student) => student.student.toString() !== userId.toString()
+        );
+      }
+    });
+  }
+
+  return this.save();
+};
+
+// Instance method to check if user is enrolled in course
+universitySchema.methods.isStudentEnrolledInCourse = function (
+  facultyIndex,
+  courseIndex,
+  userId
+) {
+  const faculty = this.faculties[facultyIndex];
+  if (!faculty) {
+    return false;
+  }
+
+  const course = faculty.courses[courseIndex];
+  if (!course || !course.enrolledStudents) {
+    return false;
+  }
+
+  return course.enrolledStudents.some(
+    (studentId) => studentId.toString() === userId.toString()
+  );
 };
 
 // Static method to find by join code
