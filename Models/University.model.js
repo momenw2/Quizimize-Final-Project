@@ -936,6 +936,38 @@ universitySchema.methods.isStudentEnrolledInCourse = function (
   );
 };
 
+// Instance method to get faculty by index
+universitySchema.methods.getFacultyByIndex = function (facultyIndex) {
+  if (facultyIndex < 0 || facultyIndex >= this.faculties.length) {
+    throw new Error("Faculty not found");
+  }
+  return this.faculties[facultyIndex];
+};
+
+// Instance method to update faculty
+universitySchema.methods.updateFaculty = function (facultyIndex, updateData) {
+  const faculty = this.getFacultyByIndex(facultyIndex);
+
+  Object.keys(updateData).forEach((key) => {
+    if (updateData[key] !== undefined) {
+      faculty[key] = updateData[key];
+    }
+  });
+
+  faculty.updatedAt = new Date();
+  return this.save();
+};
+
+// Instance method to delete faculty
+universitySchema.methods.deleteFaculty = function (facultyIndex) {
+  if (facultyIndex < 0 || facultyIndex >= this.faculties.length) {
+    throw new Error("Faculty not found");
+  }
+
+  this.faculties.splice(facultyIndex, 1);
+  return this.save();
+};
+
 // Static method to find by join code
 universitySchema.statics.findByJoinCode = function (joinCode) {
   return this.findOne({ "settings.joinCode": joinCode.toUpperCase() });

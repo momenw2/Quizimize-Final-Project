@@ -2016,4 +2016,247 @@ router.post(
   }
 );
 
+// GET manage faculties page
+router.get("/:id/manage-faculties", requireAuth, async (req, res) => {
+  try {
+    const university = await University.findById(req.params.id);
+    const currentUser = res.locals.user;
+
+    if (!university) {
+      return res.status(404).render("error", {
+        error: "University not found",
+        user: currentUser,
+      });
+    }
+
+    if (!currentUser) {
+      return res.status(401).json({
+        error: "You must be logged in to manage faculties",
+      });
+    }
+
+    // Check if user is admin
+    const userId = currentUser._id;
+    const userRole = university.getUserRole(userId);
+
+    if (userRole !== "admin") {
+      return res.status(403).render("error", {
+        error: "Only university admins can manage faculties",
+        user: currentUser,
+      });
+    }
+
+    res.render("manageFaculties", {
+      university: university,
+      user: currentUser,
+      title: `Manage Faculties - ${university.name} - Quizmize`,
+    });
+  } catch (error) {
+    console.error("Error fetching faculties for management:", error);
+    res.status(500).render("error", {
+      error: "Failed to load faculty management",
+      user: res.locals.user,
+    });
+  }
+});
+
+// PUT update faculty
+router.put("/:id/faculties/:facultyIndex", requireAuth, async (req, res) => {
+  try {
+    const university = await University.findById(req.params.id);
+    const facultyIndex = parseInt(req.params.facultyIndex);
+    const currentUser = res.locals.user;
+
+    if (!university) {
+      return res.status(404).json({ error: "University not found" });
+    }
+
+    if (!currentUser) {
+      return res.status(401).json({
+        error: "You must be logged in to update faculties",
+      });
+    }
+
+    const { name, description, contactEmail } = req.body;
+
+    // Check if user is admin
+    const userId = currentUser._id;
+    const userRole = university.getUserRole(userId);
+
+    if (userRole !== "admin") {
+      return res.status(403).json({
+        error: "Only university admins can update faculties",
+      });
+    }
+
+    // Validate required fields
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        error: "Faculty name is required",
+      });
+    }
+
+    // Check if faculty exists
+    if (!university.faculties || university.faculties.length <= facultyIndex) {
+      return res.status(404).json({ error: "Faculty not found" });
+    }
+
+    const faculty = university.faculties[facultyIndex];
+
+    // Check if another faculty has the same name (excluding current)
+    const duplicateFaculty = university.faculties.find(
+      (fac, index) =>
+        index !== facultyIndex &&
+        fac.name.toLowerCase() === name.toLowerCase().trim()
+    );
+
+    if (duplicateFaculty) {
+      return res.status(400).json({
+        error: "Another faculty with this name already exists",
+      });
+    }
+
+    // Update faculty
+    faculty.name = name.trim();
+    faculty.description = description ? description.trim() : "";
+
+    // Update contact email if provided, remove if empty
+    if (contactEmail && contactEmail.trim()) {
+      faculty.contactEmail = contactEmail.trim().toLowerCase();
+    } else {
+      delete faculty.contactEmail;
+    }
+
+    faculty.updatedAt = new Date();
+
+    await university.save();
+
+    res.json({
+      message: "Faculty updated successfully!",
+      faculty: faculty,
+    });
+  } catch (error) {
+    console.error("Error updating faculty:", error);
+    res.status(500).json({
+      error: "Failed to update faculty",
+      details: error.message,
+    });
+  }
+});
+
+// DELETE faculty
+router.delete("/:id/faculties/:facultyIndex", requireAuth, async (req, res) => {
+  try {
+    const university = await University.findById(req.params.id);
+    const facultyIndex = parseInt(req.params.facultyIndex);
+    const currentUser = res.locals.user;
+
+    if (!university) {
+      return res.status(404).json({ error: "University not found" });
+    }
+
+    if (!currentUser) {
+      return res.status(401).json({
+        error: "You must be logged in to delete faculties",
+      });
+    }
+
+    // Check if user is admin
+    const userId = currentUser._id;
+    const userRole = university.getUserRole(userId);
+
+    if (userRole !== "admin") {
+      return res.status(403).json({
+        error: "Only university admins can delete faculties",
+      });
+    }
+
+    // Check if faculty exists
+    if (!university.faculties || university.faculties.length <= facultyIndex) {
+      return res.status(404).json({ error: "Faculty not found" });
+    }
+
+    const faculty = university.faculties[facultyIndex];
+
+    // Check if faculty has courses
+    if (faculty.courses && faculty.courses.length > 0) {
+      return res.status(400).json({
+        error:
+          "Cannot delete faculty that has courses. Please delete or move the courses first.",
+        courseCount: faculty.courses.length,
+      });
+    }
+
+    // Remove faculty
+    university.faculties.splice(facultyIndex, 1);
+
+    await university.save();
+
+    res.json({
+      message: "Faculty deleted successfully!",
+      deletedFaculty: faculty,
+    });
+  } catch (error) {
+    console.error("Error deleting faculty:", error);
+    res.status(500).json({
+      error: "Failed to delete faculty",
+      details: error.message,
+    });
+  }
+});
+
+// GET faculty details for editing
+router.get(
+  "/:id/faculties/:facultyIndex/edit",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const university = await University.findById(req.params.id);
+      const facultyIndex = parseInt(req.params.facultyIndex);
+      const currentUser = res.locals.user;
+
+      if (!university) {
+        return res.status(404).json({ error: "University not found" });
+      }
+
+      if (!currentUser) {
+        return res.status(401).json({
+          error: "You must be logged in to edit faculties",
+        });
+      }
+
+      // Check if user is admin
+      const userId = currentUser._id;
+      const userRole = university.getUserRole(userId);
+
+      if (userRole !== "admin") {
+        return res.status(403).json({
+          error: "Only university admins can edit faculties",
+        });
+      }
+
+      // Check if faculty exists
+      if (
+        !university.faculties ||
+        university.faculties.length <= facultyIndex
+      ) {
+        return res.status(404).json({ error: "Faculty not found" });
+      }
+
+      const faculty = university.faculties[facultyIndex];
+
+      res.json({
+        faculty: faculty,
+        facultyIndex: facultyIndex,
+      });
+    } catch (error) {
+      console.error("Error fetching faculty details:", error);
+      res.status(500).json({
+        error: "Failed to fetch faculty details",
+        details: error.message,
+      });
+    }
+  }
+);
+
 module.exports = router;
