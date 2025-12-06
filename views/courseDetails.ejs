@@ -443,8 +443,7 @@
               <%- include('partials/universityDetails/classroomTab', { course:
               course, user: user, isDean: isDean, university: university,
               faculty: faculty, facultyIndex: facultyIndex, courseIndex:
-              courseIndex, canManageClassroom: user._id ===
-              course.teacher.toString() || isDean }) %>
+              courseIndex, canManageClassroom: isDean }) %>
 
               <!-- Enrollment Tab Content -->
               <div class="tab-content" id="enrollment">
