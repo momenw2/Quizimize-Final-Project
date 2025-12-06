@@ -440,135 +440,19 @@
               </div>
 
               <!-- Classroom Tab Content -->
-              <div class="tab-content" id="classroom">
-                <div class="classroom-management">
-                  <!-- Add Classroom Button (Teacher or Dean Only) -->
-                  <% const canManageClassroom = user._id ===
-                  course.teacher.toString() || isDean; %> <% if
-                  (canManageClassroom) { %>
-                  <div style="margin-bottom: 1.5rem">
-                    <button
-                      id="add-classroom-btn"
-                      style="
-                        padding: 0.75rem 1.5rem;
-                        background-color: #4a90e2;
-                        color: white;
-                        border: none;
-                        border-radius: 6px;
-                        cursor: pointer;
-                        font-size: 1rem;
-                      "
-                    >
-                      🏫 Add New Classroom
-                    </button>
-                  </div>
-                  <% } %>
-
-                  <!-- Classrooms List -->
-                  <% if (course.classrooms && course.classrooms.length > 0) { %>
-                  <div class="classrooms-grid" id="classrooms-grid">
-                    <% course.classrooms.forEach((classroom, index) => { %>
-                    <div
-                      class="classroom-card"
-                      data-classroom-index="<%= index %>"
-                    >
-                      <div class="classroom-header">
-                        <div class="classroom-name">
-                          <strong><%= classroom.name %></strong>
-                        </div>
-                        <% if (classroom.section) { %>
-                        <span class="classroom-section"
-                          >Section <%= classroom.section %></span
-                        >
-                        <% } %>
-                      </div>
-
-                      <% if (classroom.schedule) { %>
-                      <div class="classroom-schedule">
-                        <div class="schedule-item">
-                          <span class="schedule-label">📅 Day:</span>
-                          <span class="schedule-value"
-                            ><%= classroom.schedule.day %></span
-                          >
-                        </div>
-                        <div class="schedule-item">
-                          <span class="schedule-label">⏰ Time:</span>
-                          <span class="schedule-value"
-                            ><%= classroom.schedule.time %></span
-                          >
-                        </div>
-                        <% if (classroom.schedule.location) { %>
-                        <div class="schedule-item">
-                          <span class="schedule-label">📍 Location:</span>
-                          <span class="schedule-value"
-                            ><%= classroom.schedule.location %></span
-                          >
-                        </div>
-                        <% } %>
-                      </div>
-                      <% } %>
-
-                      <div class="classroom-stats">
-                        <div class="stat-item">
-                          <span class="stat-label">Students:</span>
-                          <span class="stat-value">
-                            <%= classroom.students ? classroom.students.length :
-                            0 %>
-                          </span>
-                        </div>
-                        <% if (classroom.xp && classroom.xp > 0) { %>
-                        <div class="stat-item">
-                          <span class="stat-label">XP:</span>
-                          <span class="stat-value"><%= classroom.xp %></span>
-                        </div>
-                        <div class="stat-item">
-                          <span class="stat-label">Level:</span>
-                          <span class="stat-value"
-                            ><%= classroom.level || 1 %></span
-                          >
-                        </div>
-                        <% } %>
-                      </div>
-
-                      <div class="classroom-actions">
-                        <button
-                          class="classroom-action-btn join-btn"
-                          onclick="enrollInClassroom('<%= index %>')"
-                        >
-                          🚀 Join Classroom
-                        </button>
-                        <% if (canManageClassroom) { %>
-                        <button
-                          class="classroom-action-btn manage-btn"
-                          onclick="manageClassroom('<%= index %>')"
-                        >
-                          ⚙️ Manage
-                        </button>
-                        <% } %>
-                      </div>
-                    </div>
-                    <% }) %>
-                  </div>
-                  <% } else { %>
-                  <div class="no-classrooms">
-                    <div class="no-classrooms-icon">🏫</div>
-                    <h3>No Classrooms Available</h3>
-                    <p>This course doesn't have any classrooms yet.</p>
-                    <% if (canManageClassroom) { %>
-                    <p>
-                      Click "Add New Classroom" to create the first classroom
-                      for this course.
-                    </p>
-                    <% } %>
-                  </div>
-                  <% } %>
-                </div>
-              </div>
+              <%- include('partials/universityDetails/classroomTab', { course:
+              course, user: user, isDean: isDean, university: university,
+              faculty: faculty, facultyIndex: facultyIndex, courseIndex:
+              courseIndex, canManageClassroom: user._id ===
+              course.teacher.toString() || isDean }) %>
 
               <!-- Enrollment Tab Content -->
               <div class="tab-content" id="enrollment">
                 <div class="enrollment-section">
-                  <% if (canManageClassroom || (isMember && user._id !==
+                  <!-- Define canManageClassroom here since it's used in enrollment tab -->
+                  <% const canManageClassroom = user._id ===
+                  course.teacher.toString() || isDean; %> <% if
+                  (canManageClassroom || (isMember && user._id !==
                   course.teacher.toString() && !isDean)) { %>
                   <div class="info-card" style="margin-bottom: 2rem">
                     <h3 style="margin-bottom: 1rem" id="enrollment-title">

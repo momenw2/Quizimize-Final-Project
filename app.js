@@ -55,6 +55,7 @@ app.get("/facultyCourses", (req, res) => res.render("facultyCourses"));
 app.get("/courseDetails", (req, res) => res.render("courseDetails"));
 app.get("/manageCourses", (req, res) => res.render("manageCourses"));
 app.get("/manageFaculties", (req, res) => res.render("manageFaculties"));
+app.get("/classroomTab", (req, res) => res.render("classroomTab"));
 
 // ##### Admin Pages #####
 app.get("/adminDashboard", (req, res) => res.render("adminDashboardPage"));

@@ -1592,7 +1592,7 @@ router.post(
   }
 );
 
-// POST create new classroom
+// POST create new classroom - DEAN ONLY
 router.post(
   "/:id/faculties/:facultyIndex/courses/:courseIndex/create-classroom",
   requireAuth,
@@ -1614,15 +1614,7 @@ router.post(
         });
       }
 
-      // Check if user is admin
       const userId = currentUser._id;
-      const userRole = university.getUserRole(userId);
-
-      if (userRole !== "admin") {
-        return res
-          .status(403)
-          .json({ error: "Only university admins can create classrooms" });
-      }
 
       // Check if faculty and course exist
       if (
@@ -1632,10 +1624,35 @@ router.post(
         return res.status(404).json({ error: "Course not found" });
       }
 
+      const faculty = university.faculties[facultyIndex];
+
+      // ✅ FIXED: Check if user is the DEAN of this faculty
+      if (!faculty.dean) {
+        return res.status(403).json({
+          error: "No dean assigned to this faculty",
+        });
+      }
+
+      // Compare as strings to ensure proper comparison
+      const facultyDeanId = faculty.dean.toString();
+      const userIdStr = userId.toString();
+
+      console.log("Dean Check:", {
+        facultyDeanId,
+        userIdStr,
+        areEqual: facultyDeanId === userIdStr,
+      });
+
+      if (facultyDeanId !== userIdStr) {
+        return res.status(403).json({
+          error: "Only the faculty dean can create classrooms",
+        });
+      }
+
       const course = university.faculties[facultyIndex].courses[courseIndex];
 
       // Check if classroom with same name already exists
-      const existingClassroom = course.classrooms.find(
+      const existingClassroom = course.classrooms?.find(
         (c) => c.name.toLowerCase() === name.toLowerCase()
       );
       if (existingClassroom) {
@@ -1674,7 +1691,6 @@ router.post(
     }
   }
 );
-
 // Create a temporary migration route in your university.route.js
 router.get("/migrate-user-names", requireAdmin, async (req, res) => {
   try {
