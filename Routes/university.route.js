@@ -759,169 +759,171 @@ router.get("/:id/faculties/:facultyIndex/courses", async (req, res) => {
   }
 });
 
-// GET course details page
+// Route to show course details
 router.get(
-  "/:id/faculties/:facultyIndex/courses/:courseIndex",
+  "/:universityId/faculties/:facultyIndex/courses/:courseIndex",
   async (req, res) => {
     try {
-      const university = await University.findById(req.params.id);
-      const facultyIndex = parseInt(req.params.facultyIndex);
-      const courseIndex = parseInt(req.params.courseIndex);
-      const currentUser = res.locals.user;
+      const { universityId, facultyIndex, courseIndex } = req.params;
+      const user = req.user;
 
+      const university = await University.findById(universityId);
       if (!university) {
-        return res.status(404).render("error", {
-          error: "University not found",
-          user: currentUser,
-        });
+        return res.status(404).json({ error: "University not found" });
       }
 
       // Check if faculty exists
-      if (
-        !university.faculties ||
-        university.faculties.length <= facultyIndex
-      ) {
-        return res.status(404).render("error", {
-          error: "Faculty not found",
-          user: currentUser,
-        });
+      if (!university.faculties[facultyIndex]) {
+        return res.status(404).json({ error: "Faculty not found" });
       }
 
       const faculty = university.faculties[facultyIndex];
 
       // Check if course exists
-      if (!faculty.courses || faculty.courses.length <= courseIndex) {
-        return res.status(404).render("error", {
-          error: "Course not found",
-          user: currentUser,
-        });
+      if (!faculty.courses[courseIndex]) {
+        return res.status(404).json({ error: "Course not found" });
       }
 
       const course = faculty.courses[courseIndex];
 
-      // Ensure posts array exists
-      if (!course.posts) {
-        course.posts = [];
-        await university.save();
-      }
+      // Check if user is a member of the university
+      const isMember = university.isMember(user._id);
 
-      // Sort course posts by creation date (newest first)
-      course.posts.sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-      );
+      // Check if user is the dean of the faculty
+      const isDean =
+        faculty.dean && faculty.dean.toString() === user._id.toString();
 
-      // Calculate user role and membership status
-      const userId = currentUser?._id;
-      let userRole = null;
-      let isMember = false;
-      let isCourseTeacher = false;
-
-      if (userId) {
-        userRole = university.getUserRole(userId);
-        isMember = university.isMember(userId);
-        isCourseTeacher = university.isCourseTeacher(
-          facultyIndex,
-          courseIndex,
-          userId
-        );
-      }
+      // Debug log
+      console.log("Route Debug:", {
+        facultyDean: faculty.dean,
+        userId: user._id,
+        isDean: isDean,
+      });
 
       res.render("courseDetails", {
-        university: university,
-        faculty: faculty,
-        facultyIndex: facultyIndex,
-        course: course,
-        courseIndex: courseIndex,
-        user: currentUser,
-        userRole: userRole,
+        title: `${course.courseCode} - ${course.courseName}`,
+        university: {
+          _id: university._id,
+          name: university.name,
+          // Only include necessary data
+        },
+        faculty: {
+          name: faculty.name,
+          dean: faculty.dean,
+          deanName: faculty.deanName,
+          // Only include necessary data
+        },
+        facultyIndex: parseInt(facultyIndex),
+        course: {
+          courseCode: course.courseCode,
+          courseName: course.courseName,
+          description: course.description,
+          level: course.level,
+          credits: course.credits,
+          teacher: course.teacher,
+          enrolledStudents: course.enrolledStudents || [],
+          posts: course.posts || [],
+          classrooms: course.classrooms || [],
+        },
+        courseIndex: parseInt(courseIndex),
+        user: {
+          _id: user._id.toString(),
+          fullName: user.fullName || user.username,
+          // Only include necessary data
+        },
         isMember: isMember,
-        isCourseTeacher: isCourseTeacher,
-        title: `${course.courseCode} - ${course.courseName} - ${university.name} - Quizmize`,
+        isDean: isDean, // Pass the calculated value
       });
     } catch (error) {
       console.error("Error fetching course details:", error);
-      res.status(500).render("error", {
-        error: "Failed to load course details",
-        user: res.locals.user,
-      });
+      res.status(500).json({ error: "Internal server error" });
     }
   }
 );
 
-// POST create a course post (Teacher only)
+// In your course routes file
 router.post(
-  "/:id/faculties/:facultyIndex/courses/:courseIndex/posts",
-  requireAuth,
+  "/:universityId/faculties/:facultyIndex/courses/:courseIndex/posts",
   async (req, res) => {
     try {
-      const university = await University.findById(req.params.id);
-      const facultyIndex = parseInt(req.params.facultyIndex);
-      const courseIndex = parseInt(req.params.courseIndex);
-      const currentUser = res.locals.user;
+      const { universityId, facultyIndex, courseIndex } = req.params;
+      const { content, postType } = req.body;
+      const user = req.user;
 
+      console.log("POST Route - User ID:", user._id);
+      console.log("POST Route - Request body:", req.body);
+
+      if (!content || !content.trim()) {
+        return res.status(400).json({ error: "Post content is required" });
+      }
+
+      const university = await University.findById(universityId);
       if (!university) {
         return res.status(404).json({ error: "University not found" });
       }
 
-      const { content, postType } = req.body;
+      // Convert indices to numbers
+      const facultyIdx = parseInt(facultyIndex);
+      const courseIdx = parseInt(courseIndex);
 
-      if (!currentUser) {
-        return res.status(401).json({
-          error: "You must be logged in to create course posts",
+      // Check if faculty exists
+      if (!university.faculties[facultyIdx]) {
+        return res.status(404).json({ error: "Faculty not found" });
+      }
+
+      const faculty = university.faculties[facultyIdx];
+
+      console.log("POST Route - Faculty Dean ID:", faculty.dean);
+      console.log("POST Route - Faculty Dean ID type:", typeof faculty.dean);
+      console.log("POST Route - User ID:", user._id);
+      console.log("POST Route - User ID type:", typeof user._id);
+
+      // Check if user is the dean of this faculty
+      if (!faculty.dean) {
+        console.log("POST Route - No dean assigned to faculty");
+        return res.status(403).json({
+          error: "No dean assigned to this faculty",
         });
       }
 
-      const userId = currentUser._id;
-      const userName = currentUser.fullName || currentUser.username || "User";
+      // Convert both to strings for comparison
+      const facultyDeanId = faculty.dean.toString();
+      const userId = user._id.toString();
 
-      // Check if faculty and course exist
-      if (
-        !university.faculties[facultyIndex] ||
-        !university.faculties[facultyIndex].courses[courseIndex]
-      ) {
+      console.log("POST Route - Dean comparison:", {
+        facultyDeanId,
+        userId,
+        areEqual: facultyDeanId === userId,
+      });
+
+      if (facultyDeanId !== userId) {
+        return res.status(403).json({
+          error: "Only the faculty dean can create posts",
+        });
+      }
+
+      // Check if course exists
+      if (!faculty.courses[courseIdx]) {
         return res.status(404).json({ error: "Course not found" });
       }
 
-      const course = university.faculties[facultyIndex].courses[courseIndex];
-
-      // Check if user is the teacher of this course
-      if (course.teacher.toString() !== userId.toString()) {
-        return res.status(403).json({
-          error: "Only the course teacher can create posts",
-        });
-      }
-
-      if (!content || content.trim().length === 0) {
-        return res.status(400).json({
-          error: "Post content cannot be empty",
-        });
-      }
-
-      // Use the model method to create post
+      // Create the post using the model method
       await university.createCoursePost(
-        facultyIndex,
-        courseIndex,
-        userId,
-        userName,
-        content.trim(),
+        facultyIdx,
+        courseIdx,
+        user._id,
+        user.fullName || user.username || "Dean",
+        content,
         postType || "general"
       );
 
-      // Get the updated course
-      const updatedUniversity = await University.findById(req.params.id);
-      const updatedCourse =
-        updatedUniversity.faculties[facultyIndex].courses[courseIndex];
-
       res.status(201).json({
-        message: "Post created successfully!",
-        post: updatedCourse.posts[0],
+        message: "Post created successfully",
+        isDean: true,
       });
     } catch (error) {
       console.error("Error creating course post:", error);
-      res.status(500).json({
-        error: "Failed to create post",
-        details: error.message,
-      });
+      res.status(500).json({ error: "Internal server error" });
     }
   }
 );
