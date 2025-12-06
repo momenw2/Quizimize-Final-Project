@@ -116,6 +116,13 @@ const universitySchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: "User",
         },
+        deanName: {
+          type: String,
+        },
+        contactEmail: {
+          type: String,
+          trim: true,
+        },
         courses: [
           {
             courseCode: {
@@ -291,7 +298,7 @@ const universitySchema = new mongoose.Schema(
       },
     ],
 
-    // In your University.model.js, update the members schema:
+    // Members Schema
     members: [
       {
         user: {
@@ -299,12 +306,10 @@ const universitySchema = new mongoose.Schema(
           required: true,
         },
         userName: {
-          // Add this field
           type: String,
           required: true,
         },
         userEmail: {
-          // Add this field (optional)
           type: String,
         },
         role: {
@@ -662,6 +667,8 @@ universitySchema.methods.getCourseParticipants = function (
 universitySchema.methods.getAllMembersInfo = function () {
   return this.members.map((member) => ({
     userId: member.user,
+    name: member.userName,
+    email: member.userEmail,
     role: member.role,
     xp: member.xp,
     level: member.level,
@@ -968,6 +975,45 @@ universitySchema.methods.deleteFaculty = function (facultyIndex) {
   return this.save();
 };
 
+// Instance method to assign dean to faculty
+universitySchema.methods.assignDeanToFaculty = function (
+  facultyIndex,
+  deanId,
+  deanName
+) {
+  const faculty = this.getFacultyByIndex(facultyIndex);
+
+  if (deanId) {
+    faculty.dean = deanId;
+    faculty.deanName = deanName || "Dean";
+  } else {
+    faculty.dean = null;
+    faculty.deanName = null;
+  }
+
+  return this.save();
+};
+
+// Instance method to get available deans for a faculty
+universitySchema.methods.getAvailableDeans = function () {
+  // Get all university members who are admins or teachers (potential deans)
+  return this.members
+    .filter(
+      (member) =>
+        member.role === "admin" ||
+        member.role === "teacher" ||
+        member.role === "student" // You might want to restrict this
+    )
+    .map((member) => ({
+      _id: member.user,
+      name: member.userName || "User",
+      email: member.userEmail || "",
+      role: member.role,
+      level: member.level,
+      xp: member.xp,
+    }));
+};
+
 // Static method to find by join code
 universitySchema.statics.findByJoinCode = function (joinCode) {
   return this.findOne({ "settings.joinCode": joinCode.toUpperCase() });
@@ -1007,6 +1053,13 @@ universitySchema.virtual("totalCoursePosts").get(function () {
     });
   });
   return total;
+});
+
+// Virtual for faculties with deans count
+universitySchema.virtual("facultiesWithDeans").get(function () {
+  return this.faculties.filter(
+    (faculty) => faculty.dean && faculty.deanName
+  ).length;
 });
 
 // Transform output to include virtuals

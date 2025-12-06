@@ -2259,4 +2259,160 @@ router.get(
   }
 );
 
+// POST assign dean to faculty
+router.post(
+  "/:id/faculties/:facultyIndex/assign-dean",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const university = await University.findById(req.params.id);
+      const facultyIndex = parseInt(req.params.facultyIndex);
+      const { deanId } = req.body;
+      const currentUser = res.locals.user;
+
+      if (!university) {
+        return res.status(404).json({ error: "University not found" });
+      }
+
+      if (!currentUser) {
+        return res.status(401).json({
+          error: "You must be logged in to assign dean",
+        });
+      }
+
+      // Check if user is admin
+      const userId = currentUser._id;
+      const userRole = university.getUserRole(userId);
+
+      if (userRole !== "admin") {
+        return res.status(403).json({
+          error: "Only university admins can assign deans",
+        });
+      }
+
+      // Check if faculty exists
+      if (
+        !university.faculties ||
+        university.faculties.length <= facultyIndex
+      ) {
+        return res.status(404).json({ error: "Faculty not found" });
+      }
+
+      const faculty = university.faculties[facultyIndex];
+
+      // If deanId is empty/null, remove dean
+      if (!deanId || deanId.trim() === "") {
+        faculty.dean = null;
+        faculty.deanName = null;
+        await university.save();
+
+        return res.json({
+          message: "Dean removed successfully!",
+          faculty: faculty,
+        });
+      }
+
+      // Check if dean is a member of the university
+      const isMember = university.isMember(deanId);
+      if (!isMember) {
+        return res.status(400).json({
+          error: "Selected dean must be a member of this university",
+        });
+      }
+
+      // Get dean's details
+      const deanMember = university.members.find(
+        (member) => member.user.toString() === deanId.toString()
+      );
+
+      // Update dean
+      faculty.dean = deanId;
+      faculty.deanName = deanMember.userName || "Dean";
+
+      await university.save();
+
+      res.json({
+        message: "Dean assigned successfully!",
+        faculty: faculty,
+      });
+    } catch (error) {
+      console.error("Error assigning dean:", error);
+      res.status(500).json({
+        error: "Failed to assign dean",
+        details: error.message,
+      });
+    }
+  }
+);
+
+// GET available deans for a faculty
+router.get(
+  "/:id/faculties/:facultyIndex/available-deans",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const university = await University.findById(req.params.id);
+      const facultyIndex = parseInt(req.params.facultyIndex);
+      const currentUser = res.locals.user;
+
+      if (!university) {
+        return res.status(404).json({ error: "University not found" });
+      }
+
+      if (!currentUser) {
+        return res.status(401).json({
+          error: "You must be logged in to view deans",
+        });
+      }
+
+      // Check if user is admin
+      const userId = currentUser._id;
+      const userRole = university.getUserRole(userId);
+
+      if (userRole !== "admin") {
+        return res.status(403).json({
+          error: "Only university admins can view available deans",
+        });
+      }
+
+      // Check if faculty exists
+      if (
+        !university.faculties ||
+        university.faculties.length <= facultyIndex
+      ) {
+        return res.status(404).json({ error: "Faculty not found" });
+      }
+
+      // Get all university members who are teachers or admins (potential deans)
+      const potentialDeans = university.members
+        .filter(
+          (member) =>
+            member.role === "admin" ||
+            member.role === "teacher" ||
+            member.role === "student" // You might want to restrict this
+        )
+        .map((member) => ({
+          _id: member.user,
+          name: member.userName || "User",
+          email: member.userEmail || "",
+          role: member.role,
+          level: member.level,
+          xp: member.xp,
+        }));
+
+      res.json({
+        availableDeans: potentialDeans,
+        currentDean: university.faculties[facultyIndex].dean,
+        currentDeanName: university.faculties[facultyIndex].deanName,
+      });
+    } catch (error) {
+      console.error("Error fetching available deans:", error);
+      res.status(500).json({
+        error: "Failed to fetch available deans",
+        details: error.message,
+      });
+    }
+  }
+);
+
 module.exports = router;
